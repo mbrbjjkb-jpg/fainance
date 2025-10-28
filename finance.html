@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>投資信託ポートフォリオ計算ツール</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; }
+  textarea { width: 100%; height: 80px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+  th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+  button { margin: 5px; }
+  #summary { margin-top: 20px; font-weight: bold; white-space: pre-line; }
+</style>
+</head>
+<body>
+<h2>投資信託ポートフォリオ計算ツール</h2>
+<textarea id="inputText" placeholder="ここに全銘柄情報を貼り付け"></textarea>
+<button onclick="parseAllStocks()">全銘柄解析・計算</button>
+<table id="stockTable">
+  <thead>
+    <tr>
+      <th>銘柄名</th>
+      <th>購入価格</th>
+      <th>保有数</th>
+      <th>時価</th>
+      <th>損益</th>
+      <th>NISA</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+<div id="summary" tabindex="0"></div>
+<script>
+const stocks = [];
+
+function parseNumber(text) {
+  return parseFloat(text.replace(/[,+%\s]/g,''));
+}
+
+function parseAllStocks() {
+  stocks.length = 0;
+  const text = document.getElementById('inputText').value;
+  const blocks = text.split(/\n(?=チャート画像)/);
+
+  blocks.forEach(block => {
+    const nameMatch = block.match(/投信\s*\n?(.*)/);
+    if(!nameMatch) return;
+    let name = nameMatch[1].trim();
+    const purchaseMatch = block.match(/購入価格\s*\n?([0-9,\.]+)/);
+    const unitsMatch = block.match(/保有数\s*\n?([0-9,\.]+)/);
+    const marketMatch = block.match(/時価\s*\n?([0-9,\.]+)/);
+    const profitMatch = block.match(/損益\s*\n?([\+\-0-9,\.]+)/);
+    if(!purchaseMatch || !unitsMatch || !marketMatch || !profitMatch) return;
+
+    const purchasePrice = parseNumber(purchaseMatch[1]);
+    const units = parseNumber(unitsMatch[1]);
+    const marketValue = parseNumber(marketMatch[1]);
+    const profit = parseNumber(profitMatch[1]);
+
+    let isNISA = false;
+
+    // 新NISAの楽天・全米株式（保有数23.5）はNISA扱い
+    if(name.includes('楽天・全米株式インデックス･ファンド') && units === 23.5) {
+      name = '楽天・全米株式インデックス･ファンド（新NISA）';
+      isNISA = true;
+    }
+    // 旧NISAの楽天・全米株式（保有数53.2）はNISA扱い
+    if(name.includes('楽天・全米株式インデックス･ファンド') && units === 53.2) {
+      name = '楽天・全米株式インデックス･ファンド（旧NISA）';
+      isNISA = true;
+    }
+    // その他NISA表記はそのまま
+    if(name.includes('NISA')) isNISA = true;
+
+    stocks.push({name, purchasePrice, units, marketValue, profit, isNISA});
+  });
+
+  renderTable();
+  calculateTotal();
+  document.getElementById('summary').focus();
+}
+
+function renderTable() {
+  const tbody = document.querySelector('#stockTable tbody');
+  tbody.innerHTML = '';
+  for(const s of stocks) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${s.name}</td><td>${s.purchasePrice.toLocaleString()}円</td><td>${s.units}</td><td>${s.marketValue.toLocaleString()}円</td><td>${s.profit.toLocaleString()}円</td><td>${s.isNISA ? 'NISA':'課税'}</td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+function calculateTotal() {
+  let totalMarket = 0;
+  let totalPurchase = 0;
+  let totalProfit = 0;
+  let taxableProfit = 0;
+  let nisaProfit = 0;
+  const TAX_RATE = 0.2; // 表示用は20%
+
+  for(const s of stocks) {
+    totalMarket += s.marketValue;
+    totalPurchase += s.purchasePrice * s.units;
+    totalProfit += s.profit;
+    if(s.isNISA) nisaProfit += s.profit;
+    else taxableProfit += s.profit;
+  }
+
+  const tax = Math.round(taxableProfit * TAX_RATE);
+  const afterTaxProfit = Math.round(totalProfit - tax);
+  const afterTaxMarket = Math.round(totalMarket - tax);
+
+  const summaryDiv = document.getElementById('summary');
+  summaryDiv.innerText =
+    `合計時価: ${Math.round(totalMarket).toLocaleString()}円（ 総損益: ${Math.round(totalProfit).toLocaleString()}円 ＋購入価格: ${Math.round(totalPurchase).toLocaleString()}円）\n\n` +
+    `課税対象利益: ${Math.round(taxableProfit).toLocaleString()}円\n` +
+    `(想定税額20%: ${tax.toLocaleString()}円）\n` +
+    `※NISA利益(非課税): ${Math.round(nisaProfit).toLocaleString()}円\n` +
+    `税引き利益: ${afterTaxProfit.toLocaleString()}円\n\n` +
+    `税引き後合計時価: ${afterTaxMarket.toLocaleString()}円`;
+}
+</script>
+</body>
+</html>
