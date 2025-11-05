@@ -25,6 +25,7 @@
       <th>時価</th>
       <th>損益</th>
       <th>NISA</th>
+      <th>投資期間</th>
     </tr>
   </thead>
   <tbody></tbody>
@@ -37,9 +38,19 @@ function parseNumber(text) {
   return parseFloat(text.replace(/[,+%\s]/g,''));
 }
 
+function calculatePeriod(start, end) {
+  const startDate = new Date(start);
+  const endDate = end ? new Date(end) : new Date();
+  let years = endDate.getFullYear() - startDate.getFullYear();
+  let months = endDate.getMonth() - startDate.getMonth();
+  if(months < 0) { years -=1; months += 12; }
+  return `${startDate.getFullYear()}/${('0'+(startDate.getMonth()+1)).slice(-2)}〜${end ? (endDate.getFullYear()+'/'+('0'+(endDate.getMonth()+1)).slice(-2)) : '現在まで'}（${years}年${months}か月）`;
+}
+
 function parseAllStocks() {
   stocks.length = 0;
-  const text = document.getElementById('inputText').value;
+  const inputField = document.getElementById('inputText');
+  const text = inputField.value;
   const blocks = text.split(/\n(?=チャート画像)/);
 
   blocks.forEach(block => {
@@ -58,20 +69,39 @@ function parseAllStocks() {
     const profit = parseNumber(profitMatch[1]);
 
     let isNISA = false;
+    let periodStart = null;
+    let periodEnd = null;
+
     if(name.includes('楽天・全米株式インデックス･ファンド') && units === 23.5) {
       name = '楽天・全米株式インデックス･ファンド（新NISA）';
       isNISA = true;
+      periodStart = '2024-01-01';
     }
     if(name.includes('楽天・全米株式インデックス･ファンド') && units === 53.2) {
       name = '楽天・全米株式インデックス･ファンド（旧NISA）';
       isNISA = true;
+      periodStart = '2021-05-01';
+      periodEnd = '2023-12-31';
     }
-    if(name.includes('NISA')) isNISA = true;
+    if(name.includes('セゾン･グローバルバランスファンド')) {
+      periodStart = '2017-05-01';
+    }
+    if(name.includes('ひふみ投信')) {
+      periodStart = '2016-06-01';
+    }
+    if(name.includes('iシェアーズ 米国株式')) {
+      periodStart = '2017-05-01';
+      periodEnd = '2021-04-30';
+    }
 
     const profitPercent = ((profit / (purchasePrice * units)) * 100).toFixed(2);
+    const period = periodStart ? calculatePeriod(periodStart, periodEnd) : '不明';
 
-    stocks.push({name, purchasePrice, units, marketValue, profit, profitPercent, isNISA});
+    stocks.push({name, purchasePrice, units, marketValue, profit, profitPercent, isNISA, period});
   });
+
+  // 入力フォームをクリア
+  document.getElementById('inputText').value = '';
 
   renderTable();
   calculateTotal();
@@ -83,7 +113,7 @@ function renderTable() {
   tbody.innerHTML = '';
   for(const s of stocks) {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${s.name}</td><td>${s.purchasePrice.toLocaleString()}円</td><td>${s.units}</td><td>${s.marketValue.toLocaleString()}円</td><td>${s.profit.toLocaleString()}円 (+${s.profitPercent}%)</td><td>${s.isNISA ? 'NISA':'課税'}</td>`;
+    tr.innerHTML = `<td>${s.name}</td><td>${s.purchasePrice.toLocaleString()}円</td><td>${s.units}</td><td>${s.marketValue.toLocaleString()}円</td><td>${s.profit.toLocaleString()}円 (+${s.profitPercent}%)</td><td>${s.isNISA ? 'NISA':'課税'}</td><td>${s.period}</td>`;
     tbody.appendChild(tr);
   }
 }
