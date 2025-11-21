@@ -31,6 +31,7 @@
   <tbody></tbody>
 </table>
 <div id="summary" tabindex="0"></div>
+
 <script>
 const stocks = [];
 
@@ -57,10 +58,12 @@ function parseAllStocks() {
     const nameMatch = block.match(/投信\s*\n?(.*)/);
     if(!nameMatch) return;
     let name = nameMatch[1].trim();
+
     const purchaseMatch = block.match(/購入価格\s*\n?([0-9,\.]+)/);
     const unitsMatch = block.match(/保有数\s*\n?([0-9,\.]+)/);
     const marketMatch = block.match(/時価\s*\n?([0-9,\.]+)/);
     const profitMatch = block.match(/損益\s*\n?([\+\-0-9,\.]+)/);
+
     if(!purchaseMatch || !unitsMatch || !marketMatch || !profitMatch) return;
 
     const purchasePrice = parseNumber(purchaseMatch[1]);
@@ -72,17 +75,27 @@ function parseAllStocks() {
     let periodStart = null;
     let periodEnd = null;
 
-    if(name.includes('楽天・全米株式インデックス･ファンド') && units === 23.5) {
-      name = '楽天・全米株式インデックス･ファンド（新NISA）';
-      isNISA = true;
-      periodStart = '2024-01-01';
+    /* ===========================
+       楽天VTI：新旧NISAの明確な判定
+       ・53.2口 → 旧NISA（固定）
+       ・それ以外 → 新NISA
+       =========================== */
+    if (name.includes('楽天・全米株式インデックス･ファンド')) {
+
+      if (units === 53.2) {
+        name = '楽天・全米株式インデックス･ファンド（旧NISA）';
+        isNISA = true;
+        periodStart = '2021-05-01';
+        periodEnd = '2023-12-31';
+
+      } else {
+        name = '楽天・全米株式インデックス･ファンド（新NISA）';
+        isNISA = true;
+        periodStart = '2024-01-01';
+      }
     }
-    if(name.includes('楽天・全米株式インデックス･ファンド') && units === 53.2) {
-      name = '楽天・全米株式インデックス･ファンド（旧NISA）';
-      isNISA = true;
-      periodStart = '2021-05-01';
-      periodEnd = '2023-12-31';
-    }
+
+    /* その他ファンドの期間設定 */
     if(name.includes('セゾン･グローバルバランスファンド')) {
       periodStart = '2017-05-01';
     }
@@ -100,7 +113,6 @@ function parseAllStocks() {
     stocks.push({name, purchasePrice, units, marketValue, profit, profitPercent, isNISA, period});
   });
 
-  // 入力フォームをクリア
   document.getElementById('inputText').value = '';
 
   renderTable();
@@ -137,6 +149,7 @@ function calculateTotal() {
   const tax = Math.round(taxableProfit * TAX_RATE);
   const afterTaxProfit = Math.round(totalProfit - tax);
   const afterTaxMarket = Math.round(totalMarket - tax);
+
   const totalProfitPercent = ((totalProfit / totalPurchase) * 100).toFixed(2);
 
   const summaryDiv = document.getElementById('summary');
@@ -151,6 +164,3 @@ function calculateTotal() {
 </script>
 </body>
 </html>
-
-
-
