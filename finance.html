@@ -340,45 +340,177 @@ function calculateTotal() {
       (totalProfit / totalPurchase) * 100
     ).toFixed(2);
 
-  /* =========================
-     18年目シミュレーション
-     （ひふみ投信基準）
-  ========================= */
+/* =========================
+   16年目シミュレーション
+   （ひふみ投信基準）
+========================= */
 
-  const hifumiStart =
-    new Date('2016-06-01');
+const hifumiStart =
+  new Date('2016-06-01');
 
-  const now = new Date();
+const now = new Date();
 
-  const elapsedYears =
-    (now.getFullYear() -
-      hifumiStart.getFullYear()) +
+const elapsedYears =
+  (now.getFullYear() -
+    hifumiStart.getFullYear()) +
 
+  (
+    (now.getMonth() -
+      hifumiStart.getMonth()) / 12
+  );
+
+const remainingYears =
+  Math.max(16 - elapsedYears, 0);
+
+/* =========================
+   毎月積立設定
+========================= */
+
+const monthlyInvestment = 73000;
+
+const monthlyNISA = 33000;
+
+const monthlyTaxable =
+  monthlyInvestment - monthlyNISA;
+
+/* =========================
+   月利
+========================= */
+
+const monthlyRate7 = 0.07 / 12;
+const monthlyRate8 = 0.08 / 12;
+const monthlyRate9 = 0.09 / 12;
+
+const months =
+  Math.round(remainingYears * 12);
+
+/* =========================
+   現在資産の複利
+========================= */
+
+const currentFuture7 =
+  totalMarket *
+  Math.pow(1.07, remainingYears);
+
+const currentFuture8 =
+  totalMarket *
+  Math.pow(1.08, remainingYears);
+
+const currentFuture9 =
+  totalMarket *
+  Math.pow(1.09, remainingYears);
+
+/* =========================
+   積立部分（NISA）
+========================= */
+
+const nisaFuture7 =
+  monthlyNISA *
+  (
     (
-      (now.getMonth() -
-        hifumiStart.getMonth()) / 12
-    );
+      Math.pow(1 + monthlyRate7, months) - 1
+    ) / monthlyRate7
+  );
 
-  const remainingYears =
-    Math.max(16 - elapsedYears, 0);
+const nisaFuture8 =
+  monthlyNISA *
+  (
+    (
+      Math.pow(1 + monthlyRate8, months) - 1
+    ) / monthlyRate8
+  );
 
-  const future7 =
-    Math.round(
-      afterTaxMarket *
-      Math.pow(1.07, remainingYears)
-    );
+const nisaFuture9 =
+  monthlyNISA *
+  (
+    (
+      Math.pow(1 + monthlyRate9, months) - 1
+    ) / monthlyRate9
+  );
 
-  const future8 =
-    Math.round(
-      afterTaxMarket *
-      Math.pow(1.08, remainingYears)
-    );
+/* =========================
+   積立部分（課税口座）
+========================= */
 
-  const future9 =
-    Math.round(
-      afterTaxMarket *
-      Math.pow(1.09, remainingYears)
-    );
+const taxableFuture7BeforeTax =
+  monthlyTaxable *
+  (
+    (
+      Math.pow(1 + monthlyRate7, months) - 1
+    ) / monthlyRate7
+  );
+
+const taxableFuture8BeforeTax =
+  monthlyTaxable *
+  (
+    (
+      Math.pow(1 + monthlyRate8, months) - 1
+    ) / monthlyRate8
+  );
+
+const taxableFuture9BeforeTax =
+  monthlyTaxable *
+  (
+    (
+      Math.pow(1 + monthlyRate9, months) - 1
+    ) / monthlyRate9
+  );
+
+/* =========================
+   課税口座の利益部分に20%課税
+========================= */
+
+const taxablePrincipal =
+  monthlyTaxable * months;
+
+const taxableProfit7 =
+  taxableFuture7BeforeTax -
+  taxablePrincipal;
+
+const taxableProfit8 =
+  taxableFuture8BeforeTax -
+  taxablePrincipal;
+
+const taxableProfit9 =
+  taxableFuture9BeforeTax -
+  taxablePrincipal;
+
+const taxableFuture7 =
+  taxablePrincipal +
+  (taxableProfit7 * 0.8);
+
+const taxableFuture8 =
+  taxablePrincipal +
+  (taxableProfit8 * 0.8);
+
+const taxableFuture9 =
+  taxablePrincipal +
+  (taxableProfit9 * 0.8);
+
+/* =========================
+   合計
+========================= */
+
+const future7 =
+  Math.round(
+    currentFuture7 +
+    nisaFuture7 +
+    taxableFuture7
+  );
+
+const future8 =
+  Math.round(
+    currentFuture8 +
+    nisaFuture8 +
+    taxableFuture8
+  );
+
+const future9 =
+  Math.round(
+    currentFuture9 +
+    nisaFuture9 +
+    taxableFuture9
+  );
 
   /* =========================
      表示
@@ -401,9 +533,9 @@ function calculateTotal() {
 ================================
 16年目予想金額(税引き後合計時価)（2016/06〜2032/06基準）残り約${remainingYears.toFixed(1)}年
 ================================
-年利7%:${future7.toLocaleString()}円
-年利8%:${future8.toLocaleString()}円
-年利9%:${future9.toLocaleString()}円`;
+年利7%:${future7.toLocaleString()}円（NISA積立含む）
+年利8%:${future8.toLocaleString()}円（NISA積立含む）
+年利9%:${future9.toLocaleString()}円（NISA積立含む）`;
 
 }
 
