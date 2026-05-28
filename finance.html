@@ -3,19 +3,76 @@
 <head>
 <meta charset="UTF-8">
 <title>投資信託ポートフォリオ計算ツール</title>
+
 <style>
-  body { font-family: Arial, sans-serif; padding: 20px; }
-  textarea { width: 100%; height: 80px; }
-  table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-  th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-  button { margin: 5px; }
-  #summary { margin-top: 20px; font-weight: bold; white-space: pre-line; }
+  body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    background: #f7f7f7;
+  }
+
+  h2 {
+    margin-bottom: 10px;
+  }
+
+  textarea {
+    width: 100%;
+    height: 100px;
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  button {
+    margin-top: 10px;
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background: white;
+  }
+
+  th, td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: center;
+  }
+
+  th {
+    background: #efefef;
+  }
+
+  #summary {
+    margin-top: 20px;
+    padding: 15px;
+    background: white;
+    border: 1px solid #ccc;
+    font-weight: bold;
+    white-space: pre-line;
+    line-height: 1.8;
+  }
+
+  .highlight {
+    color: #006400;
+    font-size: 16px;
+  }
 </style>
 </head>
+
 <body>
+
 <h2>投資信託ポートフォリオ計算ツール</h2>
+
 <textarea id="inputText" placeholder="ここに全銘柄情報を貼り付け"></textarea>
+
+<br>
+
 <button onclick="parseAllStocks()">全銘柄解析・計算</button>
+
 <table id="stockTable">
   <thead>
     <tr>
@@ -28,139 +85,329 @@
       <th>投資期間</th>
     </tr>
   </thead>
+
   <tbody></tbody>
 </table>
+
 <div id="summary" tabindex="0"></div>
 
 <script>
+
 const stocks = [];
 
+/* =========================
+   数値変換
+========================= */
 function parseNumber(text) {
-  return parseFloat(text.replace(/[,+%\s]/g,''));
+  return parseFloat(
+    text.replace(/[,+%\s]/g, '')
+  );
 }
 
+/* =========================
+   投資期間表示
+========================= */
 function calculatePeriod(start, end) {
+
   const startDate = new Date(start);
   const endDate = end ? new Date(end) : new Date();
-  let years = endDate.getFullYear() - startDate.getFullYear();
-  let months = endDate.getMonth() - startDate.getMonth();
-  if(months < 0) { years -=1; months += 12; }
-  return `${startDate.getFullYear()}/${('0'+(startDate.getMonth()+1)).slice(-2)}〜${end ? (endDate.getFullYear()+'/'+('0'+(endDate.getMonth()+1)).slice(-2)) : '現在まで'}（${years}年${months}か月）`;
+
+  let years =
+    endDate.getFullYear() -
+    startDate.getFullYear();
+
+  let months =
+    endDate.getMonth() -
+    startDate.getMonth();
+
+  if(months < 0) {
+    years -= 1;
+    months += 12;
+  }
+
+  return `${startDate.getFullYear()}/${('0'+(startDate.getMonth()+1)).slice(-2)}〜${
+    end
+      ? (endDate.getFullYear()+'/'+('0'+(endDate.getMonth()+1)).slice(-2))
+      : '現在まで'
+  }（${years}年${months}か月）`;
 }
 
+/* =========================
+   全銘柄解析
+========================= */
 function parseAllStocks() {
+
   stocks.length = 0;
-  const inputField = document.getElementById('inputText');
+
+  const inputField =
+    document.getElementById('inputText');
+
   const text = inputField.value;
-  const blocks = text.split(/\n(?=チャート画像)/);
+
+  const blocks =
+    text.split(/\n(?=チャート画像)/);
 
   blocks.forEach(block => {
-    const nameMatch = block.match(/投信\s*\n?(.*)/);
+
+    const nameMatch =
+      block.match(/投信\s*\n?(.*)/);
+
     if(!nameMatch) return;
+
     let name = nameMatch[1].trim();
 
-    const purchaseMatch = block.match(/購入価格\s*\n?([0-9,\.]+)/);
-    const unitsMatch = block.match(/保有数\s*\n?([0-9,\.]+)/);
-    const marketMatch = block.match(/時価\s*\n?([0-9,\.]+)/);
-    const profitMatch = block.match(/損益\s*\n?([\+\-0-9,\.]+)/);
+    const purchaseMatch =
+      block.match(/購入価格\s*\n?([0-9,\.]+)/);
 
-    if(!purchaseMatch || !unitsMatch || !marketMatch || !profitMatch) return;
+    const unitsMatch =
+      block.match(/保有数\s*\n?([0-9,\.]+)/);
 
-    const purchasePrice = parseNumber(purchaseMatch[1]);
-    const units = parseNumber(unitsMatch[1]);
-    const marketValue = parseNumber(marketMatch[1]);
-    const profit = parseNumber(profitMatch[1]);
+    const marketMatch =
+      block.match(/時価\s*\n?([0-9,\.]+)/);
+
+    const profitMatch =
+      block.match(/損益\s*\n?([\+\-0-9,\.]+)/);
+
+    if(
+      !purchaseMatch ||
+      !unitsMatch ||
+      !marketMatch ||
+      !profitMatch
+    ) return;
+
+    const purchasePrice =
+      parseNumber(purchaseMatch[1]);
+
+    const units =
+      parseNumber(unitsMatch[1]);
+
+    const marketValue =
+      parseNumber(marketMatch[1]);
+
+    const profit =
+      parseNumber(profitMatch[1]);
 
     let isNISA = false;
     let periodStart = null;
     let periodEnd = null;
 
-    /* ===========================
-       楽天VTI：新旧NISAの明確な判定
-       ・53.2口 → 旧NISA（固定）
-       ・それ以外 → 新NISA
-       =========================== */
-    if (name.includes('楽天・全米株式インデックス･ファンド')) {
+    /* =========================
+       楽天VTI判定
+    ========================= */
+    if(name.includes('楽天・全米株式インデックス･ファンド')) {
 
-      if (units === 53.2) {
-        name = '楽天・全米株式インデックス･ファンド（旧NISA）';
+      if(units === 53.2) {
+
+        name =
+          '楽天・全米株式インデックス･ファンド（旧NISA）';
+
         isNISA = true;
+
         periodStart = '2021-05-01';
         periodEnd = '2023-12-31';
 
       } else {
-        name = '楽天・全米株式インデックス･ファンド（新NISA）';
+
+        name =
+          '楽天・全米株式インデックス･ファンド（新NISA）';
+
         isNISA = true;
+
         periodStart = '2024-01-01';
       }
     }
 
-    /* その他ファンドの期間設定 */
+    /* =========================
+       その他ファンド
+    ========================= */
+
     if(name.includes('セゾン･グローバルバランスファンド')) {
       periodStart = '2017-05-01';
     }
+
     if(name.includes('ひふみ投信')) {
       periodStart = '2016-06-01';
     }
+
     if(name.includes('iシェアーズ 米国株式')) {
       periodStart = '2017-05-01';
       periodEnd = '2021-04-30';
     }
 
-    const profitPercent = ((profit / (purchasePrice * units)) * 100).toFixed(2);
-    const period = periodStart ? calculatePeriod(periodStart, periodEnd) : '不明';
+    const profitPercent =
+      (
+        (profit / (purchasePrice * units)) * 100
+      ).toFixed(2);
 
-    stocks.push({name, purchasePrice, units, marketValue, profit, profitPercent, isNISA, period});
+    const period =
+      periodStart
+        ? calculatePeriod(periodStart, periodEnd)
+        : '不明';
+
+    stocks.push({
+      name,
+      purchasePrice,
+      units,
+      marketValue,
+      profit,
+      profitPercent,
+      isNISA,
+      period
+    });
+
   });
 
   document.getElementById('inputText').value = '';
 
   renderTable();
   calculateTotal();
+
   document.getElementById('summary').focus();
 }
 
+/* =========================
+   テーブル描画
+========================= */
 function renderTable() {
-  const tbody = document.querySelector('#stockTable tbody');
+
+  const tbody =
+    document.querySelector('#stockTable tbody');
+
   tbody.innerHTML = '';
+
   for(const s of stocks) {
+
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${s.name}</td><td>${s.purchasePrice.toLocaleString()}円</td><td>${s.units}</td><td>${s.marketValue.toLocaleString()}円</td><td>${s.profit.toLocaleString()}円 (+${s.profitPercent}%)</td><td>${s.isNISA ? 'NISA':'課税'}</td><td>${s.period}</td>`;
+
+    tr.innerHTML = `
+      <td>${s.name}</td>
+      <td>${s.purchasePrice.toLocaleString()}円</td>
+      <td>${s.units}</td>
+      <td>${s.marketValue.toLocaleString()}円</td>
+      <td>
+        ${s.profit.toLocaleString()}円
+        (+${s.profitPercent}%)
+      </td>
+      <td>${s.isNISA ? 'NISA' : '課税'}</td>
+      <td>${s.period}</td>
+    `;
+
     tbody.appendChild(tr);
   }
 }
 
+/* =========================
+   合計計算
+========================= */
 function calculateTotal() {
+
   let totalMarket = 0;
   let totalPurchase = 0;
   let totalProfit = 0;
+
   let taxableProfit = 0;
   let nisaProfit = 0;
+
   const TAX_RATE = 0.2;
 
   for(const s of stocks) {
+
     totalMarket += s.marketValue;
-    totalPurchase += s.purchasePrice * s.units;
+
+    totalPurchase +=
+      s.purchasePrice * s.units;
+
     totalProfit += s.profit;
-    if(s.isNISA) nisaProfit += s.profit;
-    else taxableProfit += s.profit;
+
+    if(s.isNISA) {
+      nisaProfit += s.profit;
+    } else {
+      taxableProfit += s.profit;
+    }
   }
 
-  const tax = Math.round(taxableProfit * TAX_RATE);
-  const afterTaxProfit = Math.round(totalProfit - tax);
-  const afterTaxMarket = Math.round(totalMarket - tax);
+  const tax =
+    Math.round(taxableProfit * TAX_RATE);
 
-  const totalProfitPercent = ((totalProfit / totalPurchase) * 100).toFixed(2);
+  const afterTaxProfit =
+    Math.round(totalProfit - tax);
 
-  const summaryDiv = document.getElementById('summary');
+  const afterTaxMarket =
+    Math.round(totalMarket - tax);
+
+  const totalProfitPercent =
+    (
+      (totalProfit / totalPurchase) * 100
+    ).toFixed(2);
+
+  /* =========================
+     18年目シミュレーション
+     （ひふみ投信基準）
+  ========================= */
+
+  const hifumiStart =
+    new Date('2016-06-01');
+
+  const now = new Date();
+
+  const elapsedYears =
+    (now.getFullYear() -
+      hifumiStart.getFullYear()) +
+
+    (
+      (now.getMonth() -
+        hifumiStart.getMonth()) / 12
+    );
+
+  const remainingYears =
+    Math.max(16 - elapsedYears, 0);
+
+  const future7 =
+    Math.round(
+      afterTaxMarket *
+      Math.pow(1.07, remainingYears)
+    );
+
+  const future8 =
+    Math.round(
+      afterTaxMarket *
+      Math.pow(1.08, remainingYears)
+    );
+
+  const future9 =
+    Math.round(
+      afterTaxMarket *
+      Math.pow(1.09, remainingYears)
+    );
+
+  /* =========================
+     表示
+  ========================= */
+
+  const summaryDiv =
+    document.getElementById('summary');
+
   summaryDiv.innerText =
-    `合計時価: ${Math.round(totalMarket).toLocaleString()}円（ 総損益: ${Math.round(totalProfit).toLocaleString()}円 (+${totalProfitPercent}%) ＋購入価格: ${Math.round(totalPurchase).toLocaleString()}円）\n\n` +
-    `課税対象利益: ${Math.round(taxableProfit).toLocaleString()}円\n` +
-    `(想定税額20%: ${tax.toLocaleString()}円）\n` +
-    `※NISA利益(非課税): ${Math.round(nisaProfit).toLocaleString()}円\n` +
-    `税引き利益: ${afterTaxProfit.toLocaleString()}円\n\n` +
-    `税引き後合計時価: ${afterTaxMarket.toLocaleString()}円`;
+
+`合計時価:${Math.round(totalMarket).toLocaleString()}円（ 総損益:${Math.round(totalProfit).toLocaleString()}円(+${totalProfitPercent}%)＋購入価格:${Math.round(totalPurchase).toLocaleString()}円）
+--------------------------------
+課税対象利益:${Math.round(taxableProfit).toLocaleString()}円
+（想定税額20%:${tax.toLocaleString()}円）
+※NISA利益（非課税）:${Math.round(nisaProfit).toLocaleString()}円
+税引き利益:${afterTaxProfit.toLocaleString()}円
+--------------------------------
+税引き後合計時価:${afterTaxMarket.toLocaleString()}円
+
+================================
+16年目予想金額(税引き後合計時価)（2016/06〜2032/06基準）残り約${remainingYears.toFixed(1)}年
+================================
+年利7%:${future7.toLocaleString()}円
+年利8%:${future8.toLocaleString()}円
+年利9%:${future9.toLocaleString()}円`;
+
 }
+
 </script>
+
 </body>
 </html>
