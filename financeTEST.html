@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>投資信託タイムラインシミュレーター & 埋込ダッシュボード</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    padding: 20px;
+    background: #f4f6f9;
+    max-width: 1300px;
+    margin: 0 auto;
+    color: #333;
+  }
+  h2, h3 {
+    margin-bottom: 15px;
+    color: #2c3e50;
+  }
+  
+  /* 5つの商品埋め込みダッシュボード */
+  .fund-cards-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 25px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .fund-card {
+    flex: 1;
+    min-width: 180px;
+    background: white;
+    border: 1px solid #e1e8ed;
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 250px;
+    box-sizing: border-box;
+  }
+  .fund-card-title {
+    font-size: 12px;
+    font-weight: bold;
+    color: #4a5568;
+    line-height: 1.4;
+    height: 35px;
+  }
+  .fund-card-price {
+    font-size: 18px;
+    font-weight: bold;
+    color: #1a202c;
+    margin: 5px 0 2px 0;
+  }
+  .fund-card-profit {
+    font-size: 11px;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+  .profit-plus { color: #2f855a; }
+  .profit-minus { color: #c53030; }
+  
+  .mini-chart-container {
+    height: 120px;
+    width: 100%;
+    position: relative;
+  }
+
+  /* メインレイアウト */
+  .card {
+    background: white;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  textarea {
+    width: 100%;
+    height: 100px;
+    padding: 10px;
+    font-size: 14px;
+    box-sizing: border-box;
+    border: 1px solid #cbd5e0;
+    border-radius: 4px;
+  }
+  button.action-btn {
+    margin-top: 10px;
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+  }
+  button.action-btn:hover {
+    background-color: #218838;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    background: white;
+  }
+  th, td {
+    border: 1px solid #e2e8f0;
+    padding: 8px;
+    text-align: center;
+    font-size: 13px;
+  }
+  th {
+    background: #edf2f7;
+    color: #4a5568;
+  }
+  .flex-container {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .flex-child {
+    flex: 1;
+    min-width: 300px;
+  }
+  .chart-container {
+    position: relative;
+    height: 450px;
+    width: 100%;
+  }
+  #summary {
+    padding: 15px;
+    background: #f7fafc;
+    border: 1px solid #e2e8f0;
+    font-weight: bold;
+    white-space: pre-line;
+    line-height: 1.6;
+    font-size: 13px;
+    border-radius: 4px;
+  }
+  .label-desc {
+    font-size: 12px;
+    color: #718096;
+    margin-bottom: 10px;
+  }
+</style>
+</head>
+<body>
+
+<h2>投資信託タイムラインシミュレーター & 埋込ダッシュボード</h2>
+
+<!-- 最上部：5つの指定商品カード型表示エリア -->
+<div class="fund-cards-container">
+  <!-- カード1：ひふみ投信 -->
+  <div class="fund-card" id="card-hifumi">
+    <div>
+      <div class="fund-card-title">ひふみ投信</div>
+      <div class="fund-card-price" id="price-hifumi">-,--- 円</div>
+      <div class="fund-card-profit" id="profit-hifumi">-</div>
+    </div>
+    <div class="mini-chart-container">
+      <img src="https://chart.yahoo.co.jp/?code=9C311166&tm=1y&size=m" referrerpolicy="no-referrer" style="width:100%; height:100%; object-fit:contain;" alt="ひふみ投信チャート">
+    </div>
+  </div>
+  
+  <!-- カード2：セゾンGBF -->
+  <div class="fund-card" id="card-saison">
+    <div>
+      <div class="fund-card-title">セゾン･グローバルバランスF</div>
+      <div class="fund-card-price" id="price-saison">-,--- 円</div>
+      <div class="fund-card-profit" id="profit-saison">-</div>
+    </div>
+    <div class="mini-chart-container">
+      <img src="https://chart.yahoo.co.jp/?code=9D311063&tm=1y&size=m" referrerpolicy="no-referrer" style="width:100%; height:100%; object-fit:contain;" alt="セゾンチャート">
+    </div>
+  </div>
+
+  <!-- カード3：楽天VTI（新NISA） -->
+  <div class="fund-card" id="card-vti-new">
+    <div>
+      <div class="fund-card-title">楽天・全米株式（新NISA）</div>
+      <div class="fund-card-price" id="price-vti-new">-,--- 円</div>
+      <div class="fund-card-profit" id="profit-vti-new">-</div>
+    </div>
+    <div class="mini-chart-container">
+      <img src="https://chart.yahoo.co.jp/?code=9I311179&tm=1y&size=m" referrerpolicy="no-referrer" style="width:100%; height:100%; object-fit:contain;" alt="楽天VTI新チャート">
+    </div>
+  </div>
+
+  <!-- カード4：iシェアーズ 米国株式 -->
+  <div class="fund-card" id="card-ishares">
+    <div>
+      <div class="fund-card-title">iシェアーズ 米国株式(S&P500)</div>
+      <div class="fund-card-price" id="price-ishares">-,--- 円</div>
+      <div class="fund-card-profit" id="profit-ishares">-</div>
+    </div>
+    <div class="mini-chart-container">
+      <img src="https://chart.yahoo.co.jp/?code=9431113B&tm=1y&size=m" referrerpolicy="no-referrer" style="width:100%; height:100%; object-fit:contain;" alt="iシェアーズチャート">
+    </div>
+  </div>
+
+  <!-- カード5：楽天VTI（旧NISA） -->
+  <div class="fund-card" id="card-vti-old">
+    <div>
+      <div class="fund-card-title">楽天・全米株式（旧NISA）</div>
+      <div class="fund-card-price" id="price-vti-old">-,--- 円</div>
+      <div class="fund-card-profit" id="profit-vti-old">-</div>
+    </div>
+    <div class="mini-chart-container">
+      <img src="https://chart.yahoo.co.jp/?code=9I311179&tm=1y&size=m" referrerpolicy="no-referrer" style="width:100%; height:100%; object-fit:contain;" alt="楽天VTI旧チャート">
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>1. ポートフォリオデータの更新（コピペ入力）</h3>
+  <p class="label-desc">※新しい月次データを貼り付けて「解析・計算」を押すと、上部カードおよび下のグラフが自動更新されます。</p>
+  <textarea id="inputText" placeholder="ここに全銘柄の資産情報を貼り付け"></textarea>
+  <button class="action-btn" onclick="parseAllStocks()">全銘柄解析・計算</button>
+</div>
+
+<div class="flex-container">
+  <div class="flex-child" style="flex: 2;">
+    <div class="card">
+      <h3>2. 保有銘柄一覧（2026年6月 基準）</h3>
+      <table id="stockTable">
+        <thead>
+          <tr>
+            <th>銘柄名</th>
+            <th>購入単価</th>
+            <th>保有数(万口)</th>
+            <th>時価(現在)</th>
+            <th>損益</th>
+            <th>区分</th>
+            <th>投資期間</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="flex-child" style="flex: 1;">
+    <div class="card">
+      <h3>3. 現在の資産状況</h3>
+      <div id="summary">データ読み込み中...</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>4. 過去の実績と今後のシミュレーション（連続折れ線グラフ）</h3>
+  <div class="chart-container">
+    <canvas id="timeLineChart"></canvas>
+  </div>
+</div>
+
+<script>
+// 2026年6月の基準デフォルトデータ
+const defaultStocks = [
+  {
+    name: 'ひふみ投信',
+    purchasePrice: 53719,
+    units: 67.6,
+    marketValue: 6800762.8,
+    profit: 3169358.4,
+    profitPercent: '87.28',
+    isNISA: false,
+    periodStart: '2016-06-01',
+    periodEnd: '2026-06-01',
+    periodText: '2016/06〜2026/06（10年0か月）'
+  },
+  {
+    name: 'セゾン･グローバルバランスファンド',
+    purchasePrice: 16707,
+    units: 83.8,
+    marketValue: 2759198.8,
+    profit: 1359152.2,
+    profitPercent: '97.08',
+    isNISA: false,
+    periodStart: '2017-05-01',
+    periodEnd: '2026-06-01',
+    periodText: '2017/05〜2026/06（9年1か月）'
+  },
+  {
+    name: '楽天・全米株式インデックス･ファンド（新NISA）',
+    purchasePrice: 32700,
+    units: 29.2,
+    marketValue: 1318000.4,
+    profit: 363160.4,
+    profitPercent: '38.03',
+    isNISA: true,
+    periodStart: '2024-01-01',
+    periodEnd: '2026-06-01',
+    periodText: '2024/01〜2026/06（2年5か月）'
+  },
+  {
+    name: 'iシェアーズ 米国株式(S&P500)インデックスF',
+    purchasePrice: 20478,
+    units: 70.3,
+    marketValue: 5920244.2,
+    profit: 4480640.8,
+    profitPercent: '311.24',
+    isNISA: false,
+    periodStart: '2017-05-01',
+    periodEnd: '2021-04-01',
+    periodText: '2017/05〜2021/04（3年11か月）'
+  },
+  {
+    name: '楽天・全米株式インデックス･ファンド（旧NISA）',
+    purchasePrice: 19834,
+    units: 53.2,
+    marketValue: 2401288.4,
+    profit: 1346119.6,
+    profitPercent: '127.57',
+    isNISA: true,
+    periodStart: '2021-05-01',
+    periodEnd: '2023-12-01',
+    periodText: '2021/05〜2023/12（2年7か月）'
+  }
+];
+
+let stocks = [...defaultStocks];
+let myChart = null;
+let priceHistory = null; // 外部JSONからロードされる価格履歴を保持
+
+window.onload = function() {
+  loadPriceHistoryAndInit();
+};
+
+/* =========================
+   prices.jsonの非同期読み込みと初期化
+========================= */
+function loadPriceHistoryAndInit() {
+  fetch('prices.json')
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('prices.json が見つからないか、読み込めません。');
+      }
+      return response.json();
+    })
+    .then(data => {
+      priceHistory = data; // グローバル変数に格納
+      initSystem();
+    })
+    .catch(error => {
+      console.error(error);
+      document.getElementById('summary').innerText = 
+        `【エラー】prices.jsonの読み込みに失敗しました。\n` +
+        `GitHub Pages上の同一リポジトリに prices.json が配置されているか確認してください。`;
+    });
+}
+
+function initSystem() {
+  renderTable();
+  const totals = calculateCurrentTotals();
+  renderSummary(totals);
+  updateDashboardCards();
+  generateAndRenderChart(totals);
+}
+
+/* =========================
+   数値パース用
+========================= */
+function parseNumber(text) {
+  return parseFloat(text.replace(/[,円+%\s]/g, ''));
+}
+
+/* =========================
+   コピペテキスト解析 (月1回の手動補正)
+========================= */
+function parseAllStocks() {
+  const text = document.getElementById('inputText').value.trim();
+  if (!text) return;
+
+  const parsedStocks = [];
+  const lines = text.split('\n');
+
+  lines.forEach(line => {
+    if (!line.trim()) return;
+
+    if (line.includes('ひふみ投信') || line.includes('セゾン') || line.includes('楽天・全米') || line.includes('iシェアーズ')) {
+      const parts = line.split('\t');
+      if (parts.length >= 5) {
+        const name = parts[0].trim();
+        const purchasePrice = parseNumber(parts[1]);
+        const units = parseNumber(parts[2]);
+        const marketValue = parseNumber(parts[3]);
+        const profitParts = parts[4].split('(');
+        const profit = parseNumber(profitParts[0]);
+        const profitPercent = profitParts[1] ? profitParts[1].replace(/[)\s+%]/g, '') : '0';
+        const isNISA = parts[5] ? parts[5].includes('NISA') : false;
+        
+        let periodText = parts[6] || '';
+        let periodStart = '2016-06-01';
+        let periodEnd = '2026-06-01';
+        
+        if (name.includes('ひふみ')) periodStart = '2016-06-01';
+        if (name.includes('セゾン')) periodStart = '2017-05-01';
+        if (name.includes('新NISA')) periodStart = '2024-01-01';
+        if (name.includes('iシェアーズ')) {
+          periodStart = '2017-05-01';
+          periodEnd = '2021-04-01';
+        }
+        if (name.includes('旧NISA')) {
+          periodStart = '2021-05-01';
+          periodEnd = '2023-12-01';
+        }
+
+        parsedStocks.push({
+          name,
+          purchasePrice,
+          units,
+          marketValue,
+          profit,
+          profitPercent,
+          isNISA,
+          periodStart,
+          periodEnd,
+          periodText
+        });
+      }
+    }
+  });
+
+  if (parsedStocks.length > 0) {
+    stocks = parsedStocks;
+    initSystem();
+    document.getElementById('inputText').value = '';
+  } else {
+    alert("銘柄データを正しく読み取れませんでした。フォーマットを確認してください。");
+  }
+}
+
+/* =========================
+   テーブル描画
+========================= */
+function renderTable() {
+  const tbody = document.querySelector('#stockTable tbody');
+  tbody.innerHTML = '';
+  stocks.forEach(s => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="text-align:left; font-weight:bold;">${s.name}</td>
+      <td>${Math.round(s.purchasePrice).toLocaleString()}円</td>
+      <td>${s.units}</td>
+      <td>${Math.round(s.marketValue).toLocaleString()}円</td>
+      <td style="color:${s.profit >= 0 ? 'green' : 'red'}">
+        ${Math.round(s.profit).toLocaleString()}円<br>(${s.profit >= 0 ? '+' : ''}${s.profitPercent}%)
+      </td>
+      <td>${s.isNISA ? 'NISA' : '課税'}</td>
+      <td style="font-size:11px; color:#555;">${s.periodText}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+/* =========================
+   最上部ダッシュボードの価格および損益の更新
+========================= */
+function updateDashboardCards() {
+  const cardMapping = {
+    'ひふみ投信': { priceId: 'price-hifumi', profitId: 'profit-hifumi' },
+    'セゾン･グローバルバランス': { priceId: 'price-saison', profitId: 'profit-saison' },
+    '新NISA': { priceId: 'price-vti-new', profitId: 'profit-vti-new' },
+    'iシェアーズ': { priceId: 'price-ishares', profitId: 'profit-ishares' },
+    '旧NISA': { priceId: 'price-vti-old', profitId: 'profit-vti-old' }
+  };
+
+  stocks.forEach(s => {
+    let key = '';
+    if (s.name.includes('ひふみ')) key = 'ひふみ投信';
+    else if (s.name.includes('セゾン')) key = 'セゾン･グローバルバランス';
+    else if (s.name.includes('新NISA')) key = '新NISA';
+    else if (s.name.includes('iシェアーズ')) key = 'iシェアーズ';
+    else if (s.name.includes('旧NISA')) key = '旧NISA';
+
+    if (key && cardMapping[key]) {
+      const config = cardMapping[key];
+      const currentPricePerTenThousand = (s.marketValue / (s.units * 100)) * 10000;
+      
+      document.getElementById(config.priceId).innerText = `${Math.round(currentPricePerTenThousand).toLocaleString()} 円`;
+      
+      const profitVal = parseFloat(s.profitPercent);
+      const profitEl = document.getElementById(config.profitId);
+      profitEl.innerText = `現在損益: ${profitVal >= 0 ? '+' : ''}${s.profitPercent}%`;
+      profitEl.className = `fund-card-profit ${profitVal >= 0 ? 'profit-plus' : 'profit-minus'}`;
+    }
+  });
+}
+
+/* =========================
+   現在の総時価総額等の計算
+========================= */
+function calculateCurrentTotals() {
+  let totalMarket = 0;
+  let totalPurchase = 0;
+  let totalProfit = 0;
+  let taxableProfit = 0;
+  let nisaProfit = 0;
+
+  stocks.forEach(s => {
+    totalMarket += s.marketValue;
+    totalPurchase += s.purchasePrice * s.units * 100;
+    totalProfit += s.profit;
+    if (s.isNISA) {
+      nisaProfit += s.profit;
+    } else {
+      taxableProfit += s.profit;
+    }
+  });
+
+  const TAX_RATE = 0.2;
+  const tax = Math.round(taxableProfit * TAX_RATE);
+  const afterTaxMarket = totalMarket - tax;
+
+  return {
+    totalMarket,
+    totalPurchase,
+    totalProfit,
+    taxableProfit,
+    nisaProfit,
+    tax,
+    afterTaxMarket
+  };
+}
+
+function renderSummary(totals) {
+  const summaryDiv = document.getElementById('summary');
+  const profitPercent = ((totals.totalProfit / totals.totalPurchase) * 100).toFixed(2);
+  summaryDiv.innerText = `合計時価総額: ${Math.round(totals.totalMarket).toLocaleString()}円
+（元本: ${Math.round(totals.totalPurchase).toLocaleString()}円 / 損益: +${Math.round(totals.totalProfit).toLocaleString()}円 [${profitPercent}%]）
+---------------------------------
+うち課税利益: ${Math.round(totals.taxableProfit).toLocaleString()}円
+想定税額(20%): ${totals.tax.toLocaleString()}円
+非課税(NISA)利益: ${Math.round(totals.nisaProfit).toLocaleString()}円
+---------------------------------
+税引き後評価額: ${Math.round(totals.afterTaxMarket).toLocaleString()}円`;
+}
+
+/* =========================
+   時系列・折れ線グラフ生成（prices.jsonの実数値を使用）
+========================= */
+function generateAndRenderChart(totals) {
+  if (!priceHistory) return;
+
+  const startDate = new Date('2016-06-01');
+  const now = new Date('2026-06-01');
+  const endDate = new Date('2036-06-01');
+
+  const labels = [];
+  const pastData = [];
+  const pastPurchaseData = [];
+  const future7Data = [];
+  const future8Data = [];
+  const future9Data = [];
+  const futurePurchaseData = [];
+
+  // 2016-06 から 2036-06 までの全日付ラベルを生成（月次）
+  let current = new Date(startDate);
+  while (current <= endDate) {
+    const yyyymm = `${current.getFullYear()}-${('0' + (current.getMonth() + 1)).slice(-2)}`;
+    labels.push(yyyymm);
+    current.setMonth(current.getMonth() + 1);
+  }
+
+  const monthsPast = 120; // 過去10年間
+
+  // 銘柄キーとJSONデータのマッピング関係
+  const nameToJsonKeyMap = {
+    'ひふみ投信': 'hifumi',
+    'セゾン･グローバルバランスファンド': 'saison',
+    '楽天・全米株式インデックス･ファンド（新NISA）': 'rakuten_vti',
+    'iシェアーズ 米国株式(S&P500)インデックスF': 'ishares',
+    '楽天・全米株式インデックス･ファンド（旧NISA）': 'rakuten_vti'
+  };
+
+  // --- 1. 過去の実績・元本推移の計算 ---
+  for (let i = 0; i <= monthsPast; i++) {
+    let monthlyTotalMarket = 0;
+    let monthlyTotalPurchase = 0;
+    
+    const targetDate = new Date(startDate);
+    targetDate.setMonth(targetDate.getMonth() + i);
+    const dateStr = `${targetDate.getFullYear()}-${('0' + (targetDate.getMonth() + 1)).slice(-2)}-01`;
+
+    stocks.forEach(s => {
+      const pStart = new Date(s.periodStart);
+      const pEnd = new Date(s.periodEnd);
+      
+      // 投資期間前ならスキップ
+      if (targetDate < pStart) return;
+
+      const totalMonths = (pEnd.getFullYear() - pStart.getFullYear()) * 12 + (pEnd.getMonth() - pStart.getMonth());
+      let currentMonths = (targetDate.getFullYear() - pStart.getFullYear()) * 12 + (targetDate.getMonth() - pStart.getMonth());
+
+      let currentUnits = 0;
+      let currentPurchase = 0;
+
+      // 1. 口数と元本(投資額)を、期間中の等速直線積立モデルで計算
+      if (targetDate >= pEnd) {
+        currentUnits = s.units;
+        currentPurchase = s.purchasePrice * s.units * 100;
+      } else {
+        currentUnits = (s.units / totalMonths) * currentMonths;
+        currentPurchase = ((s.purchasePrice * s.units * 100) / totalMonths) * currentMonths;
+      }
+
+      // 2. prices.json から当時の「本物（毎月1日）」の基準価額を取得
+      let currentPrice = s.purchasePrice / 100; // デフォルト初期値
+      
+      if (priceHistory[dateStr]) {
+        const jsonKey = nameToJsonKeyMap[s.name];
+        if (jsonKey && priceHistory[dateStr][jsonKey] !== undefined) {
+          currentPrice = priceHistory[dateStr][jsonKey] / 100; // 1口あたりの価格に変換
+        }
+      }
+
+      // 3. 時価と元本を合算
+      monthlyTotalMarket += currentUnits * 100 * currentPrice;
+      monthlyTotalPurchase += currentPurchase;
+    });
+
+    pastData.push(Math.round(monthlyTotalMarket));
+    pastPurchaseData.push(Math.round(monthlyTotalPurchase));
+
+    future7Data.push(null);
+    future8Data.push(null);
+    future9Data.push(null);
+    futurePurchaseData.push(null);
+  }
+
+  // --- 2. 未来シミュレーションの計算 (2026年6月〜2036年6月) ---
+  const currentTotalMarket = totals.totalMarket;
+  const currentTotalPurchase = totals.totalPurchase;
+  
+  const monthlyInvestment = 73000;
+  const monthlyNISA = 33000;
+  const monthlyTaxable = monthlyInvestment - monthlyNISA;
+
+  const monthsFuture = 120;
+
+  // 2026年6月を実績値と予測値の結合点にする
+  future7Data[monthsPast] = Math.round(totals.afterTaxMarket);
+  future8Data[monthsPast] = Math.round(totals.afterTaxMarket);
+  future9Data[monthsPast] = Math.round(totals.afterTaxMarket);
+  futurePurchaseData[monthsPast] = Math.round(currentTotalPurchase);
+
+  const taxableRatio = (currentTotalMarket - totals.nisaProfit) / currentTotalMarket;
+
+  for (let j = 1; j <= monthsFuture; j++) {
+    const elapsedYears = j / 12;
+
+    const simulateForRate = (annualRate) => {
+      const monthlyRate = annualRate / 12;
+      const futureCurrent = currentTotalMarket * Math.pow(1 + annualRate, elapsedYears);
+      const futureNisaAccum = monthlyNISA * ((Math.pow(1 + monthlyRate, j) - 1) / monthlyRate);
+
+      const taxablePrincipal = monthlyTaxable * j;
+      const futureTaxableBefore = monthlyTaxable * ((Math.pow(1 + monthlyRate, j) - 1) / monthlyRate);
+      const taxableProfit = Math.max(0, futureTaxableBefore - taxablePrincipal);
+      const futureTaxableAfter = taxablePrincipal + (taxableProfit * 0.8);
+
+      const grossTotal = futureCurrent + futureNisaAccum + futureTaxableBefore;
+      
+      const originalProfit = Math.max(0, futureCurrent - currentTotalPurchase);
+      const estimatedTaxOnOriginal = originalProfit * taxableRatio * 0.2;
+
+      return Math.round(grossTotal - estimatedTaxOnOriginal);
+    };
+
+    pastData.push(null);
+    pastPurchaseData.push(null);
+
+    future7Data.push(simulateForRate(0.07));
+    future8Data.push(simulateForRate(0.08));
+    future9Data.push(simulateForRate(0.09));
+    futurePurchaseData.push(Math.round(currentTotalPurchase + (monthlyInvestment * j)));
+  }
+
+  const ctx = document.getElementById('timeLineChart').getContext('2d');
+  
+  if (myChart) {
+    myChart.destroy();
+  }
+
+  myChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: '過去資産実績 (実線)',
+          data: pastData,
+          borderColor: 'rgba(40, 167, 69, 1)',
+          backgroundColor: 'rgba(40, 167, 69, 0.1)',
+          borderWidth: 3,
+          fill: true,
+          tension: 0.15,
+          pointRadius: 0
+        },
+        {
+          label: '過去投資額累計 (実線)',
+          data: pastPurchaseData,
+          borderColor: 'rgba(160, 174, 192, 1)',
+          borderWidth: 2,
+          fill: false,
+          tension: 0.1,
+          pointRadius: 0
+        },
+        {
+          label: '今後の投資額累計 (点線)',
+          data: futurePurchaseData,
+          borderColor: 'rgba(160, 174, 192, 1)',
+          borderWidth: 2,
+          borderDash: [5, 5],
+          fill: false,
+          tension: 0.1,
+          pointRadius: 0
+        },
+        {
+          label: '10年予測 年利7% (点線)',
+          data: future7Data,
+          borderColor: 'rgba(255, 159, 64, 1)',
+          borderWidth: 2,
+          borderDash: [5, 5],
+          fill: false,
+          tension: 0.05,
+          pointRadius: 0
+        },
+        {
+          label: '10年予測 年利8% (点線)',
+          data: future8Data,
+          borderColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 2,
+          borderDash: [5, 5],
+          fill: false,
+          tension: 0.05,
+          pointRadius: 0
+        },
+        {
+          label: '10年予測 年利9% (点線)',
+          data: future9Data,
+          borderColor: 'rgba(235, 54, 54, 1)',
+          borderWidth: 2,
+          borderDash: [5, 5],
+          fill: false,
+          tension: 0.05,
+          pointRadius: 0
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      scales: {
+        x: {
+          grid: {
+            color: 'rgba(0, 0, 0, 0.03)'
+          },
+          ticks: {
+            maxTicksLimit: 20,
+            font: { size: 10 }
+          }
+        },
+        y: {
+          ticks: {
+            callback: function(value) {
+              return (value / 10000).toLocaleString() + '万円';
+            }
+          }
+        }
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              let label = context.dataset.label.split(' (')[0] || '';
+              if (label) {
+                label += ': ';
+              }
+              if (context.parsed.y !== null) {
+                label += Math.round(context.parsed.y).toLocaleString() + ' 円';
+              }
+              return label;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+</script>
+
+</body>
+</html>
