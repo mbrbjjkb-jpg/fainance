@@ -387,36 +387,55 @@ function initBaseSystem() {
 }
 
 /* =========================
-   外部JSONファイルの非同期ロードとグラフ描画（多重安全ネットチェーン）
+   外部JSONファイルの非同期ロードとグラフ描画（try-catch デバッグ版）
 ========================= */
 function loadPriceHistoryAndRenderChart() {
   const totals = calculateCurrentTotals();
   writeLog("外部データファイルの読み込みを開始します...");
 
-  // 網①：prices.json の探索
+  // 1. prices.json の探索
   fetch('prices.json')
     .then(r => r.ok ? r.json() : Promise.reject("prices.json 404"))
     .then(data => {
       priceHistory = data;
-      writeLog("【成功】prices.json からデータを読み込みました。グラフを描画します。");
-      generateAndRenderChart(totals);
+      writeLog("【成功】prices.json からデータを読み込みました。");
+      try {
+        generateAndRenderChart(totals);
+        writeLog("【成功】prices.json のデータでグラフ描画に成功しました。");
+      } catch (chartErr) {
+        writeLog(`【グラフ描画エラー】prices.json での描画中に例外が発生しました: ${chartErr.message}`);
+        console.error(chartErr);
+      }
     })
     .catch(() => {
-      // 網②：prices_past.json の探索
+      // 2. prices_past.json の探索
       writeLog("prices.json が見つからないため、prices_past.json を探索します...");
       fetch('prices_past.json')
         .then(r => r.ok ? r.json() : Promise.reject("prices_past.json 404"))
         .then(data => {
           priceHistory = data;
-          writeLog("【成功】prices_past.json からデータを読み込みました。グラフを描画します。");
-          generateAndRenderChart(totals);
+          writeLog("【成功】prices_past.json からデータを読み込みました。");
+          
+          // 描画処理を try-catch で囲み、エラーが Fetch の catch に漏れるのを防ぐ
+          try {
+            generateAndRenderChart(totals);
+            writeLog("【成功】prices_past.json のデータでグラフ描画に成功しました。");
+          } catch (chartErr) {
+            writeLog(`【グラフ描画エラー】prices_past.json での描画中に例外が発生しました: ${chartErr.message}`);
+            console.error(chartErr);
+          }
         })
         .catch(err => {
-          // 網③：すべての読み込みが失敗した場合は、デモモード（模擬データ）でグラフを強制起動
-          writeLog("【警告】外部データが読み込めません（CORS制限、またはファイル未配置）。自動デモモードで起動します。");
+          // ここは純粋に「ファイルが存在しない / CORSで弾かれた」時だけが通る安全弁
+          writeLog("【警告】外部データファイルがサーバー上に存在しないか、読み込めません。自動デモモードで起動します。");
           showLocalWarning();
           priceHistory = generateMockPrices();
-          generateAndRenderChart(totals);
+          try {
+            generateAndRenderChart(totals);
+            writeLog("【成功】デモデータでグラフ描画に成功しました。");
+          } catch (demoErr) {
+            writeLog(`【デモ描画エラー】デモデータでの描画中にも例外が発生しました: ${demoErr.message}`);
+          }
         });
     });
 }
@@ -909,9 +928,13 @@ function generateAndRenderChart(totals) {
       plugins: {
         legend: {
           labels: {
-            filter: function(item, chart) {
-              const dataset = chart.data.datasets[item.datasetIndex];
-              return !dataset.hideInLegend;
+            filter: function(item, data) {
+              // 第2引数のdata（chart.data）から安全にデータセットを参照するよう修正
+              if (data && data.datasets && data.datasets[item.datasetIndex]) {
+                const dataset = data.datasets[item.datasetIndex];
+                return !dataset.hideInLegend;
+              }
+              return true;
             }
           }
         },
