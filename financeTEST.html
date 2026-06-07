@@ -147,12 +147,24 @@
     background-color: #fffaf0;
     border-left: 4px solid #dd6b20;
     color: #dd6b20;
-    padding: 10px;
+    padding: 12px;
     margin-bottom: 15px;
     font-size: 13px;
     border-radius: 4px;
     font-weight: bold;
     line-height: 1.5;
+  }
+  .debug-log {
+    background-color: #1a202c;
+    color: #a0aec0;
+    font-family: monospace;
+    padding: 15px;
+    border-radius: 6px;
+    font-size: 11px;
+    max-height: 120px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    border: 1px solid #2d3748;
   }
 </style>
 </head>
@@ -268,6 +280,11 @@
   </div>
 </div>
 
+<div class="card">
+  <h3>5. システムデバッグログ</h3>
+  <div class="debug-log" id="debugLog">[システムログ起動]</div>
+</div>
+
 <script>
 // 2026年6月の基準デフォルトポートフォリオデータ
 const defaultStocks = [
@@ -337,47 +354,83 @@ let stocks = [...defaultStocks];
 let myChart = null;
 let priceHistory = null; 
 
+// デバッグログ出力
+function writeLog(message) {
+  const logEl = document.getElementById('debugLog');
+  if (logEl) {
+    logEl.innerText += `\n[${new Date().toLocaleTimeString()}] ${message}`;
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+}
+
 window.onload = function() {
-  loadPriceHistoryAndInit();
+  // 1. プログレッシブ設計：まずはローカルデータだけで金額サマリーを即時描画（1ミリ秒で立ち上がりフリーズを防ぐ）
+  try {
+    initBaseSystem();
+    writeLog("【成功】基本表示システム（サマリーとテーブル）が即時起動しました。");
+  } catch (e) {
+    writeLog(`【エラー】基本画面の描画中にエラーが発生しました: ${e.message}`);
+  }
+
+  // 2. その後、裏側で外部価格データをロードしにいってグラフを描く
+  loadPriceHistoryAndRenderChart();
 };
 
 /* =========================
-   外部JSONファイルの非同期読み込み ＆ 結合処理（頑健性強化版）
+   基本表示の即時レンダリング
 ========================= */
-function loadPriceHistoryAndInit() {
-  // prices.json（以前の単一ファイル）または prices_past.json ＆ prices_daily.json のどれがあっても動くように3つ同時フェッチ
-  Promise.all([
-    fetch('prices.json').then(r => r.ok ? r.json() : null).catch(() => null),
-    fetch('prices_past.json').then(r => r.ok ? r.json() : null).catch(() => null),
-    fetch('prices_daily.json').then(r => r.ok ? r.json() : null).catch(() => null)
-  ])
-  .then(([singleData, pastData, dailyData]) => {
-    // データのマージ処理（単一ファイルがあればそれを優先、無ければ分割ファイルをマージ）
-    if (singleData) {
-      priceHistory = singleData;
-    } else if (pastData || dailyData) {
-      priceHistory = Object.assign({}, pastData || {}, dailyData || {});
-    } else {
-      throw new Error("価格データ（JSONファイル）が読み込めませんでした。");
-    }
-    initSystem();
-  })
-  .catch(error => {
-    console.warn("CORSブロック、またはJSONファイルが見つかりません。テスト用模擬データで起動します。");
-    showLocalWarning();
-    priceHistory = generateMockPrices();
-    initSystem();
-  });
+function initBaseSystem() {
+  renderTable();
+  const totals = calculateCurrentTotals();
+  renderSummary(totals);
+  updateDashboardCards();
+}
+
+/* =========================
+   外部JSONファイルの非同期ロードとグラフ描画（多重安全ネットチェーン）
+========================= */
+function loadPriceHistoryAndRenderChart() {
+  const totals = calculateCurrentTotals();
+  writeLog("外部データファイルの読み込みを開始します...");
+
+  // 網①：prices.json の探索
+  fetch('prices.json')
+    .then(r => r.ok ? r.json() : Promise.reject("prices.json 404"))
+    .then(data => {
+      priceHistory = data;
+      writeLog("【成功】prices.json からデータを読み込みました。グラフを描画します。");
+      generateAndRenderChart(totals);
+    })
+    .catch(() => {
+      // 網②：prices_past.json の探索
+      writeLog("prices.json が見つからないため、prices_past.json を探索します...");
+      fetch('prices_past.json')
+        .then(r => r.ok ? r.json() : Promise.reject("prices_past.json 404"))
+        .then(data => {
+          priceHistory = data;
+          writeLog("【成功】prices_past.json からデータを読み込みました。グラフを描画します。");
+          generateAndRenderChart(totals);
+        })
+        .catch(err => {
+          // 網③：すべての読み込みが失敗した場合は、デモモード（模擬データ）でグラフを強制起動
+          writeLog("【警告】外部データが読み込めません（CORS制限、またはファイル未配置）。自動デモモードで起動します。");
+          showLocalWarning();
+          priceHistory = generateMockPrices();
+          generateAndRenderChart(totals);
+        });
+    });
 }
 
 function showLocalWarning() {
   const errorArea = document.getElementById('errorArea');
-  errorArea.innerHTML = `
-    <div class="error-banner">
-      【テストデモモード起動中】ローカルファイル（file://）環境、またはJSONデータの読み込みエラーを検知したため、仮の模擬データでグラフを描画しています。<br>
-      GitHub Pages等のWebサーバーに「index.html」「prices.json（または prices_past.json）」を一緒にアップロードすると、自動的に本物のデータでの表示に切り替わります。
-    </div>
-  `;
+  if (errorArea) {
+    errorArea.innerHTML = `
+      <div class="error-banner">
+        【テストデモモード起動中】ローカルファイル（file://）環境、または価格ファイル（prices.json）の読み込みエラーを検知したため、仮の模擬データで過去実績をシミュレーションしています。<br>
+        GitHub PagesなどのWebサーバーに「index.html」と「prices.json（または prices_past.json）」を一緒にアップロードすると、自動的に本物の実データ表示に切り替わります。
+      </div>
+    `;
+  }
 }
 
 /* =========================
@@ -404,12 +457,11 @@ function generateMockPrices() {
   return mock;
 }
 
-function initSystem() {
-  renderTable();
-  const totals = calculateCurrentTotals();
-  renderSummary(totals);
-  updateDashboardCards();
-  generateAndRenderChart(totals);
+/* =========================
+   数値パース用
+========================= */
+function parseNumber(text) {
+  return parseFloat(text.replace(/[,円+%\s]/g, ''));
 }
 
 /* =========================
@@ -471,8 +523,10 @@ function parseAllStocks() {
 
   if (parsedStocks.length > 0) {
     stocks = parsedStocks;
-    initSystem();
+    initBaseSystem();
+    loadPriceHistoryAndRenderChart();
     document.getElementById('inputText').value = '';
+    writeLog("【成功】手動コピペから情報を再計算しました。");
   } else {
     alert("銘柄データを正しく読み取れませんでした。フォーマットを確認してください。");
   }
@@ -483,6 +537,7 @@ function parseAllStocks() {
 ========================= */
 function renderTable() {
   const tbody = document.querySelector('#stockTable tbody');
+  if (!tbody) return;
   tbody.innerHTML = '';
   stocks.forEach(s => {
     const tr = document.createElement('tr');
@@ -525,12 +580,15 @@ function updateDashboardCards() {
       const config = cardMapping[key];
       const currentPricePerTenThousand = s.marketValue / s.units;
       
-      document.getElementById(config.priceId).innerText = `${Math.round(currentPricePerTenThousand).toLocaleString()} 円`;
+      const elPrice = document.getElementById(config.priceId);
+      if (elPrice) elPrice.innerText = `${Math.round(currentPricePerTenThousand).toLocaleString()} 円`;
       
       const profitVal = parseFloat(s.profitPercent);
       const profitEl = document.getElementById(config.profitId);
-      profitEl.innerText = `現在損益: ${profitVal >= 0 ? '+' : ''}${s.profitPercent}%`;
-      profitEl.className = `fund-card-profit ${profitVal >= 0 ? 'profit-plus' : 'profit-minus'}`;
+      if (profitEl) {
+        profitEl.innerText = `現在損益: ${profitVal >= 0 ? '+' : ''}${s.profitPercent}%`;
+        profitEl.className = `fund-card-profit ${profitVal >= 0 ? 'profit-plus' : 'profit-minus'}`;
+      }
     }
   });
 }
@@ -547,7 +605,6 @@ function calculateCurrentTotals() {
 
   stocks.forEach(s => {
     totalMarket += s.marketValue;
-    // 単位を統一（1円単位）
     totalPurchase += s.units * s.purchasePrice;
     totalProfit += s.profit;
     if (s.isNISA) {
@@ -574,6 +631,7 @@ function calculateCurrentTotals() {
 
 function renderSummary(totals) {
   const summaryDiv = document.getElementById('summary');
+  if (!summaryDiv) return;
   const profitPercent = ((totals.totalProfit / totals.totalPurchase) * 100).toFixed(2);
   summaryDiv.innerText = `合計時価総額: ${Math.round(totals.totalMarket).toLocaleString()}円
 （元本: ${Math.round(totals.totalPurchase).toLocaleString()}円 / 損益: +${Math.round(totals.totalProfit).toLocaleString()}円 [${profitPercent}%]）
@@ -598,7 +656,7 @@ function generateAndRenderChart(totals) {
   const labels = [];
   const pastData = [];
   const pastPurchaseData = [];
-  const pastProfitData = []; // 過去の純損益データセット
+  const pastProfitData = []; 
   const future7Data = [];
   const future8Data = [];
   const future9Data = [];
@@ -652,12 +710,10 @@ function generateAndRenderChart(totals) {
 
       let currentPrice = s.purchasePrice; 
       
-      // 厳重なヌルセーフチェックを行いながらJSONデータにアクセス
       const jsonKey = nameToJsonKeyMap[s.name];
       if (priceHistory && priceHistory[dateStr] && jsonKey && priceHistory[dateStr][jsonKey] !== undefined) {
         currentPrice = priceHistory[dateStr][jsonKey];
       } else {
-        // フォールバック（データがない月は、積立開始価格から現在地まで線形に上昇したとみなして補間する）
         const currentPriceTarget = s.marketValue / s.units;
         const startPrice = s.purchasePrice;
         const fullHistoryMonths = (now.getFullYear() - pStart.getFullYear()) * 12 + (now.getMonth() - pStart.getMonth());
@@ -667,15 +723,14 @@ function generateAndRenderChart(totals) {
         }
       }
 
-      monthlyTotalMarket += currentUnits * currentPrice;
-      monthlyTotalPurchase += currentPurchase;
+      monthlyTotalMarket += (currentUnits || 0) * (currentPrice || 0);
+      monthlyTotalPurchase += (currentPurchase || 0);
     });
 
-    pastData.push(Math.round(monthlyTotalMarket));
-    pastPurchaseData.push(Math.round(monthlyTotalPurchase));
+    pastData.push(Math.round(monthlyTotalMarket) || 0);
+    pastPurchaseData.push(Math.round(monthlyTotalPurchase) || 0);
     
-    // 評価損益（評価時価 − 投資額）
-    pastProfitData.push(Math.round(monthlyTotalMarket - monthlyTotalPurchase));
+    pastProfitData.push(Math.round(monthlyTotalMarket - monthlyTotalPurchase) || 0);
 
     future7Data.push(null);
     future8Data.push(null);
@@ -693,12 +748,12 @@ function generateAndRenderChart(totals) {
 
   const monthsFuture = 120;
 
-  future7Data[monthsPast] = Math.round(totals.afterTaxMarket);
-  future8Data[monthsPast] = Math.round(totals.afterTaxMarket);
-  future9Data[monthsPast] = Math.round(totals.afterTaxMarket);
-  futurePurchaseData[monthsPast] = Math.round(currentTotalPurchase);
+  future7Data[monthsPast] = Math.round(totals.afterTaxMarket) || 0;
+  future8Data[monthsPast] = Math.round(totals.afterTaxMarket) || 0;
+  future9Data[monthsPast] = Math.round(totals.afterTaxMarket) || 0;
+  futurePurchaseData[monthsPast] = Math.round(currentTotalPurchase) || 0;
 
-  const taxableRatio = (currentTotalMarket - totals.nisaProfit) / currentTotalMarket;
+  const taxableRatio = currentTotalMarket > 0 ? (currentTotalMarket - totals.nisaProfit) / currentTotalMarket : 0.5;
 
   for (let j = 1; j <= monthsFuture; j++) {
     const elapsedYears = j / 12;
@@ -731,6 +786,7 @@ function generateAndRenderChart(totals) {
   }
 
   const ctx = document.getElementById('timeLineChart').getContext('2d');
+  if (!ctx) return;
   
   if (myChart) {
     myChart.destroy();
@@ -764,13 +820,13 @@ function generateAndRenderChart(totals) {
         },
         {
           label: '評価損益',
-          data: pastProfitData.concat(Array(monthsFuture).fill(null)), // 過去部分＋未来はnullで合流
-          borderColor: 'rgba(0, 0, 0, 0)', // チャート線上には線を描画しない
+          data: pastProfitData.concat(new Array(monthsFuture).fill(null)), 
+          borderColor: 'rgba(0, 0, 0, 0)', 
           backgroundColor: 'rgba(0, 0, 0, 0)',
           borderWidth: 0,
           fill: false,
           pointRadius: 0,
-          hideInLegend: true, // 凡例(Legend)からは非表示にする
+          hideInLegend: true, 
           yAxisID: 'y'
         },
         {
@@ -841,9 +897,9 @@ function generateAndRenderChart(totals) {
           display: true,
           position: 'left',
           min: 0,
-          max: 40000000,
+          max: 55000000, 
           ticks: {
-            stepSize: 5000000,
+            stepSize: 5000000, 
             callback: function(value) {
               return (value / 10000).toLocaleString() + '万円';
             }
@@ -854,7 +910,6 @@ function generateAndRenderChart(totals) {
         legend: {
           labels: {
             filter: function(item, chart) {
-              // hideInLegendフラグが設定されているデータセットは凡例に表示しない
               const dataset = chart.data.datasets[item.datasetIndex];
               return !dataset.hideInLegend;
             }
@@ -862,28 +917,25 @@ function generateAndRenderChart(totals) {
         },
         tooltip: {
           callbacks: {
-            // ホバー時のツールチップの文字色を動的に制御
             labelTextColor: function(context) {
               if (context.dataset.label.includes('評価損益')) {
                 const val = context.parsed.y;
                 if (val < 0) {
-                  return '#ff4d4d'; // マイナスの時は赤 (見やすい明るめの赤)
+                  return '#ff4d4d'; 
                 } else {
-                  return '#48bb78'; // プラスの時は緑
+                  return '#48bb78'; 
                 }
               }
-              return '#ffffff'; // デフォルトは白
+              return '#ffffff';
             },
-            // ホバー時のテキストラベルの生成
             label: function(context) {
               let label = context.dataset.label || '';
               if (label) {
-                label = label.split(' (')[0] || label; // (実線) などの不要な文字をカット
+                label = label.split(' (')[0] || label;
                 label += ': ';
               }
               if (context.parsed.y !== null) {
                 const value = context.parsed.y;
-                // 評価損益の表示の時のみ、プラスの場合に「+」記号を付与
                 if (context.dataset.label.includes('評価損益') && value > 0) {
                   label += '+';
                 }
