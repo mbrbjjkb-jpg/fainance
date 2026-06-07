@@ -152,6 +152,7 @@
     font-size: 13px;
     border-radius: 4px;
     font-weight: bold;
+    line-height: 1.5;
   }
 </style>
 </head>
@@ -341,22 +342,28 @@ window.onload = function() {
 };
 
 /* =========================
-   過去と新規のJSONファイルを分割非同期読み込み ＆ 結合処理
+   外部JSONファイルの非同期読み込み ＆ 結合処理（頑健性強化版）
 ========================= */
 function loadPriceHistoryAndInit() {
+  // prices.json（以前の単一ファイル）または prices_past.json ＆ prices_daily.json のどれがあっても動くように3つ同時フェッチ
   Promise.all([
+    fetch('prices.json').then(r => r.ok ? r.json() : null).catch(() => null),
     fetch('prices_past.json').then(r => r.ok ? r.json() : null).catch(() => null),
     fetch('prices_daily.json').then(r => r.ok ? r.json() : null).catch(() => null)
   ])
-  .then(([pastData, dailyData]) => {
-    if (!pastData && !dailyData) {
-      throw new Error("外部データが読み込めません。");
+  .then(([singleData, pastData, dailyData]) => {
+    // データのマージ処理（単一ファイルがあればそれを優先、無ければ分割ファイルをマージ）
+    if (singleData) {
+      priceHistory = singleData;
+    } else if (pastData || dailyData) {
+      priceHistory = Object.assign({}, pastData || {}, dailyData || {});
+    } else {
+      throw new Error("価格データ（JSONファイル）が読み込めませんでした。");
     }
-    priceHistory = Object.assign({}, pastData || {}, dailyData || {});
     initSystem();
   })
   .catch(error => {
-    console.warn("外部JSONファイルが見つかりません。テスト用の模擬価格データで起動します。");
+    console.warn("CORSブロック、またはJSONファイルが見つかりません。テスト用模擬データで起動します。");
     showLocalWarning();
     priceHistory = generateMockPrices();
     initSystem();
@@ -367,8 +374,8 @@ function showLocalWarning() {
   const errorArea = document.getElementById('errorArea');
   errorArea.innerHTML = `
     <div class="error-banner">
-      【テストモード起動中】ローカルファイル環境での実行を検知しました。価格データはデモ用（模擬データ）で仮表示されています。<br>
-      GitHub Pagesに「index.html」「prices_past.json」「prices_daily.json」を一緒にアップロードすると、本物のデータで正しく表示されます。
+      【テストデモモード起動中】ローカルファイル（file://）環境、またはJSONデータの読み込みエラーを検知したため、仮の模擬データでグラフを描画しています。<br>
+      GitHub Pages等のWebサーバーに「index.html」「prices.json（または prices_past.json）」を一緒にアップロードすると、自動的に本物のデータでの表示に切り替わります。
     </div>
   `;
 }
@@ -540,6 +547,7 @@ function calculateCurrentTotals() {
 
   stocks.forEach(s => {
     totalMarket += s.marketValue;
+    // 単位を統一（1円単位）
     totalPurchase += s.units * s.purchasePrice;
     totalProfit += s.profit;
     if (s.isNISA) {
@@ -590,7 +598,7 @@ function generateAndRenderChart(totals) {
   const labels = [];
   const pastData = [];
   const pastPurchaseData = [];
-  const pastProfitData = []; // 過去の損益データセット
+  const pastProfitData = []; // 過去の純損益データセット
   const future7Data = [];
   const future8Data = [];
   const future9Data = [];
@@ -644,12 +652,12 @@ function generateAndRenderChart(totals) {
 
       let currentPrice = s.purchasePrice; 
       
-      if (priceHistory[dateStr]) {
-        const jsonKey = nameToJsonKeyMap[s.name];
-        if (jsonKey && priceHistory[dateStr][jsonKey] !== undefined) {
-          currentPrice = priceHistory[dateStr][jsonKey];
-        }
+      // 厳重なヌルセーフチェックを行いながらJSONデータにアクセス
+      const jsonKey = nameToJsonKeyMap[s.name];
+      if (priceHistory && priceHistory[dateStr] && jsonKey && priceHistory[dateStr][jsonKey] !== undefined) {
+        currentPrice = priceHistory[dateStr][jsonKey];
       } else {
+        // フォールバック（データがない月は、積立開始価格から現在地まで線形に上昇したとみなして補間する）
         const currentPriceTarget = s.marketValue / s.units;
         const startPrice = s.purchasePrice;
         const fullHistoryMonths = (now.getFullYear() - pStart.getFullYear()) * 12 + (now.getMonth() - pStart.getMonth());
@@ -666,7 +674,7 @@ function generateAndRenderChart(totals) {
     pastData.push(Math.round(monthlyTotalMarket));
     pastPurchaseData.push(Math.round(monthlyTotalPurchase));
     
-    // 過去損益（評価額 - 元本）
+    // 評価損益（評価時価 − 投資額）
     pastProfitData.push(Math.round(monthlyTotalMarket - monthlyTotalPurchase));
 
     future7Data.push(null);
@@ -756,13 +764,13 @@ function generateAndRenderChart(totals) {
         },
         {
           label: '評価損益',
-          data: pastProfitData.concat(Array(monthsFuture).fill(null)), // 過去部分＋未来は空で統合
-          borderColor: 'rgba(0, 0, 0, 0)', // チャート線上には描画しないため透明に
+          data: pastProfitData.concat(Array(monthsFuture).fill(null)), // 過去部分＋未来はnullで合流
+          borderColor: 'rgba(0, 0, 0, 0)', // チャート線上には線を描画しない
           backgroundColor: 'rgba(0, 0, 0, 0)',
           borderWidth: 0,
           fill: false,
           pointRadius: 0,
-          hideInLegend: true, // 凡例からは除外
+          hideInLegend: true, // 凡例(Legend)からは非表示にする
           yAxisID: 'y'
         },
         {
@@ -859,7 +867,7 @@ function generateAndRenderChart(totals) {
               if (context.dataset.label.includes('評価損益')) {
                 const val = context.parsed.y;
                 if (val < 0) {
-                  return '#ff4d4d'; // マイナスの時は赤 (黒背景で見やすい明るめの赤)
+                  return '#ff4d4d'; // マイナスの時は赤 (見やすい明るめの赤)
                 } else {
                   return '#48bb78'; // プラスの時は緑
                 }
