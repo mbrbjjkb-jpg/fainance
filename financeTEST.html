@@ -18,7 +18,7 @@
     color: #2c3e50;
   }
   
-  /* 5つの商品埋め込みダッシュボード */
+  /* 最上部：5つの商品直接埋め込みカード表示エリア */
   .fund-cards-container {
     display: flex;
     gap: 10px;
@@ -143,13 +143,25 @@
     color: #718096;
     margin-bottom: 10px;
   }
+  .error-banner {
+    background-color: #fffaf0;
+    border-left: 4px solid #dd6b20;
+    color: #dd6b20;
+    padding: 10px;
+    margin-bottom: 15px;
+    font-size: 13px;
+    border-radius: 4px;
+    font-weight: bold;
+  }
 </style>
 </head>
 <body>
 
 <h2>投資信託タイムラインシミュレーター & 埋込ダッシュボード</h2>
 
-<!-- 最上部：5つの指定商品カード型表示エリア -->
+<div id="errorArea"></div>
+
+<!-- 最上部：5つの商品直接埋め込みカード表示エリア -->
 <div class="fund-cards-container">
   <!-- カード1：ひふみ投信 -->
   <div class="fund-card" id="card-hifumi">
@@ -256,7 +268,7 @@
 </div>
 
 <script>
-// 2026年6月の基準デフォルトデータ
+// 2026年6月の基準デフォルトポートフォリオデータ
 const defaultStocks = [
   {
     name: 'ひふみ投信',
@@ -322,33 +334,75 @@ const defaultStocks = [
 
 let stocks = [...defaultStocks];
 let myChart = null;
-let priceHistory = null; // 外部JSONからロードされる価格履歴を保持
+let priceHistory = null; 
 
 window.onload = function() {
   loadPriceHistoryAndInit();
 };
 
 /* =========================
-   prices.jsonの非同期読み込みと初期化
+   過去と新規のJSONファイルを分割非同期読み込み ＆ 結合処理
 ========================= */
 function loadPriceHistoryAndInit() {
-  fetch('prices.json')
-    .then(response => {
-      if (!response.ok) {
-        throw new Error('prices.json が見つからないか、読み込めません。');
-      }
-      return response.json();
-    })
-    .then(data => {
-      priceHistory = data; // グローバル変数に格納
-      initSystem();
-    })
-    .catch(error => {
-      console.error(error);
-      document.getElementById('summary').innerText = 
-        `【エラー】prices.jsonの読み込みに失敗しました。\n` +
-        `GitHub Pages上の同一リポジトリに prices.json が配置されているか確認してください。`;
-    });
+  // prices_past.json(過去分) と prices_daily.json(新規分) を同時に読み込み
+  Promise.all([
+    fetch('prices_past.json').then(r => r.ok ? r.json() : null).catch(() => null),
+    fetch('prices_daily.json').then(r => r.ok ? r.json() : null).catch(() => null)
+  ])
+  .then(([pastData, dailyData]) => {
+    if (!pastData && !dailyData) {
+      // どちらも読み込めない（ローカル検証時など）はデモ動作へ移行
+      throw new Error("外部データが読み込めません。");
+    }
+    
+    // 2つのデータを統合
+    priceHistory = Object.assign({}, pastData || {}, dailyData || {});
+    initSystem();
+  })
+  .catch(error => {
+    console.warn("外部JSONファイルが見つかりません。テスト用の模擬（モック）価格データで起動します。");
+    showLocalWarning();
+    
+    // 開発確認用のデモデータを自動生成
+    priceHistory = generateMockPrices();
+    initSystem();
+  });
+}
+
+function showLocalWarning() {
+  const errorArea = document.getElementById('errorArea');
+  errorArea.innerHTML = `
+    <div class="error-banner">
+      【テストモード起動中】ローカルファイル環境での実行を検知しました。価格データはデモ用（模擬データ）で仮表示されています。<br>
+      GitHub Pagesに「index.html」「prices_past.json」「prices_daily.json」を一緒にアップロードすると、本物のデータで正しく表示されます。
+    </div>
+  `;
+}
+
+/* =========================
+   ローカル用模擬（モック）過去価格データの自動生成
+========================= */
+function generateMockPrices() {
+  const mock = {};
+  const startDate = new Date('2016-06-01');
+  const endDate = new Date('2026-06-01');
+  let current = new Date(startDate);
+  
+  // 銘柄開始時単価から現在基準価格へのゆるやかな上昇推移をシミュレート
+  while (current <= endDate) {
+    const yyyymm = `${current.getFullYear()}-${('0' + (current.getMonth() + 1)).slice(-2)}-01`;
+    const elapsedMonths = (current.getFullYear() - 2016) * 12 + current.getMonth() - 5;
+    
+    // 各月のモック単価（1万口あたり）
+    mock[yyyymm] = {
+      hifumi: Math.round(53719 + (100603 - 53719) * (elapsedMonths / 120)),
+      saison: Math.round(16707 + (32926 - 16707) * (Math.max(0, elapsedMonths - 11) / 109)),
+      rakuten_vti: Math.round(19834 + (45137 - 19834) * (Math.max(0, elapsedMonths - 59) / 61)),
+      ishares: Math.round(20478 + (84214 - 20478) * (Math.max(0, elapsedMonths - 11) / 109))
+    };
+    current.setMonth(current.getMonth() + 1);
+  }
+  return mock;
 }
 
 function initSystem() {
@@ -360,14 +414,7 @@ function initSystem() {
 }
 
 /* =========================
-   数値パース用
-========================= */
-function parseNumber(text) {
-  return parseFloat(text.replace(/[,円+%\s]/g, ''));
-}
-
-/* =========================
-   コピペテキスト解析 (月1回の手動補正)
+   コピペテキスト解析（月1回手動更新）
 ========================= */
 function parseAllStocks() {
   const text = document.getElementById('inputText').value.trim();
@@ -477,7 +524,8 @@ function updateDashboardCards() {
 
     if (key && cardMapping[key]) {
       const config = cardMapping[key];
-      const currentPricePerTenThousand = (s.marketValue / (s.units * 100)) * 10000;
+      // 基準価額 ＝ 時価 ÷ 保有口数（万口）
+      const currentPricePerTenThousand = s.marketValue / s.units;
       
       document.getElementById(config.priceId).innerText = `${Math.round(currentPricePerTenThousand).toLocaleString()} 円`;
       
@@ -501,7 +549,8 @@ function calculateCurrentTotals() {
 
   stocks.forEach(s => {
     totalMarket += s.marketValue;
-    totalPurchase += s.purchasePrice * s.units * 100;
+    // 口数（万口）× 1万口あたりの基準価額 ＝ 円（ケタの完全統一）
+    totalPurchase += s.units * s.purchasePrice;
     totalProfit += s.profit;
     if (s.isNISA) {
       nisaProfit += s.profit;
@@ -539,7 +588,7 @@ function renderSummary(totals) {
 }
 
 /* =========================
-   時系列・折れ線グラフ生成（prices.jsonの実数値を使用）
+   時系列・折れ線グラフ生成 (1円単位で共通のY軸にマッピング)
 ========================= */
 function generateAndRenderChart(totals) {
   if (!priceHistory) return;
@@ -556,7 +605,6 @@ function generateAndRenderChart(totals) {
   const future9Data = [];
   const futurePurchaseData = [];
 
-  // 2016-06 から 2036-06 までの全日付ラベルを生成（月次）
   let current = new Date(startDate);
   while (current <= endDate) {
     const yyyymm = `${current.getFullYear()}-${('0' + (current.getMonth() + 1)).slice(-2)}`;
@@ -566,7 +614,6 @@ function generateAndRenderChart(totals) {
 
   const monthsPast = 120; // 過去10年間
 
-  // 銘柄キーとJSONデータのマッピング関係
   const nameToJsonKeyMap = {
     'ひふみ投信': 'hifumi',
     'セゾン･グローバルバランスファンド': 'saison',
@@ -575,7 +622,7 @@ function generateAndRenderChart(totals) {
     '楽天・全米株式インデックス･ファンド（旧NISA）': 'rakuten_vti'
   };
 
-  // --- 1. 過去の実績・元本推移の計算 ---
+  // --- 1. 過去の実績・元本推移の月次ループ計算 ---
   for (let i = 0; i <= monthsPast; i++) {
     let monthlyTotalMarket = 0;
     let monthlyTotalPurchase = 0;
@@ -588,7 +635,6 @@ function generateAndRenderChart(totals) {
       const pStart = new Date(s.periodStart);
       const pEnd = new Date(s.periodEnd);
       
-      // 投資期間前ならスキップ
       if (targetDate < pStart) return;
 
       const totalMonths = (pEnd.getFullYear() - pStart.getFullYear()) * 12 + (pEnd.getMonth() - pStart.getMonth());
@@ -597,27 +643,36 @@ function generateAndRenderChart(totals) {
       let currentUnits = 0;
       let currentPurchase = 0;
 
-      // 1. 口数と元本(投資額)を、期間中の等速直線積立モデルで計算
+      // 積立モデルに基づき、該当月の保有口数と投資額（元本）を算出
       if (targetDate >= pEnd) {
         currentUnits = s.units;
-        currentPurchase = s.purchasePrice * s.units * 100;
+        currentPurchase = s.units * s.purchasePrice; // 元本確定
       } else {
         currentUnits = (s.units / totalMonths) * currentMonths;
-        currentPurchase = ((s.purchasePrice * s.units * 100) / totalMonths) * currentMonths;
+        currentPurchase = (s.units * s.purchasePrice / totalMonths) * currentMonths;
       }
 
-      // 2. prices.json から当時の「本物（毎月1日）」の基準価額を取得
-      let currentPrice = s.purchasePrice / 100; // デフォルト初期値
+      // JSONから本物の基準価格を取得。無い場合は開始価格から線形補間
+      let currentPrice = s.purchasePrice; 
       
       if (priceHistory[dateStr]) {
         const jsonKey = nameToJsonKeyMap[s.name];
         if (jsonKey && priceHistory[dateStr][jsonKey] !== undefined) {
-          currentPrice = priceHistory[dateStr][jsonKey] / 100; // 1口あたりの価格に変換
+          currentPrice = priceHistory[dateStr][jsonKey];
+        }
+      } else {
+        // フォールバック計算
+        const currentPriceTarget = s.marketValue / s.units;
+        const startPrice = s.purchasePrice;
+        const fullHistoryMonths = (now.getFullYear() - pStart.getFullYear()) * 12 + (now.getMonth() - pStart.getMonth());
+        const elapsedFromStart = (targetDate.getFullYear() - pStart.getFullYear()) * 12 + (targetDate.getMonth() - pStart.getMonth());
+        if (fullHistoryMonths > 0) {
+          currentPrice = startPrice + ((currentPriceTarget - startPrice) / fullHistoryMonths) * elapsedFromStart;
         }
       }
 
-      // 3. 時価と元本を合算
-      monthlyTotalMarket += currentUnits * 100 * currentPrice;
+      // 時価と元本を合算 (単位：円)
+      monthlyTotalMarket += currentUnits * currentPrice;
       monthlyTotalPurchase += currentPurchase;
     });
 
@@ -630,7 +685,7 @@ function generateAndRenderChart(totals) {
     futurePurchaseData.push(null);
   }
 
-  // --- 2. 未来シミュレーションの計算 (2026年6月〜2036年6月) ---
+  // --- 2. 未来シミュレーションの月次ループ計算 ---
   const currentTotalMarket = totals.totalMarket;
   const currentTotalPurchase = totals.totalPurchase;
   
@@ -640,7 +695,7 @@ function generateAndRenderChart(totals) {
 
   const monthsFuture = 120;
 
-  // 2026年6月を実績値と予測値の結合点にする
+  // 接続点を実績（税引き後）に一致させる
   future7Data[monthsPast] = Math.round(totals.afterTaxMarket);
   future8Data[monthsPast] = Math.round(totals.afterTaxMarket);
   future9Data[monthsPast] = Math.round(totals.afterTaxMarket);
@@ -697,7 +752,8 @@ function generateAndRenderChart(totals) {
           borderWidth: 3,
           fill: true,
           tension: 0.15,
-          pointRadius: 0
+          pointRadius: 0,
+          yAxisID: 'y' // 軸をy軸にバインド
         },
         {
           label: '過去投資額累計 (実線)',
@@ -706,7 +762,8 @@ function generateAndRenderChart(totals) {
           borderWidth: 2,
           fill: false,
           tension: 0.1,
-          pointRadius: 0
+          pointRadius: 0,
+          yAxisID: 'y' // 軸をy軸にバインド
         },
         {
           label: '今後の投資額累計 (点線)',
@@ -716,7 +773,8 @@ function generateAndRenderChart(totals) {
           borderDash: [5, 5],
           fill: false,
           tension: 0.1,
-          pointRadius: 0
+          pointRadius: 0,
+          yAxisID: 'y'
         },
         {
           label: '10年予測 年利7% (点線)',
@@ -726,7 +784,8 @@ function generateAndRenderChart(totals) {
           borderDash: [5, 5],
           fill: false,
           tension: 0.05,
-          pointRadius: 0
+          pointRadius: 0,
+          yAxisID: 'y'
         },
         {
           label: '10年予測 年利8% (点線)',
@@ -736,7 +795,8 @@ function generateAndRenderChart(totals) {
           borderDash: [5, 5],
           fill: false,
           tension: 0.05,
-          pointRadius: 0
+          pointRadius: 0,
+          yAxisID: 'y'
         },
         {
           label: '10年予測 年利9% (点線)',
@@ -746,7 +806,8 @@ function generateAndRenderChart(totals) {
           borderDash: [5, 5],
           fill: false,
           tension: 0.05,
-          pointRadius: 0
+          pointRadius: 0,
+          yAxisID: 'y'
         }
       ]
     },
@@ -768,7 +829,13 @@ function generateAndRenderChart(totals) {
           }
         },
         y: {
+          type: 'linear',
+          display: true,
+          position: 'left',
+          min: 0,                  // 最小値を0円に固定
+          max: 40000000,          // 最大値を4000万円に固定
           ticks: {
+            stepSize: 5000000,     // 500万円刻みで調整
             callback: function(value) {
               return (value / 10000).toLocaleString() + '万円';
             }
