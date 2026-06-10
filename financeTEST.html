@@ -105,6 +105,7 @@
 
 <div class="card">
   <h3>1. ポートフォリオデータの更新（コピペ入力）</h3>
+  <p class="label-desc">※新しい月次データを貼り付けて「解析・計算」を押すと、上部カードおよび下のグラフが自動更新されます。</p>
   <textarea id="inputText" placeholder="ここに全銘柄の資産情報を貼り付け"></textarea>
   <button class="action-btn btn-green" onclick="parseAllStocks()">全銘柄解析・計算</button>
 </div>
@@ -198,9 +199,9 @@
 </div>
 
 <script>
-const CONFIG_ENCRYPTED_TOKEN = "U2FsdGVkX18gLfDl3U5Q69/TrPGvohIsJqcgFu8lfFCWw0hVQBrGo4Aintaz1ykhkc7ukEzyBLQye3iWGx0oO7k8Y25bHVtSGjOUQEd9oXxvfALzfo4SDaN/Is5pPnQmV7i9GriQfWDXj07YV/vc7A=="; 
-const CONFIG_GITHUB_USER = "mbrbjjkb-jpg";      
-const CONFIG_GITHUB_REPO = "fainance";      
+const CONFIG_ENCRYPTED_TOKEN = ""; 
+const CONFIG_GITHUB_USER = "";      
+const CONFIG_GITHUB_REPO = "";      
 
 const defaultStocks = [
   {key:'hifumi',name:'ひふみ投信',purchasePrice:53719,units:67.6,marketValue:6800762.8,profit:3169358.4,profitPercent:'87.28',isNISA:false,periodStart:'2016-06-01',periodEnd:'2026-06-01',periodText:'2016/06〜2026/06（10年0か月）',monthlyInvest:20000},
@@ -237,7 +238,6 @@ window.onload = function() {
 };
 
 function initInputFields() {
-  // 5商品の初期ロード
   loadUserConfigFromStorage();
 }
 
@@ -394,6 +394,9 @@ function parseInvestmentPeriod(periodText) {
   const startPart = parts[0].trim();
   const endPart = parts[1].trim();
 
+  // 4桁に満たない、または不完全な記述へのフェイルセーフ
+  if (startPart.length < 7) return { start: '2016-06-01', end: '2026-06-01', text: periodText };
+
   const startYear = parseInt(startPart.substring(0, 4));
   const startMonth = parseInt(startPart.substring(5, 7));
   
@@ -404,14 +407,12 @@ function parseInvestmentPeriod(periodText) {
     endYear = parseInt(endPart.substring(0, 4));
     endMonth = parseInt(endPart.substring(5, 7));
   } else {
-    // 継続中：最新データベース日、または今年の日付を終点に設定
     const today = new Date();
     endYear = today.getFullYear();
     endMonth = today.getMonth() + 1;
     isOngoing = true;
   }
 
-  // 総月数の引き算
   const totalMonths = (endYear - startYear) * 12 + (endMonth - startMonth);
   const years = Math.floor(totalMonths / 12);
   const months = totalMonths % 12;
@@ -436,7 +437,6 @@ function renderTable() {
     else if (s.name.includes('iシェアーズ')) keyMark = '【D】';
     else if (s.name.includes('旧NISA')) keyMark = '【E】';
     
-    // 【自動計算年数】投資期間を自動引き算してテーブルに表示
     const periodInfo = parseInvestmentPeriod(s.periodText);
 
     const tr = document.createElement('tr');
@@ -485,7 +485,7 @@ function renderCardMiniChart(canvasId, jsonKey, purchasePrice, currentPrice) {
   const canvasEl = document.getElementById(canvasId); if (!canvasEl) return;
   const ctx = canvasEl.getContext('2d'); if (!ctx) return;
   if (miniCharts[canvasId]) miniCharts[canvasId].destroy();
-  const chartData = []; const labels = []; const points = 30; 
+  const chartData = []; const labels = []; const points = 30; // 30日日足
   let latestDateStr = '2026-06-01';
   if (priceHistory && Object.keys(priceHistory).length > 0) {
     const sortedDates = Object.keys(priceHistory).filter(d => d.length === 10).sort();
@@ -517,41 +517,19 @@ function renderCardMiniChart(canvasId, jsonKey, purchasePrice, currentPrice) {
   });
 }
 
-/* =========================
-   【重要・全自動合算計算】3. 現在の資産状況を「入力窓の数値（正）」から自動計算で求める
-========================= */
 function calculateCurrentTotals() {
-  let totalMarket = 0; 
-  let totalPurchase = 0; 
-  let totalProfit = 0; 
-  let taxableProfit = 0; 
-  let nisaProfit = 0;
-
+  let totalMarket = 0; let totalPurchase = 0; let totalProfit = 0; let taxableProfit = 0; let nisaProfit = 0;
   stocks.forEach(s => {
-    // すべて入力枠の最新数値（stocks配列に格納されたもの）を基準に合算
-    totalMarket += s.marketValue; 
-    totalPurchase += s.units * s.purchasePrice; 
-    totalProfit += s.profit;
-    
-    if (s.isNISA) {
-      nisaProfit += s.profit;
-    } else {
-      taxableProfit += s.profit;
-    }
+    totalMarket += s.marketValue; totalPurchase += s.units * s.purchasePrice; totalProfit += s.profit;
+    if (s.isNISA) nisaProfit += s.profit; else taxableProfit += s.profit;
   });
-
-  const TAX_RATE = 0.2; 
-  const tax = Math.round(taxableProfit * TAX_RATE); 
-  const afterTaxMarket = totalMarket - tax;
-
+  const TAX_RATE = 0.2; const tax = Math.round(taxableProfit * TAX_RATE); const afterTaxMarket = totalMarket - tax;
   return { totalMarket, totalPurchase, totalProfit, taxableProfit, nisaProfit, tax, afterTaxMarket };
 }
 
 function renderSummary(totals) {
   const summaryDiv = document.getElementById('summary'); if (!summaryDiv) return;
   const profitPercent = totals.totalPurchase > 0 ? ((totals.totalProfit / totals.totalPurchase) * 100).toFixed(2) : '0.00';
-  
-  // すべて計算値から組み立てて表示
   summaryDiv.innerText = `合計時価総額: ${Math.round(totals.totalMarket).toLocaleString()}円
 （元本: ${Math.round(totals.totalPurchase).toLocaleString()}円 / 損益: +${Math.round(totals.totalProfit).toLocaleString()}円 [${profitPercent}%]）
 ---------------------------------
@@ -560,41 +538,6 @@ function renderSummary(totals) {
 非課税(NISA)利益: ${Math.round(totals.nisaProfit).toLocaleString()}円
 ---------------------------------
 税引き後評価額: ${Math.round(totals.afterTaxMarket).toLocaleString()}円`;
-}
-
-function loadUserConfigFromStorage() {
-  const savedSettings = JSON.parse(localStorage.getItem('portfolio_config')) || null;
-  if (savedSettings) {
-    stocks.forEach(s => {
-      if (savedSettings[s.key]) {
-        s.units = savedSettings[s.key].units !== undefined ? savedSettings[s.key].units : s.units;
-        s.purchasePrice = savedSettings[s.key].purchasePrice !== undefined ? savedSettings[s.key].purchasePrice : s.purchasePrice;
-        s.monthlyInvest = savedSettings[s.key].monthlyInvest !== undefined ? savedSettings[s.key].monthlyInvest : s.monthlyInvest;
-        if (savedSettings[s.key].periodText) s.periodText = savedSettings[s.key].periodText;
-      }
-    });
-    writeLog("【ロード】前回の保有・積立設定をブラウザから読み込みました。");
-  }
-  // 入力窓（設定欄）に値を代入
-  initInputFields();
-}
-
-function applyConfigDataToStocks(configData) {
-  stocks.forEach(s => {
-    if (configData[s.key]) {
-      const cfg = configData[s.key];
-      if (cfg.units !== undefined) s.units = cfg.units;
-      if (cfg.purchasePrice !== undefined) s.purchasePrice = cfg.purchasePrice;
-      if (cfg.monthlyInvest !== undefined) s.monthlyInvest = cfg.monthlyInvest;
-      if (cfg.periodText !== undefined) s.periodText = cfg.periodText;
-      
-      // 動的再計算
-      s.marketValue = s.units * (s.marketValue / (s.units || 1));
-      s.profit = s.marketValue - (s.units * s.purchasePrice);
-      s.profitPercent = (s.units * s.purchasePrice) > 0 ? ((s.profit / (s.units * s.purchasePrice)) * 100).toFixed(2) : '0.00';
-    }
-  });
-  initInputFields();
 }
 
 function calculateMonthlyDetails(index) {
@@ -607,7 +550,7 @@ function calculateMonthlyDetails(index) {
   };
   const isFuture = (index > getLatestDatabaseIndex()); 
   stocks.forEach(s => {
-    // 期間の動的引き算パースを適用
+    // 期間テキストが更新された後の、セーフティ・パースを確実に実行
     const periodInfo = parseInvestmentPeriod(s.periodText);
     const pStart = new Date(periodInfo.start); 
     const pEnd = new Date(periodInfo.end); 
@@ -729,7 +672,7 @@ function generateAndRenderChart(totals) {
     options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { font: { size: 9 } } }, y: { ticks: { callback: v => (v / 10000).toLocaleString() + '万円' } } }, plugins: { legend: { display: false }, datalabels: { display: false } } }
   });
 
-  // ③ 下段：【長期】実績 ＆ シミュレーション
+  // ③ 下段：【長期】実績 ＆ シミュレーション（動的スライド対応）
   const isFutureMode = (activeGraphTab === 'future'); const latestIdx = getLatestDatabaseIndex();
   const longEndDate = isFutureMode ? new Date('2032-06-01') : new Date('2026-06-01'); const longLabels = generateDateLabels(startDate, longEndDate);
   const pastData = []; const pastPurchaseData = []; const pastProfitData = [];
@@ -746,7 +689,7 @@ function generateAndRenderChart(totals) {
     const currentTotalMarket = totals.totalMarket; const currentTotalPurchase = totals.totalPurchase;
     future7Data[monthsPast] = Math.round(totals.afterTaxMarket) || 0;
     future8Data[monthsPast] = Math.round(totals.afterTaxMarket) || 0;
-    future9Data[monthsPast] = Math.round(totals.afterTaxMarket) || 0;
+    future9[monthsPast] = Math.round(totals.afterTaxMarket) || 0;
     futurePurchaseData[monthsPast] = Math.round(currentTotalPurchase) || 0;
     const taxableRatio = currentTotalMarket > 0 ? (currentTotalMarket - totals.nisaProfit) / currentTotalMarket : 0.5;
 
@@ -1053,6 +996,7 @@ function autoFillFromText() {
   });
 }
 
+// 【重要・完全復元セーフティマッピング】設定適用 ＆ 投資期間の再パース自動呼び出し
 function applyModalSettings() {
   const pin = document.getElementById('pinInput').value.trim();
   if (pin.length !== 4) {
@@ -1072,7 +1016,14 @@ function applyModalSettings() {
     if (elUnits && elUnits.value !== "") s.units = parseFloat(elUnits.value);
     if (elPurchase && elPurchase.value !== "") s.purchasePrice = parseFloat(elPurchase.value);
     if (elInvest && elInvest.value !== "") s.monthlyInvest = parseFloat(elInvest.value);
-    if (elPeriod && elPeriod.value !== "") s.periodText = elPeriod.value.trim();
+    
+    // 投資期間テキストを適用した瞬間、裏側の期間オブジェクト(periodStart / periodEnd)もその場で即座に再パースして完全復元（NaNクラッシュを根絶）
+    if (elPeriod && elPeriod.value !== "") {
+      s.periodText = elPeriod.value.trim();
+      const periodInfo = parseInvestmentPeriod(s.periodText);
+      s.periodStart = periodInfo.start;
+      s.periodEnd = periodInfo.end;
+    }
     
     if (elMarket && elMarket.value !== "") s.marketValue = parseFloat(elMarket.value);
     else s.marketValue = s.units * (s.marketValue / (s.units || 1));
