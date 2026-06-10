@@ -198,9 +198,9 @@
 </div>
 
 <script>
-const CONFIG_ENCRYPTED_TOKEN = ""; 
-const CONFIG_GITHUB_USER = "";      
-const CONFIG_GITHUB_REPO = "";      
+const CONFIG_ENCRYPTED_TOKEN = "U2FsdGVkX18gLfDl3U5Q69/TrPGvohIsJqcgFu8lfFCWw0hVQBrGo4Aintaz1ykhkc7ukEzyBLQye3iWGx0oO7k8Y25bHVtSGjOUQEd9oXxvfALzfo4SDaN/Is5pPnQmV7i9GriQfWDXj07YV/vc7A=="; 
+const CONFIG_GITHUB_USER = "mbrbjjkb-jpg";      
+const CONFIG_GITHUB_REPO = "fainance";       
 
 const defaultStocks = [
   {key:'hifumi',name:'ひふみ投信',purchasePrice:53719,units:67.6,marketValue:6800762.8,profit:3169358.4,profitPercent:'87.28',isNISA:false,periodStart:'2016-06-01',periodEnd:'2026-06-01',periodText:'2016/06〜2026/06（10年0か月）',monthlyInvest:20000},
@@ -275,26 +275,71 @@ function initBaseSystem() {
   updateDashboardCards();
 }
 
+
+
+/* =========================
+   【自動ロード】GitHubから読み込んだ portfolio_config.json を変数と入力窓に適用
+========================= */
+function applyConfigDataToStocks(configData) {
+  stocks.forEach(s => {
+    if (configData[s.key]) {
+      const cfg = configData[s.key];
+      // 記録されている設定値を適用
+      if (cfg.units !== undefined) s.units = cfg.units;
+      if (cfg.purchasePrice !== undefined) s.purchasePrice = cfg.purchasePrice;
+      if (cfg.monthlyInvest !== undefined) s.monthlyInvest = cfg.monthlyInvest;
+      if (cfg.periodText !== undefined) s.periodText = cfg.periodText;
+      
+      // 変更された設定値から、現在の時価評価額や損益を瞬時に再計算
+      s.marketValue = s.units * (s.marketValue / (s.units || 1));
+      s.profit = s.marketValue - (s.units * s.purchasePrice);
+      s.profitPercent = (s.units * s.purchasePrice) > 0 ? ((s.profit / (s.units * s.purchasePrice)) * 100).toFixed(2) : '0.00';
+    }
+  });
+  // 別画面内の入力窓、および画面上の表示インプット窓の数値を一斉書き換え
+  initInputFields();
+}
+
+
+
+/* =========================
+   外部JSONファイルの非同期ロード（価格履歴 ＆ 設定JSONの一斉マージロード版）
+========================= */
 function loadPriceHistoryAndRenderChart() {
   const totals = calculateCurrentTotals();
   writeLog("外部データファイルの読み込みを開始します...");
+  
+  // ローカルの手動一時セーブを取得
   const localDaily = JSON.parse(localStorage.getItem('prices_daily')) || {};
   const cacheBuster = `?v=${new Date().getTime()}`;
 
+  // prices_past.json(過去価格)、prices_daily.json(新規価格)、さらに portfolio_config.json(設定履歴) の3つを同時に並列ダウンロード
   Promise.all([
     fetch('prices.json' + cacheBuster).then(r => r.ok ? r.json() : null).catch(() => null),
     fetch('prices_past.json' + cacheBuster).then(r => r.ok ? r.json() : null).catch(() => null),
-    fetch('prices_daily.json' + cacheBuster).then(r => r.ok ? r.json() : null).catch(() => null)
+    fetch('prices_daily.json' + cacheBuster).then(r => r.ok ? r.json() : null).catch(() => null),
+    fetch('portfolio_config.json' + cacheBuster).then(r => r.ok ? r.json() : null).catch(() => null) // ★設定JSONのロードを追加
   ])
-  .then(([singleData, pastData, dailyData]) => {
-    if (singleData) { priceHistory = Object.assign({}, singleData, localDaily); }
-    else if (pastData || dailyData) { priceHistory = Object.assign({}, pastData, dailyData, localDaily); }
-    else { throw new Error("価格ファイル未検出"); }
-    writeLog("【成功】外部データファイルをロードしました。");
-    tryDrawChart(totals, "価格ファイル");
+  .then(([singleData, pastData, dailyData, configData]) => {
+    // 1. まず、ロードされた設定（configData）があれば、銘柄設定（stocks）を上書きアップデート
+    if (configData) {
+      applyConfigDataToStocks(configData);
+      writeLog("【成功】GitHub から portfolio_config.json (保有・積立設定) をロードし、画面に反映しました。");
+    } else {
+      writeLog("【案内】GitHub上に portfolio_config.json が見つからないため、デフォルト値で起動します。");
+    }
+
+    // 2. 価格データのドッキング（マージ）
+    priceHistory = Object.assign({}, singleData || {}, pastData || {}, dailyData || {}, localDaily);
+    
+    // 3. 設定値が上書きされたため、基本表示（サマリー、カード）を最新値で再起動
+    initBaseSystem();
+    
+    writeLog("【成功】価格・設定ファイルの合流が完了しました。グラフを描画します。");
+    tryDrawChart(totals, "価格・設定ファイル合流");
   })
-  .catch(() => {
-    writeLog("【警告】外部データ未検出のため、デモモードで起動します。");
+  .catch(err => {
+    writeLog("【警告】外部データが読み込めません（デモモードで起動します）。理由: " + err.message);
     showLocalWarning();
     priceHistory = Object.assign({}, generateMockPrices(), localDaily);
     tryDrawChart(totals, "デモデータ");
@@ -390,21 +435,92 @@ function parseAllStocks() {
   }
 }
 
+
+/* =========================
+   【自動計算】投資期間（年月）の差分から「○年○か月」のテキストを自動生成
+========================= */
+function calculatePeriodText(periodText) {
+  if (!periodText || !periodText.includes('-')) return "不明";
+  
+  // 全角の「〜」「~」「ー」などを、処理しやすい半角ハイフン「-」に一律統一
+  const normalized = periodText.replace(/[〜~ー]/g, '-');
+  const parts = normalized.split('-');
+  const startPart = parts[0].trim(); // 開始年月 (例: "2017/05")
+  const endPart = parts[1].trim();   // 終了年月 (例: "2026/06" または空欄)
+  
+  if (startPart.length !== 7 || !startPart.includes('/')) return periodText; // 形式が違う場合はそのまま表示
+  
+  const startYear = parseInt(startPart.substring(0, 4));
+  const startMonth = parseInt(startPart.substring(5, 7));
+  
+  let endYear, endMonth, isOngoing = false;
+  
+  // 終了年月が指定されている場合
+  if (endPart.length === 7 && endPart.includes('/')) {
+    endYear = parseInt(endPart.substring(0, 4));
+    endMonth = parseInt(endPart.substring(5, 7));
+  } else {
+    // 終了年月がない（継続中）場合：価格データ(JSON)の最新日を自動終点にする
+    isOngoing = true;
+    let latestDateStr = '2026-06-01';
+    if (priceHistory && Object.keys(priceHistory).length > 0) {
+      const sorted = Object.keys(priceHistory).filter(d => d.length === 10).sort();
+      if (sorted.length > 0) latestDateStr = sorted[sorted.length - 1];
+    }
+    endYear = parseInt(latestDateStr.substring(0, 4));
+    endMonth = parseInt(latestDateStr.substring(5, 7));
+  }
+  
+  // 年月の引き算を実行（総月数を算出）
+  const totalMonths = (endYear - startYear) * 12 + (endMonth - startMonth);
+  if (isNaN(totalMonths) || totalMonths < 0) return periodText;
+  
+  // 総月数を「年」と「か月」に分解
+  const years = Math.floor(totalMonths / 12);
+  const months = totalMonths % 12;
+  
+  const ageText = `${years}年${months}か月`;
+  
+  if (isOngoing) {
+    return `${startPart}〜継続中（${ageText}）`;
+  } else {
+    return `${startPart}〜${endPart}（${ageText}）`;
+  }
+}
+
+
+
+/* =========================
+   保有銘柄一覧テーブルの描画（手動補正値のリアルタイム連動 ＆ 投資期間自動計算）
+========================= */
 function renderTable() {
-  const tbody = document.querySelector('#stockTable tbody'); if (!tbody) return; tbody.innerHTML = '';
+  const tbody = document.querySelector('#stockTable tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  
   stocks.forEach(s => {
     let keyMark = '';
-    if (s.name.includes('ひふみ')) keyMark = '【A】';
-    else if (s.name.includes('セゾン')) keyMark = '【B】';
-    else if (s.name.includes('新NISA')) keyMark = '【C】';
-    else if (s.name.includes('iシェアーズ')) keyMark = '【D】';
-    else if (s.name.includes('旧NISA')) keyMark = '【E】';
+    if (s.key === 'hifumi') keyMark = '【A】';
+    else if (s.key === 'saison') keyMark = '【B】';
+    else if (s.key === 'vti_new') keyMark = '【C】';
+    else if (s.key === 'ishares') keyMark = '【D】';
+    else if (s.key === 'vti_old') keyMark = '【E】';
+
+    // 投資期間の「○年○か月」を、入力された年月テキストから完全自動で引き算計算
+    const dynamicPeriodText = calculatePeriodText(s.periodText);
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td style="text-align:left; font-weight:bold;">${keyMark}${s.name}</td>
-      <td>${Math.round(s.purchasePrice).toLocaleString()}円</td><td>${s.units}</td><td>${Math.round(s.marketValue).toLocaleString()}円</td>
-      <td style="color:${s.profit >= 0 ? 'green' : 'red'}">${Math.round(s.profit).toLocaleString()}円<br>(${s.profit >= 0 ? '+' : ''}${s.profitPercent}%)</td>
-      <td>${s.isNISA ? 'NISA' : '課税'}</td><td style="font-size:11px; color:#555;">${s.periodText}</td>`;
+      <td>${Math.round(s.purchasePrice).toLocaleString()}円</td>
+      <td>${s.units}</td>
+      <td>${Math.round(s.marketValue).toLocaleString()}円</td>
+      <td style="color:${s.profit >= 0 ? 'green' : 'red'}">
+        ${Math.round(s.profit).toLocaleString()}円<br>(${s.profit >= 0 ? '+' : ''}${s.profitPercent}%)
+      </td>
+      <td>${s.isNISA ? 'NISA' : '課税'}</td>
+      <td style="font-size:11px; color:#555;">${dynamicPeriodText}</td>
+    `;
     tbody.appendChild(tr);
   });
 }
@@ -978,7 +1094,7 @@ function autoFillFromText() {
   });
 }
 
-// 【4桁パスワード直接保存機能】適用・GitHub直接自動コミット処理
+// 別画面で入力された数値を「正」として適用（空白は無視） ＆ 4桁パスワードによるGitHub直接自動コミット
 function applyModalSettings() {
   const pin = document.getElementById('pinInput').value.trim();
   if (pin.length !== 4) {
@@ -986,30 +1102,38 @@ function applyModalSettings() {
     return;
   }
 
-  // 1. 各項目の値が空欄（無視）でなければ、本データとして適用
   const savedSettings = {};
   stocks.forEach(s => {
     const elUnits = document.getElementById(`m-units-${s.key}`);
     const elPurchase = document.getElementById(`m-purchase-${s.key}`);
     const elInvest = document.getElementById(`m-invest-${s.key}`);
     const elPeriod = document.getElementById(`m-period-${s.key}`);
+    
+    // 【手動補正値の取得窓】
     const elMarket = document.getElementById(`m-market-${s.key}`);
     const elProfit = document.getElementById(`m-profit-${s.key}`);
     const elTotal = document.getElementById(`m-total-${s.key}`);
 
-    // 空白でないものだけを「正」として更新（空白は無視）
+    // 各項目が空欄（無視）でなければ、本データとして適用
     if (elUnits && elUnits.value !== "") s.units = parseFloat(elUnits.value);
     if (elPurchase && elPurchase.value !== "") s.purchasePrice = parseFloat(elPurchase.value);
     if (elInvest && elInvest.value !== "") s.monthlyInvest = parseFloat(elInvest.value);
     if (elPeriod && elPeriod.value !== "") s.periodText = elPeriod.value.trim();
     
-    // 時価、損益、元本の更新
-    if (elMarket && elMarket.value !== "") s.marketValue = parseFloat(elMarket.value);
-    else s.marketValue = s.units * (s.marketValue / (s.units || 1));
+    // 時価、損益の手動補正値の書き換え。空白なら口数と単価から自動再計算
+    if (elMarket && elMarket.value !== "") {
+      s.marketValue = parseFloat(elMarket.value);
+    } else {
+      s.marketValue = s.units * (s.marketValue / (s.units || 1));
+    }
 
-    if (elProfit && elProfit.value !== "") s.profit = parseFloat(elProfit.value);
-    else s.profit = s.marketValue - (s.units * s.purchasePrice);
+    if (elProfit && elProfit.value !== "") {
+      s.profit = parseFloat(elProfit.value);
+    } else {
+      s.profit = s.marketValue - (s.units * s.purchasePrice);
+    }
 
+    // 損益率（％）の再計算
     s.profitPercent = (s.units * s.purchasePrice) > 0 ? ((s.profit / (s.units * s.purchasePrice)) * 100).toFixed(2) : '0.00';
 
     savedSettings[s.key] = {
@@ -1020,36 +1144,31 @@ function applyModalSettings() {
     };
   });
 
-  // LocalStorageへの保存
+  // LocalStorageに保存
   localStorage.setItem('portfolio_config', JSON.stringify(savedSettings));
   writeLog("【成功】変更をローカルメモリに適用しました。");
 
-  // 2. 4桁パスワードによるGitHub API経由での「直接オンライン上書き保存」処理の実行
+  // GitHubへのPUT直接自動上書き保存（4桁パスワード認証経由）
   if (CONFIG_ENCRYPTED_TOKEN && CONFIG_GITHUB_USER && CONFIG_GITHUB_REPO) {
     writeLog("GitHubへの直接自動コミットを開始します...");
-    
     try {
-      // 4桁のパスワードで本物のトークンを解読（ロック解除）
       const decryptedBytes = CryptoJS.AES.decrypt(CONFIG_ENCRYPTED_TOKEN, pin);
       const decryptedToken = decryptedBytes.toString(CryptoJS.enc.Utf8);
       
       if (!decryptedToken || !decryptedToken.startsWith('github_pat_')) {
         throw new Error("パスワードが間違っているか、解読に失敗しました。");
       }
-      
-      // GitHub上の portfolio_config.json を直接上書きコミット
       githubDirectCommit(decryptedToken, 'portfolio_config.json', JSON.stringify(savedSettings, null, 2));
     } catch (err) {
       writeLog(`【GitHub保存失敗】暗号化キーの解読に失敗しました: ${err.message}`);
       alert("パスワードが違います。認証に失敗しました。");
     }
   } else {
-    writeLog("【案内】GitHub連携設定（ユーザー名や暗号文）が未登録のため、ローカル保存のみで完了しました。");
-    alert("ローカル保存に成功しました。マルチブラウザで同期するには、HTML内のCONFIGにリポジトリ設定を行ってください。");
+    writeLog("【案内】GitHub連携設定が未登録のため、ローカル保存のみで完了しました。");
   }
 
   closeSettingsModal();
-  initBaseSystem();
+  initBaseSystem(); // テーブルとサマリーを一斉再描画
   if (priceHistory) {
     const totals = calculateCurrentTotals();
     generateAndRenderChart(totals);
