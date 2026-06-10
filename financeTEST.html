@@ -275,26 +275,68 @@ function initBaseSystem() {
   updateDashboardCards();
 }
 
+/* =========================
+   【自動ロード】GitHubから読み込んだ portfolio_config.json を変数と入力窓に適用
+========================= */
+function applyConfigDataToStocks(configData) {
+  stocks.forEach(s => {
+    if (configData[s.key]) {
+      const cfg = configData[s.key];
+      // 記録されている設定値を適用
+      if (cfg.units !== undefined) s.units = cfg.units;
+      if (cfg.purchasePrice !== undefined) s.purchasePrice = cfg.purchasePrice;
+      if (cfg.monthlyInvest !== undefined) s.monthlyInvest = cfg.monthlyInvest;
+      if (cfg.periodText !== undefined) s.periodText = cfg.periodText;
+      
+      // 変更された設定値から、現在の時価評価額や損益を瞬時に再計算
+      s.marketValue = s.units * (s.marketValue / (s.units || 1));
+      s.profit = s.marketValue - (s.units * s.purchasePrice);
+      s.profitPercent = (s.units * s.purchasePrice) > 0 ? ((s.profit / (s.units * s.purchasePrice)) * 100).toFixed(2) : '0.00';
+    }
+  });
+  // 別画面内の入力窓、および画面上の表示インプット窓の数値を一斉書き換え
+  initInputFields();
+}
+
+
+/* =========================
+   外部JSONファイルの非同期ロード（価格履歴 ＆ 設定JSONの一斉マージロード版）
+========================= */
 function loadPriceHistoryAndRenderChart() {
   const totals = calculateCurrentTotals();
   writeLog("外部データファイルの読み込みを開始します...");
+  
+  // ローカルの手動一時セーブを取得
   const localDaily = JSON.parse(localStorage.getItem('prices_daily')) || {};
   const cacheBuster = `?v=${new Date().getTime()}`;
 
+  // prices_past.json(過去価格)、prices_daily.json(新規価格)、さらに portfolio_config.json(設定履歴) の3つを同時に並列ダウンロード
   Promise.all([
     fetch('prices.json' + cacheBuster).then(r => r.ok ? r.json() : null).catch(() => null),
     fetch('prices_past.json' + cacheBuster).then(r => r.ok ? r.json() : null).catch(() => null),
-    fetch('prices_daily.json' + cacheBuster).then(r => r.ok ? r.json() : null).catch(() => null)
+    fetch('prices_daily.json' + cacheBuster).then(r => r.ok ? r.json() : null).catch(() => null),
+    fetch('portfolio_config.json' + cacheBuster).then(r => r.ok ? r.json() : null).catch(() => null) // ★設定JSONのロードを追加
   ])
-  .then(([singleData, pastData, dailyData]) => {
-    if (singleData) { priceHistory = Object.assign({}, singleData, localDaily); }
-    else if (pastData || dailyData) { priceHistory = Object.assign({}, pastData, dailyData, localDaily); }
-    else { throw new Error("価格ファイル未検出"); }
-    writeLog("【成功】外部データファイルをロードしました。");
-    tryDrawChart(totals, "価格ファイル");
+  .then(([singleData, pastData, dailyData, configData]) => {
+    // 1. まず、ロードされた設定（configData）があれば、銘柄設定（stocks）を上書きアップデート
+    if (configData) {
+      applyConfigDataToStocks(configData);
+      writeLog("【成功】GitHub から portfolio_config.json (保有・積立設定) をロードし、画面に反映しました。");
+    } else {
+      writeLog("【案内】GitHub上に portfolio_config.json が見つからないため、デフォルト値で起動します。");
+    }
+
+    // 2. 価格データのドッキング（マージ）
+    priceHistory = Object.assign({}, singleData || {}, pastData || {}, dailyData || {}, localDaily);
+    
+    // 3. 設定値が上書きされたため、基本表示（サマリー、カード）を最新値で再起動
+    initBaseSystem();
+    
+    writeLog("【成功】価格・設定ファイルの合流が完了しました。グラフを描画します。");
+    tryDrawChart(totals, "価格・設定ファイル合流");
   })
-  .catch(() => {
-    writeLog("【警告】外部データ未検出のため、デモモードで起動します。");
+  .catch(err => {
+    writeLog("【警告】外部データが読み込めません（デモモードで起動します）。理由: " + err.message);
     showLocalWarning();
     priceHistory = Object.assign({}, generateMockPrices(), localDaily);
     tryDrawChart(totals, "デモデータ");
