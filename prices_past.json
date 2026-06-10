@@ -1,8 +1,8 @@
 {
-  "2007-03-01": {
+  "2007-03-15": {
     "saison": 10000.0
   },
-  "2007-04-01": {
+  "2007-04-02": {
     "saison": 10163.0
   },
   "2007-05-01": {
@@ -11,13 +11,13 @@
   "2007-06-01": {
     "saison": 10690.0
   },
-  "2007-07-01": {
+  "2007-07-02": {
     "saison": 10781.0
   },
   "2007-08-01": {
     "saison": 10411.0
   },
-  "2007-09-01": {
+  "2007-09-03": {
     "saison": 10181.0
   },
   "2007-10-01": {
@@ -26,16 +26,16 @@
   "2007-11-01": {
     "saison": 10783.0
   },
-  "2007-12-01": {
+  "2007-12-03": {
     "saison": 10288.0
   },
-  "2008-01-01": {
+  "2008-01-04": {
     "saison": 10145.0
   },
   "2008-02-01": {
     "saison": 9580.0
   },
-  "2008-03-01": {
+  "2008-03-03": {
     "saison": 9499.0
   },
   "2008-04-01": {
@@ -44,7 +44,7 @@
   "2008-05-01": {
     "saison": 9671.0
   },
-  "2008-06-01": {
+  "2008-06-02": {
     "saison": 9770.0
   },
   "2008-07-01": {
@@ -60,7 +60,7 @@
     "hifumi": 10000.0,
     "saison": 8525.0
   },
-  "2008-11-01": {
+  "2008-11-04": {
     "hifumi": 10624.0,
     "saison": 7159.0
   },
@@ -68,15 +68,15 @@
     "hifumi": 10388.0,
     "saison": 6761.0
   },
-  "2009-01-01": {
+  "2009-01-05": {
     "hifumi": 10987.0,
     "saison": 6955.0
   },
-  "2009-02-01": {
+  "2009-02-02": {
     "hifumi": 10188.0,
     "saison": 6386.0
   },
-  "2009-03-01": {
+  "2009-03-02": {
     "hifumi": 9537.0,
     "saison": 6493.0
   },
@@ -96,7 +96,7 @@
     "hifumi": 11325.0,
     "saison": 7541.0
   },
-  "2009-08-01": {
+  "2009-08-03": {
     "hifumi": 11788.0,
     "saison": 7752.0
   },
@@ -108,7 +108,7 @@
     "hifumi": 12035.0,
     "saison": 7809.0
   },
-  "2009-11-01": {
+  "2009-11-02": {
     "hifumi": 12221.0,
     "saison": 7828.0
   },
@@ -116,7 +116,7 @@
     "hifumi": 11816.0,
     "saison": 7676.0
   },
-  "2010-01-01": {
+  "2010-01-04": {
     "hifumi": 12044.0,
     "saison": 8166.0
   },
@@ -132,7 +132,7 @@
     "hifumi": 12369.0,
     "saison": 8280.0
   },
-  "2010-05-01": {
+  "2010-05-06": {
     "hifumi": 12319.0,
     "saison": 8121.0
   },
@@ -144,7 +144,7 @@
     "hifumi": 11330.0,
     "saison": 7369.0
   },
-  "2010-08-01": {
+  "2010-08-02": {
     "hifumi": 11343.0,
     "saison": 7611.0
   },
@@ -164,7 +164,7 @@
     "hifumi": 11499.0,
     "saison": 7599.0
   },
-  "2011-01-01": {
+  "2011-01-04": {
     "hifumi": 12319.0,
     "saison": 7695.0
   },
@@ -180,7 +180,7 @@
     "hifumi": 12604.0,
     "saison": 8073.0
   },
-  "2011-05-01": {
+  "2011-05-02": {
     "hifumi": 12947.0,
     "saison": 8114.0
   },
@@ -200,7 +200,7 @@
     "hifumi": 12838.0,
     "saison": 7324.0
   },
-  "2011-10-01": {
+  "2011-10-03": {
     "hifumi": 12365.0,
     "saison": 7025.0
   },
@@ -212,7 +212,7 @@
     "hifumi": 12058.0,
     "saison": 7088.0
   },
-  "2012-01-01": {
+  "2012-01-04": {
     "hifumi": 12132.0,
     "saison": 7156.0
   },
@@ -224,7 +224,7 @@
     "hifumi": 12632.0,
     "saison": 7993.0
   },
-  "2012-04-01": {
+  "2012-04-02": {
     "hifumi": 13619.0,
     "saison": 8171.0
   },
@@ -236,7 +236,7 @@
     "hifumi": 12180.0,
     "saison": 7365.0
   },
-  "2012-07-01": {
+  "2012-07-02": {
     "hifumi": 13097.0,
     "saison": 7549.0
   },
@@ -244,7 +244,7 @@
     "hifumi": 13058.0,
     "saison": 7566.0
   },
-  "2012-09-01": {
+  "2012-09-03": {
     "hifumi": 13173.0,
     "saison": 7669.0
   },
@@ -256,11 +256,11 @@
     "hifumi": 13856.0,
     "saison": 7976.0
   },
-  "2012-12-01": {
+  "2012-12-03": {
     "hifumi": 13991.0,
     "saison": 8278.0
   },
-  "2013-01-01": {
+  "2013-01-04": {
     "hifumi": 15075.0,
     "saison": 8927.0
   },
@@ -280,7 +280,7 @@
     "hifumi": 20372.0,
     "saison": 10261.0
   },
-  "2013-06-01": {
+  "2013-06-03": {
     "hifumi": 19406.0,
     "saison": 10552.0
   },
@@ -292,880 +292,2264 @@
     "hifumi": 20013.0,
     "saison": 10334.0
   },
-  "2013-09-01": {
-    "ishares": 9999.0,
+  "2013-09-02": {
     "hifumi": 19648.0,
     "saison": 10252.0
   },
   "2013-10-01": {
-    "ishares": 10077.0,
     "hifumi": 21311.0,
-    "saison": 10599.0
+    "saison": 10599.0,
+    "ishares": 10077.0
   },
   "2013-11-01": {
-    "ishares": 10512.0,
     "hifumi": 21798.0,
-    "saison": 10815.0
+    "saison": 10815.0,
+    "ishares": 10512.0
   },
-  "2013-12-01": {
-    "ishares": 11277.0,
+  "2013-12-02": {
     "hifumi": 23788.0,
-    "saison": 11310.0
+    "saison": 11310.0,
+    "ishares": 11277.0
   },
-  "2014-01-01": {
-    "ishares": 11680.0,
+  "2014-01-06": {
     "hifumi": 24818.0,
-    "saison": 11529.0
+    "saison": 11529.0,
+    "ishares": 11680.0
   },
-  "2014-02-01": {
-    "ishares": 11106.0,
+  "2014-02-03": {
     "hifumi": 24064.0,
-    "saison": 11187.0
+    "saison": 11187.0,
+    "ishares": 11106.0
   },
-  "2014-03-01": {
-    "ishares": 11498.0,
+  "2014-03-03": {
     "hifumi": 24074.0,
-    "saison": 11400.0
+    "saison": 11400.0,
+    "ishares": 11498.0
   },
   "2014-04-01": {
-    "ishares": 11801.0,
     "hifumi": 24043.0,
-    "saison": 11586.0
+    "saison": 11586.0,
+    "ishares": 11801.0
   },
   "2014-05-01": {
-    "ishares": 11762.0,
     "hifumi": 23160.0,
-    "saison": 11609.0
+    "saison": 11609.0,
+    "ishares": 11762.0
   },
-  "2014-06-01": {
-    "ishares": 11991.0,
+  "2014-06-02": {
     "hifumi": 23886.0,
-    "saison": 11725.0
+    "saison": 11725.0,
+    "ishares": 11991.0
   },
   "2014-07-01": {
-    "ishares": 12164.0,
     "hifumi": 25519.0,
-    "saison": 11795.0
+    "saison": 11795.0,
+    "ishares": 12164.0
   },
   "2014-08-01": {
-    "ishares": 12148.0,
     "hifumi": 25730.0,
-    "saison": 11920.0
+    "saison": 11920.0,
+    "ishares": 12148.0
   },
   "2014-09-01": {
-    "ishares": 12782.0,
     "hifumi": 26525.0,
-    "saison": 12094.0
+    "saison": 12094.0,
+    "ishares": 12782.0
   },
   "2014-10-01": {
-    "ishares": 13282.0,
     "hifumi": 26085.0,
-    "saison": 12402.0
+    "saison": 12402.0,
+    "ishares": 13282.0
   },
-  "2014-11-01": {
-    "ishares": 14062.0,
+  "2014-11-04": {
     "hifumi": 26413.0,
-    "saison": 12854.0
+    "saison": 12854.0,
+    "ishares": 14062.0
   },
   "2014-12-01": {
-    "ishares": 15082.0,
     "hifumi": 28054.0,
-    "saison": 13559.0
+    "saison": 13559.0,
+    "ishares": 15082.0
   },
-  "2015-01-01": {
-    "ishares": 15198.0,
+  "2015-01-05": {
     "hifumi": 28433.0,
-    "saison": 13489.0
+    "saison": 13489.0,
+    "ishares": 15198.0
   },
-  "2015-02-01": {
-    "ishares": 14401.0,
+  "2015-02-02": {
     "hifumi": 28338.0,
-    "saison": 13146.0
+    "saison": 13146.0,
+    "ishares": 14401.0
   },
-  "2015-03-01": {
-    "ishares": 15512.0,
+  "2015-03-02": {
     "hifumi": 29847.0,
-    "saison": 13629.0
+    "saison": 13629.0,
+    "ishares": 15512.0
   },
   "2015-04-01": {
-    "ishares": 15273.0,
     "hifumi": 30395.0,
-    "saison": 13517.0
+    "saison": 13517.0,
+    "ishares": 15273.0
   },
   "2015-05-01": {
-    "ishares": 15375.0,
     "hifumi": 30739.0,
-    "saison": 13769.0
+    "saison": 13769.0,
+    "ishares": 15375.0
   },
   "2015-06-01": {
-    "ishares": 16160.0,
     "hifumi": 32104.0,
-    "saison": 14091.0
+    "saison": 14091.0,
+    "ishares": 16160.0
   },
   "2015-07-01": {
-    "ishares": 15616.0,
     "hifumi": 33447.0,
-    "saison": 13658.0
+    "saison": 13658.0,
+    "ishares": 15616.0
   },
-  "2015-08-01": {
-    "ishares": 16125.0,
+  "2015-08-03": {
     "hifumi": 34214.0,
-    "saison": 13896.0
+    "saison": 13896.0,
+    "ishares": 16125.0
   },
   "2015-09-01": {
-    "ishares": 14740.0,
     "hifumi": 31277.0,
-    "saison": 13244.0
+    "saison": 13244.0,
+    "ishares": 14740.0
   },
   "2015-10-01": {
-    "ishares": 14243.0,
     "hifumi": 31152.0,
-    "saison": 12755.0
+    "saison": 12755.0,
+    "ishares": 14243.0
   },
-  "2015-11-01": {
-    "ishares": 15515.0,
+  "2015-11-02": {
     "hifumi": 31665.0,
-    "saison": 13453.0
+    "saison": 13453.0,
+    "ishares": 15515.0
   },
   "2015-12-01": {
-    "ishares": 15902.0,
     "hifumi": 34395.0,
-    "saison": 13568.0
+    "saison": 13568.0,
+    "ishares": 15902.0
   },
-  "2016-01-01": {
-    "ishares": 15264.0,
+  "2016-01-04": {
     "hifumi": 33745.0,
-    "saison": 13220.0
+    "saison": 13220.0,
+    "ishares": 15264.0
   },
   "2016-02-01": {
-    "ishares": 14580.0,
     "hifumi": 33777.0,
-    "saison": 12821.0
+    "saison": 12821.0,
+    "ishares": 14580.0
   },
   "2016-03-01": {
-    "ishares": 13548.0,
     "hifumi": 30793.0,
-    "saison": 12182.0
+    "saison": 12182.0,
+    "ishares": 13548.0
   },
   "2016-04-01": {
-    "ishares": 14429.0,
     "hifumi": 32785.0,
-    "saison": 12725.0
+    "saison": 12725.0,
+    "ishares": 14429.0
   },
-  "2016-05-01": {
-    "ishares": 13705.0,
+  "2016-05-02": {
     "hifumi": 32474.0,
-    "saison": 12223.0
+    "saison": 12223.0,
+    "ishares": 13705.0
   },
   "2016-06-01": {
-    "ishares": 14486.0,
     "hifumi": 33745.0,
-    "saison": 12567.0
+    "saison": 12567.0,
+    "ishares": 14486.0
   },
   "2016-07-01": {
-    "ishares": 13510.0,
     "hifumi": 32658.0,
-    "saison": 11767.0
+    "saison": 11767.0,
+    "ishares": 13510.0
   },
   "2016-08-01": {
-    "ishares": 13917.0,
     "hifumi": 32954.0,
-    "saison": 12039.0
+    "saison": 12039.0,
+    "ishares": 13917.0
   },
   "2016-09-01": {
-    "ishares": 14028.0,
     "hifumi": 31572.0,
-    "saison": 12145.0
+    "saison": 12145.0,
+    "ishares": 14028.0
   },
-  "2016-10-01": {
-    "ishares": 13781.0,
+  "2016-10-03": {
     "hifumi": 33320.0,
-    "saison": 11972.0
+    "saison": 11972.0,
+    "ishares": 13781.0
   },
   "2016-11-01": {
-    "ishares": 13985.0,
     "hifumi": 34467.0,
-    "saison": 12101.0
+    "saison": 12101.0,
+    "ishares": 13985.0
   },
   "2016-12-01": {
-    "ishares": 15797.0,
     "hifumi": 34650.0,
-    "saison": 12972.0
+    "saison": 12972.0,
+    "ishares": 15797.0
   },
-  "2017-01-01": {
-    "ishares": 16728.0,
+  "2017-01-04": {
     "hifumi": 36444.0,
-    "saison": 13410.0
+    "saison": 13410.0,
+    "ishares": 16728.0
   },
   "2017-02-01": {
-    "ishares": 16203.0,
     "hifumi": 37107.0,
-    "saison": 13139.0
+    "saison": 13139.0,
+    "ishares": 16203.0
   },
   "2017-03-01": {
-    "ishares": 16840.0,
     "hifumi": 38224.0,
-    "saison": 13315.0
+    "saison": 13315.0,
+    "ishares": 16840.0
   },
-  "2017-04-01": {
-    "ishares": 16553.0,
+  "2017-04-03": {
     "hifumi": 39234.0,
-    "saison": 13216.0
+    "saison": 13216.0,
+    "ishares": 16553.0
   },
   "2017-05-01": {
-    "ishares": 16737.0,
     "hifumi": 39423.0,
-    "saison": 13425.0
+    "saison": 13425.0,
+    "ishares": 16737.0
   },
   "2017-06-01": {
-    "ishares": 16878.0,
     "hifumi": 42032.0,
-    "saison": 13608.0
+    "saison": 13608.0,
+    "ishares": 16878.0
   },
-  "2017-07-01": {
-    "ishares": 17161.0,
+  "2017-07-03": {
     "hifumi": 42450.0,
-    "saison": 13810.0
+    "saison": 13810.0,
+    "ishares": 17161.0
   },
   "2017-08-01": {
-    "ishares": 17202.0,
     "hifumi": 42701.0,
-    "saison": 13850.0
+    "saison": 13850.0,
+    "ishares": 17202.0
   },
   "2017-09-01": {
-    "ishares": 17224.0,
     "hifumi": 44108.0,
     "saison": 13890.0,
-    "rakuten_vti": 10000.0
+    "ishares": 17224.0
   },
-  "2017-10-01": {
-    "ishares": 17974.0,
+  "2017-10-02": {
     "hifumi": 45440.0,
     "saison": 14259.0,
-    "rakuten_vti": 9980.0
+    "rakuten_vti": 9980.0,
+    "ishares": 17974.0
   },
   "2017-11-01": {
-    "ishares": 18551.0,
     "hifumi": 48258.0,
     "saison": 14556.0,
-    "rakuten_vti": 10259.0
+    "rakuten_vti": 10259.0,
+    "ishares": 18551.0
   },
   "2017-12-01": {
-    "ishares": 18878.0,
     "hifumi": 49770.0,
     "saison": 14585.0,
-    "rakuten_vti": 10436.0
+    "rakuten_vti": 10436.0,
+    "ishares": 18878.0
   },
-  "2018-01-01": {
-    "ishares": 19381.0,
+  "2018-01-04": {
     "hifumi": 53010.0,
     "saison": 14786.0,
-    "rakuten_vti": 10707.0
+    "rakuten_vti": 10707.0,
+    "ishares": 19381.0
   },
   "2018-02-01": {
-    "ishares": 19574.0,
     "hifumi": 54004.0,
     "saison": 14757.0,
-    "rakuten_vti": 10773.0
+    "rakuten_vti": 10773.0,
+    "ishares": 19574.0
   },
   "2018-03-01": {
-    "ishares": 18396.0,
     "hifumi": 50683.0,
     "saison": 14141.0,
-    "rakuten_vti": 10126.0
+    "rakuten_vti": 10126.0,
+    "ishares": 18396.0
   },
-  "2018-04-01": {
-    "ishares": 17871.0,
+  "2018-04-02": {
     "hifumi": 50966.0,
     "saison": 13960.0,
-    "rakuten_vti": 9882.0
+    "rakuten_vti": 9882.0,
+    "ishares": 17871.0
   },
   "2018-05-01": {
-    "ishares": 18438.0,
     "hifumi": 51381.0,
     "saison": 14325.0,
-    "rakuten_vti": 10210.0
+    "rakuten_vti": 10210.0,
+    "ishares": 18438.0
   },
   "2018-06-01": {
-    "ishares": 18794.0,
     "hifumi": 52144.0,
     "saison": 14176.0,
-    "rakuten_vti": 10445.0
+    "rakuten_vti": 10445.0,
+    "ishares": 18794.0
   },
-  "2018-07-01": {
-    "ishares": 19212.0,
+  "2018-07-02": {
     "hifumi": 50774.0,
     "saison": 14329.0,
-    "rakuten_vti": 10698.0
+    "rakuten_vti": 10698.0,
+    "ishares": 19212.0
   },
   "2018-08-01": {
-    "ishares": 20094.0,
     "hifumi": 51256.0,
     "saison": 14655.0,
-    "rakuten_vti": 11147.0
+    "rakuten_vti": 11147.0,
+    "ishares": 20094.0
   },
-  "2018-09-01": {
-    "ishares": 20571.0,
+  "2018-09-03": {
     "hifumi": 50487.0,
     "saison": 14622.0,
-    "rakuten_vti": 11439.0
+    "rakuten_vti": 11439.0,
+    "ishares": 20571.0
   },
   "2018-10-01": {
-    "ishares": 21209.0,
     "hifumi": 52893.0,
     "saison": 14975.0,
-    "rakuten_vti": 11756.0
+    "rakuten_vti": 11756.0,
+    "ishares": 21209.0
   },
   "2018-11-01": {
-    "ishares": 19587.0,
     "hifumi": 46466.0,
     "saison": 14095.0,
-    "rakuten_vti": 10776.0
+    "rakuten_vti": 10776.0,
+    "ishares": 19587.0
   },
-  "2018-12-01": {
-    "ishares": 20110.0,
+  "2018-12-03": {
     "hifumi": 47870.0,
     "saison": 14423.0,
-    "rakuten_vti": 11074.0
+    "rakuten_vti": 11074.0,
+    "ishares": 20110.0
   },
-  "2019-01-01": {
-    "ishares": 16948.0,
+  "2019-01-04": {
     "hifumi": 39770.0,
     "saison": 13377.0,
-    "rakuten_vti": 9316.0
+    "rakuten_vti": 9316.0,
+    "ishares": 16948.0
   },
   "2019-02-01": {
-    "ishares": 18943.0,
     "hifumi": 43654.0,
     "saison": 13990.0,
-    "rakuten_vti": 10458.0
+    "rakuten_vti": 10458.0,
+    "ishares": 18943.0
   },
   "2019-03-01": {
-    "ishares": 20006.0,
     "hifumi": 45900.0,
     "saison": 14561.0,
-    "rakuten_vti": 11086.0
+    "rakuten_vti": 11086.0,
+    "ishares": 20006.0
   },
   "2019-04-01": {
-    "ishares": 20294.0,
     "hifumi": 46327.0,
     "saison": 14613.0,
-    "rakuten_vti": 11190.0
+    "rakuten_vti": 11190.0,
+    "ishares": 20294.0
   },
-  "2019-05-01": {
-    "ishares": 20938.0,
+  "2019-05-07": {
     "hifumi": 46528.0,
     "saison": 14838.0,
-    "rakuten_vti": 11564.0
+    "rakuten_vti": 11564.0,
+    "ishares": 20938.0
   },
-  "2019-06-01": {
-    "ishares": 19285.0,
+  "2019-06-03": {
     "hifumi": 43462.0,
     "saison": 14260.0,
-    "rakuten_vti": 10607.0
+    "rakuten_vti": 10607.0,
+    "ishares": 19285.0
   },
   "2019-07-01": {
-    "ishares": 20579.0,
     "hifumi": 46164.0,
     "saison": 14745.0,
-    "rakuten_vti": 11339.0
+    "rakuten_vti": 11339.0,
+    "ishares": 20579.0
   },
   "2019-08-01": {
-    "ishares": 21076.0,
     "hifumi": 46059.0,
     "saison": 14921.0,
-    "rakuten_vti": 11606.0
+    "rakuten_vti": 11606.0,
+    "ishares": 21076.0
   },
-  "2019-09-01": {
-    "ishares": 20113.0,
+  "2019-09-02": {
     "hifumi": 43370.0,
     "saison": 14486.0,
-    "rakuten_vti": 11038.0
+    "rakuten_vti": 11038.0,
+    "ishares": 20113.0
   },
   "2019-10-01": {
-    "ishares": 20872.0,
     "hifumi": 45730.0,
     "saison": 14834.0,
-    "rakuten_vti": 11443.0
+    "rakuten_vti": 11443.0,
+    "ishares": 20872.0
   },
   "2019-11-01": {
-    "ishares": 21270.0,
     "hifumi": 47629.0,
     "saison": 15059.0,
-    "rakuten_vti": 11666.0
+    "rakuten_vti": 11666.0,
+    "ishares": 21270.0
   },
-  "2019-12-01": {
-    "ishares": 22372.0,
+  "2019-12-02": {
     "hifumi": 49384.0,
     "saison": 15432.0,
-    "rakuten_vti": 12291.0
+    "rakuten_vti": 12291.0,
+    "ishares": 22372.0
   },
-  "2020-01-01": {
-    "ishares": 22700.0,
+  "2020-01-06": {
     "hifumi": 49402.0,
     "saison": 15511.0,
-    "rakuten_vti": 12470.0
+    "rakuten_vti": 12470.0,
+    "ishares": 22700.0
   },
-  "2020-02-01": {
-    "ishares": 22740.0,
+  "2020-02-03": {
     "hifumi": 47975.0,
     "saison": 15624.0,
-    "rakuten_vti": 12482.0
+    "rakuten_vti": 12482.0,
+    "ishares": 22740.0
   },
-  "2020-03-01": {
-    "ishares": 20698.0,
+  "2020-03-02": {
     "hifumi": 44286.0,
     "saison": 15031.0,
-    "rakuten_vti": 11394.0
+    "rakuten_vti": 11394.0,
+    "ishares": 20698.0
   },
   "2020-04-01": {
-    "ishares": 18157.0,
     "hifumi": 41253.0,
     "saison": 14074.0,
-    "rakuten_vti": 9800.0
+    "rakuten_vti": 9800.0,
+    "ishares": 18157.0
   },
   "2020-05-01": {
-    "ishares": 20355.0,
     "hifumi": 45059.0,
     "saison": 14757.0,
-    "rakuten_vti": 11050.0
+    "rakuten_vti": 11050.0,
+    "ishares": 20355.0
   },
   "2020-06-01": {
-    "ishares": 21435.0,
     "hifumi": 49789.0,
     "saison": 15102.0,
-    "rakuten_vti": 11692.0
+    "rakuten_vti": 11692.0,
+    "ishares": 21435.0
   },
   "2020-07-01": {
-    "ishares": 21888.0,
     "hifumi": 50388.0,
     "saison": 15373.0,
-    "rakuten_vti": 11994.0
+    "rakuten_vti": 11994.0,
+    "ishares": 21888.0
   },
-  "2020-08-01": {
-    "ishares": 22723.0,
+  "2020-08-03": {
     "hifumi": 51109.0,
     "saison": 15757.0,
-    "rakuten_vti": 12445.0
+    "rakuten_vti": 12445.0,
+    "ishares": 22723.0
   },
   "2020-09-01": {
-    "ishares": 24242.0,
     "hifumi": 53577.0,
     "saison": 16190.0,
-    "rakuten_vti": 13298.0
+    "rakuten_vti": 13298.0,
+    "ishares": 24242.0
   },
   "2020-10-01": {
-    "ishares": 23244.0,
     "hifumi": 55870.0,
     "saison": 15820.0,
-    "rakuten_vti": 12779.0
+    "rakuten_vti": 12779.0,
+    "ishares": 23244.0
   },
-  "2020-11-01": {
-    "ishares": 22498.0,
+  "2020-11-02": {
     "hifumi": 54812.0,
     "saison": 15598.0,
-    "rakuten_vti": 12435.0
+    "rakuten_vti": 12435.0,
+    "ishares": 22498.0
   },
   "2020-12-01": {
-    "ishares": 24805.0,
     "hifumi": 59830.0,
     "saison": 16502.0,
-    "rakuten_vti": 13833.0
+    "rakuten_vti": 13833.0,
+    "ishares": 24805.0
   },
-  "2021-01-01": {
-    "ishares": 25423.0,
+  "2021-01-04": {
     "hifumi": 60405.0,
     "saison": 16682.0,
-    "rakuten_vti": 14308.0
+    "rakuten_vti": 14308.0,
+    "ishares": 25423.0
   },
   "2021-02-01": {
-    "ishares": 25548.0,
     "hifumi": 60933.0,
     "saison": 16957.0,
-    "rakuten_vti": 14477.0
+    "rakuten_vti": 14477.0,
+    "ishares": 25548.0
   },
   "2021-03-01": {
-    "ishares": 26678.0,
     "hifumi": 60801.0,
     "saison": 17170.0,
-    "rakuten_vti": 15184.0
+    "rakuten_vti": 15184.0,
+    "ishares": 26678.0
   },
   "2021-04-01": {
-    "ishares": 28998.0,
     "hifumi": 63143.0,
     "saison": 17869.0,
-    "rakuten_vti": 16370.0
+    "rakuten_vti": 16370.0,
+    "ishares": 28998.0
   },
-  "2021-05-01": {
-    "ishares": 29976.0,
+  "2021-05-06": {
     "hifumi": 61702.0,
     "saison": 18051.0,
-    "rakuten_vti": 16859.0
+    "rakuten_vti": 16859.0,
+    "ishares": 29976.0
   },
   "2021-06-01": {
-    "ishares": 30289.0,
     "hifumi": 60970.0,
     "saison": 18304.0,
-    "rakuten_vti": 17047.0
+    "rakuten_vti": 17047.0,
+    "ishares": 30289.0
   },
   "2021-07-01": {
-    "ishares": 31412.0,
     "hifumi": 62624.0,
     "saison": 18585.0,
-    "rakuten_vti": 17727.0
+    "rakuten_vti": 17727.0,
+    "ishares": 31412.0
   },
-  "2021-08-01": {
-    "ishares": 31747.0,
+  "2021-08-02": {
     "hifumi": 62105.0,
     "saison": 18585.0,
-    "rakuten_vti": 17804.0
+    "rakuten_vti": 17804.0,
+    "ishares": 31747.0
   },
   "2021-09-01": {
-    "ishares": 32840.0,
     "hifumi": 63924.0,
     "saison": 18831.0,
-    "rakuten_vti": 18401.0
+    "rakuten_vti": 18401.0,
+    "ishares": 32840.0
   },
   "2021-10-01": {
-    "ishares": 31631.0,
     "hifumi": 63652.0,
     "saison": 18457.0,
-    "rakuten_vti": 17767.0
+    "rakuten_vti": 17767.0,
+    "ishares": 31631.0
   },
   "2021-11-01": {
-    "ishares": 34605.0,
     "hifumi": 65325.0,
     "saison": 19327.0,
-    "rakuten_vti": 19402.0
+    "rakuten_vti": 19402.0,
+    "ishares": 34605.0
   },
   "2021-12-01": {
-    "ishares": 34086.0,
     "hifumi": 61245.0,
     "saison": 18989.0,
-    "rakuten_vti": 18982.0
+    "rakuten_vti": 18982.0,
+    "ishares": 34086.0
   },
-  "2022-01-01": {
-    "ishares": 36501.0,
+  "2022-01-04": {
     "hifumi": 62889.0,
     "saison": 19659.0,
-    "rakuten_vti": 20197.0
+    "rakuten_vti": 20197.0,
+    "ishares": 36501.0
   },
   "2022-02-01": {
-    "ishares": 34310.0,
     "hifumi": 55050.0,
     "saison": 18948.0,
-    "rakuten_vti": 18809.0
+    "rakuten_vti": 18809.0,
+    "ishares": 34310.0
   },
   "2022-03-01": {
-    "ishares": 33350.0,
     "hifumi": 55033.0,
     "saison": 18548.0,
-    "rakuten_vti": 18356.0
+    "rakuten_vti": 18356.0,
+    "ishares": 33350.0
   },
   "2022-04-01": {
-    "ishares": 36572.0,
     "hifumi": 56718.0,
     "saison": 19573.0,
-    "rakuten_vti": 20074.0
+    "rakuten_vti": 20074.0,
+    "ishares": 36572.0
   },
-  "2022-05-01": {
-    "ishares": 35508.0,
+  "2022-05-02": {
     "hifumi": 54441.0,
     "saison": 19464.0,
-    "rakuten_vti": 19408.0
+    "rakuten_vti": 19408.0,
+    "ishares": 35508.0
   },
   "2022-06-01": {
-    "ishares": 35299.0,
     "hifumi": 55452.0,
     "saison": 19431.0,
-    "rakuten_vti": 19186.0
+    "rakuten_vti": 19186.0,
+    "ishares": 35299.0
   },
   "2022-07-01": {
-    "ishares": 34103.0,
     "hifumi": 52471.0,
     "saison": 19293.0,
-    "rakuten_vti": 18552.0
+    "rakuten_vti": 18552.0,
+    "ishares": 34103.0
   },
   "2022-08-01": {
-    "ishares": 36369.0,
     "hifumi": 55020.0,
     "saison": 19638.0,
-    "rakuten_vti": 19827.0
+    "rakuten_vti": 19827.0,
+    "ishares": 36369.0
   },
   "2022-09-01": {
-    "ishares": 36606.0,
     "hifumi": 54693.0,
     "saison": 19824.0,
-    "rakuten_vti": 20027.0
+    "rakuten_vti": 20027.0,
+    "ishares": 36606.0
   },
-  "2022-10-01": {
-    "ishares": 34493.0,
+  "2022-10-03": {
     "hifumi": 53169.0,
     "saison": 19114.0,
-    "rakuten_vti": 18860.0
+    "rakuten_vti": 18860.0,
+    "ishares": 34493.0
   },
   "2022-11-01": {
-    "ishares": 38272.0,
     "hifumi": 55262.0,
     "saison": 20153.0,
-    "rakuten_vti": 20926.0
+    "rakuten_vti": 20926.0,
+    "ishares": 38272.0
   },
   "2022-12-01": {
-    "ishares": 37222.0,
     "hifumi": 55712.0,
     "saison": 19725.0,
-    "rakuten_vti": 20294.0
+    "rakuten_vti": 20294.0,
+    "ishares": 37222.0
   },
-  "2023-01-01": {
-    "ishares": 33372.0,
+  "2023-01-04": {
     "hifumi": 53133.0,
     "saison": 18368.0,
-    "rakuten_vti": 18178.0
+    "rakuten_vti": 18178.0,
+    "ishares": 33372.0
   },
   "2023-02-01": {
-    "ishares": 35313.0,
     "hifumi": 55107.0,
     "saison": 19176.0,
-    "rakuten_vti": 19351.0
+    "rakuten_vti": 19351.0,
+    "ishares": 35313.0
   },
   "2023-03-01": {
-    "ishares": 36140.0,
     "hifumi": 56307.0,
     "saison": 19506.0,
-    "rakuten_vti": 19821.0
+    "rakuten_vti": 19821.0,
+    "ishares": 36140.0
   },
-  "2023-04-01": {
-    "ishares": 36576.0,
+  "2023-04-03": {
     "hifumi": 56734.0,
     "saison": 19621.0,
-    "rakuten_vti": 19867.0
+    "rakuten_vti": 19867.0,
+    "ishares": 36576.0
   },
   "2023-05-01": {
-    "ishares": 38182.0,
     "hifumi": 57667.0,
     "saison": 20361.0,
-    "rakuten_vti": 20634.0
+    "rakuten_vti": 20634.0,
+    "ishares": 38182.0
   },
   "2023-06-01": {
-    "ishares": 38998.0,
     "hifumi": 59638.0,
     "saison": 20544.0,
-    "rakuten_vti": 21073.0
+    "rakuten_vti": 21073.0,
+    "ishares": 38998.0
   },
-  "2023-07-01": {
-    "ishares": 43132.0,
+  "2023-07-03": {
     "hifumi": 63400.0,
     "saison": 21857.0,
-    "rakuten_vti": 23330.0
+    "rakuten_vti": 23330.0,
+    "ishares": 43132.0
   },
   "2023-08-01": {
-    "ishares": 43891.0,
     "hifumi": 64079.0,
     "saison": 21935.0,
-    "rakuten_vti": 23838.0
+    "rakuten_vti": 23838.0,
+    "ishares": 43891.0
   },
   "2023-09-01": {
-    "ishares": 44168.0,
     "hifumi": 64053.0,
     "saison": 22022.0,
-    "rakuten_vti": 23909.0
+    "rakuten_vti": 23909.0,
+    "ishares": 44168.0
   },
-  "2023-10-01": {
-    "ishares": 43248.0,
+  "2023-10-02": {
     "hifumi": 63376.0,
     "saison": 21736.0,
-    "rakuten_vti": 23379.0
+    "rakuten_vti": 23379.0,
+    "ishares": 43248.0
   },
   "2023-11-01": {
-    "ishares": 42763.0,
     "hifumi": 62660.0,
     "saison": 21654.0,
-    "rakuten_vti": 23012.0
+    "rakuten_vti": 23012.0,
+    "ishares": 42763.0
   },
   "2023-12-01": {
-    "ishares": 45567.0,
     "hifumi": 64975.0,
     "saison": 22572.0,
-    "rakuten_vti": 24580.0
+    "rakuten_vti": 24580.0,
+    "ishares": 45567.0
   },
-  "2024-01-01": {
-    "ishares": 45571.0,
+  "2024-01-04": {
     "hifumi": 64741.0,
     "saison": 22582.0,
-    "rakuten_vti": 24685.0
+    "rakuten_vti": 24685.0,
+    "ishares": 45571.0
   },
   "2024-02-01": {
-    "ishares": 48054.0,
     "hifumi": 69129.0,
     "saison": 23178.0,
-    "rakuten_vti": 25971.0
+    "rakuten_vti": 25971.0,
+    "ishares": 48054.0
   },
   "2024-03-01": {
-    "ishares": 51735.0,
     "hifumi": 73837.0,
     "saison": 24110.0,
-    "rakuten_vti": 27984.0
+    "rakuten_vti": 27984.0,
+    "ishares": 51735.0
   },
   "2024-04-01": {
-    "ishares": 53826.0,
     "hifumi": 75206.0,
     "saison": 24762.0,
-    "rakuten_vti": 29095.0
+    "rakuten_vti": 29095.0,
+    "ishares": 53826.0
   },
   "2024-05-01": {
-    "ishares": 53869.0,
     "hifumi": 73416.0,
     "saison": 25114.0,
-    "rakuten_vti": 29030.0
+    "rakuten_vti": 29030.0,
+    "ishares": 53869.0
   },
-  "2024-06-01": {
-    "ishares": 56304.0,
+  "2024-06-03": {
     "hifumi": 74938.0,
     "saison": 25603.0,
-    "rakuten_vti": 30255.0
+    "rakuten_vti": 30255.0,
+    "ishares": 56304.0
   },
   "2024-07-01": {
-    "ishares": 59783.0,
     "hifumi": 75826.0,
     "saison": 26638.0,
-    "rakuten_vti": 31977.0
+    "rakuten_vti": 31977.0,
+    "ishares": 59783.0
   },
   "2024-08-01": {
-    "ishares": 56104.0,
     "hifumi": 71735.0,
     "saison": 25145.0,
-    "rakuten_vti": 30228.0
+    "rakuten_vti": 30228.0,
+    "ishares": 56104.0
   },
-  "2024-09-01": {
-    "ishares": 56157.0,
+  "2024-09-02": {
     "hifumi": 71984.0,
     "saison": 25211.0,
-    "rakuten_vti": 30172.0
+    "rakuten_vti": 30172.0,
+    "ishares": 56157.0
   },
   "2024-10-01": {
-    "ishares": 56507.0,
     "hifumi": 71960.0,
     "saison": 25366.0,
-    "rakuten_vti": 30321.0
+    "rakuten_vti": 30321.0,
+    "ishares": 56507.0
   },
   "2024-11-01": {
-    "ishares": 59044.0,
     "hifumi": 69415.0,
     "saison": 26042.0,
-    "rakuten_vti": 31749.0
+    "rakuten_vti": 31749.0,
+    "ishares": 59044.0
   },
-  "2024-12-01": {
-    "ishares": 61775.0,
+  "2024-12-02": {
     "hifumi": 71082.0,
     "saison": 26073.0,
-    "rakuten_vti": 33461.0
+    "rakuten_vti": 33461.0,
+    "ishares": 61775.0
   },
-  "2025-01-01": {
-    "ishares": 63941.0,
+  "2025-01-06": {
     "hifumi": 72198.0,
     "saison": 26861.0,
-    "rakuten_vti": 34432.0
+    "rakuten_vti": 34432.0,
+    "ishares": 63941.0
   },
-  "2025-02-01": {
-    "ishares": 64181.0,
+  "2025-02-03": {
     "hifumi": 71977.0,
     "saison": 26789.0,
-    "rakuten_vti": 34630.0
+    "rakuten_vti": 34630.0,
+    "ishares": 64181.0
   },
-  "2025-03-01": {
-    "ishares": 61285.0,
+  "2025-03-03": {
     "hifumi": 70584.0,
     "saison": 26211.0,
-    "rakuten_vti": 32850.0
+    "rakuten_vti": 32850.0,
+    "ishares": 61285.0
   },
   "2025-04-01": {
-    "ishares": 57559.0,
     "hifumi": 69781.0,
     "saison": 25746.0,
-    "rakuten_vti": 30761.0
+    "rakuten_vti": 30761.0,
+    "ishares": 57559.0
   },
   "2025-05-01": {
-    "ishares": 54576.0,
     "hifumi": 69536.0,
     "saison": 24971.0,
-    "rakuten_vti": 29153.0
+    "rakuten_vti": 29153.0,
+    "ishares": 54576.0
   },
-  "2025-06-01": {
-    "ishares": 58130.0,
+  "2025-06-02": {
     "hifumi": 72450.0,
     "saison": 25761.0,
-    "rakuten_vti": 31095.0
+    "rakuten_vti": 31095.0,
+    "ishares": 58130.0
+  },
+  "2025-06-10": {
+    "hifumi": 72670.0,
+    "saison": 26136.0,
+    "rakuten_vti": 31920.0,
+    "ishares": 59594.0
+  },
+  "2025-06-11": {
+    "hifumi": 72591.0,
+    "saison": 26237.0,
+    "rakuten_vti": 32139.0,
+    "ishares": 60027.0
+  },
+  "2025-06-12": {
+    "hifumi": 72722.0,
+    "saison": 26168.0,
+    "rakuten_vti": 31872.0,
+    "ishares": 59520.0
+  },
+  "2025-06-13": {
+    "hifumi": 72172.0,
+    "saison": 26069.0,
+    "rakuten_vti": 31744.0,
+    "ishares": 59308.0
+  },
+  "2025-06-16": {
+    "hifumi": 72709.0,
+    "saison": 26204.0,
+    "rakuten_vti": 31663.0,
+    "ishares": 59199.0
+  },
+  "2025-06-17": {
+    "hifumi": 72929.0,
+    "saison": 26330.0,
+    "rakuten_vti": 32121.0,
+    "ishares": 60026.0
+  },
+  "2025-06-18": {
+    "hifumi": 73360.0,
+    "saison": 26277.0,
+    "rakuten_vti": 31915.0,
+    "ishares": 59646.0
+  },
+  "2025-06-19": {
+    "hifumi": 72954.0,
+    "saison": 26196.0,
+    "rakuten_vti": 31830.0,
+    "ishares": 59452.0
+  },
+  "2025-06-20": {
+    "hifumi": 72494.0,
+    "saison": 26302.0,
+    "rakuten_vti": 31923.0,
+    "ishares": 59628.0
+  },
+  "2025-06-23": {
+    "hifumi": 72349.0,
+    "saison": 26401.0,
+    "rakuten_vti": 32101.0,
+    "ishares": 59903.0
+  },
+  "2025-06-24": {
+    "hifumi": 72878.0,
+    "saison": 26444.0,
+    "rakuten_vti": 32237.0,
+    "ishares": 60209.0
+  },
+  "2025-06-25": {
+    "hifumi": 73065.0,
+    "saison": 26451.0,
+    "rakuten_vti": 32466.0,
+    "ishares": 60589.0
+  },
+  "2025-06-26": {
+    "hifumi": 73459.0,
+    "saison": 26526.0,
+    "rakuten_vti": 32371.0,
+    "ishares": 60526.0
+  },
+  "2025-06-27": {
+    "hifumi": 74389.0,
+    "saison": 26561.0,
+    "rakuten_vti": 32599.0,
+    "ishares": 60906.0
+  },
+  "2025-06-30": {
+    "hifumi": 74899.0,
+    "saison": 26693.0,
+    "rakuten_vti": 32799.0,
+    "ishares": 61268.0
   },
   "2025-07-01": {
-    "ishares": 61134.0,
     "hifumi": 74595.0,
     "saison": 26600.0,
-    "rakuten_vti": 32700.0
+    "rakuten_vti": 32700.0,
+    "ishares": 61134.0
+  },
+  "2025-07-02": {
+    "hifumi": 74324.0,
+    "saison": 26620.0,
+    "rakuten_vti": 32702.0,
+    "ishares": 61117.0
+  },
+  "2025-07-03": {
+    "hifumi": 73843.0,
+    "saison": 26649.0,
+    "rakuten_vti": 32858.0,
+    "ishares": 61359.0
+  },
+  "2025-07-04": {
+    "hifumi": 73828.0,
+    "saison": 26848.0,
+    "rakuten_vti": 33358.0,
+    "ishares": 62250.0
+  },
+  "2025-07-07": {
+    "hifumi": 73639.0,
+    "saison": 26824.0,
+    "rakuten_vti": 33307.0,
+    "ishares": 62158.0
+  },
+  "2025-07-08": {
+    "hifumi": 73799.0,
+    "saison": 27005.0,
+    "rakuten_vti": 33428.0,
+    "ishares": 62444.0
+  },
+  "2025-07-09": {
+    "hifumi": 74093.0,
+    "saison": 27092.0,
+    "rakuten_vti": 33609.0,
+    "ishares": 62736.0
+  },
+  "2025-07-10": {
+    "hifumi": 73843.0,
+    "saison": 26977.0,
+    "rakuten_vti": 33589.0,
+    "ishares": 62679.0
+  },
+  "2025-07-11": {
+    "hifumi": 74153.0,
+    "saison": 27128.0,
+    "rakuten_vti": 33857.0,
+    "ishares": 63190.0
+  },
+  "2025-07-14": {
+    "hifumi": 74085.0,
+    "saison": 27176.0,
+    "rakuten_vti": 33796.0,
+    "ishares": 63102.0
+  },
+  "2025-07-15": {
+    "hifumi": 74181.0,
+    "saison": 27239.0,
+    "rakuten_vti": 34028.0,
+    "ishares": 63520.0
+  },
+  "2025-07-16": {
+    "hifumi": 74339.0,
+    "saison": 27382.0,
+    "rakuten_vti": 34160.0,
+    "ishares": 63823.0
+  },
+  "2025-07-17": {
+    "hifumi": 74924.0,
+    "saison": 27320.0,
+    "rakuten_vti": 34165.0,
+    "ishares": 63823.0
+  },
+  "2025-07-18": {
+    "hifumi": 74685.0,
+    "saison": 27414.0,
+    "rakuten_vti": 34429.0,
+    "ishares": 64274.0
+  },
+  "2025-07-22": {
+    "hifumi": 74784.0,
+    "saison": 27304.0,
+    "rakuten_vti": 34166.0,
+    "ishares": 63826.0
+  },
+  "2025-07-23": {
+    "hifumi": 76323.0,
+    "saison": 27223.0,
+    "rakuten_vti": 33975.0,
+    "ishares": 63400.0
+  },
+  "2025-07-24": {
+    "hifumi": 77241.0,
+    "saison": 27329.0,
+    "rakuten_vti": 34266.0,
+    "ishares": 63967.0
+  },
+  "2025-07-25": {
+    "hifumi": 77043.0,
+    "saison": 27529.0,
+    "rakuten_vti": 34469.0,
+    "ishares": 64393.0
+  },
+  "2025-07-28": {
+    "hifumi": 76196.0,
+    "saison": 27612.0,
+    "rakuten_vti": 34704.0,
+    "ishares": 64794.0
+  },
+  "2025-07-29": {
+    "hifumi": 75667.0,
+    "saison": 27612.0,
+    "rakuten_vti": 34875.0,
+    "ishares": 65118.0
+  },
+  "2025-07-30": {
+    "hifumi": 76082.0,
+    "saison": 27524.0,
+    "rakuten_vti": 34697.0,
+    "ishares": 64836.0
+  },
+  "2025-07-31": {
+    "hifumi": 76780.0,
+    "saison": 27660.0,
+    "rakuten_vti": 34923.0,
+    "ishares": 65244.0
   },
   "2025-08-01": {
-    "ishares": 65582.0,
     "hifumi": 76914.0,
     "saison": 27830.0,
-    "rakuten_vti": 35097.0
+    "rakuten_vti": 35097.0,
+    "ishares": 65582.0
+  },
+  "2025-08-04": {
+    "hifumi": 75990.0,
+    "saison": 27209.0,
+    "rakuten_vti": 33795.0,
+    "ishares": 63184.0
+  },
+  "2025-08-05": {
+    "hifumi": 76398.0,
+    "saison": 27244.0,
+    "rakuten_vti": 34170.0,
+    "ishares": 63856.0
+  },
+  "2025-08-06": {
+    "hifumi": 77000.0,
+    "saison": 27365.0,
+    "rakuten_vti": 34170.0,
+    "ishares": 63828.0
+  },
+  "2025-08-07": {
+    "hifumi": 77446.0,
+    "saison": 27513.0,
+    "rakuten_vti": 34410.0,
+    "ishares": 64317.0
+  },
+  "2025-08-08": {
+    "hifumi": 77997.0,
+    "saison": 27442.0,
+    "rakuten_vti": 34295.0,
+    "ishares": 64106.0
+  },
+  "2025-08-12": {
+    "hifumi": 79168.0,
+    "saison": 27689.0,
+    "rakuten_vti": 34712.0,
+    "ishares": 64986.0
+  },
+  "2025-08-13": {
+    "hifumi": 79956.0,
+    "saison": 27718.0,
+    "rakuten_vti": 34989.0,
+    "ishares": 65394.0
+  },
+  "2025-08-14": {
+    "hifumi": 79125.0,
+    "saison": 27567.0,
+    "rakuten_vti": 34884.0,
+    "ishares": 65126.0
+  },
+  "2025-08-15": {
+    "hifumi": 80329.0,
+    "saison": 27791.0,
+    "rakuten_vti": 35064.0,
+    "ishares": 65556.0
+  },
+  "2025-08-18": {
+    "hifumi": 80673.0,
+    "saison": 27739.0,
+    "rakuten_vti": 34946.0,
+    "ishares": 65337.0
+  },
+  "2025-08-19": {
+    "hifumi": 80516.0,
+    "saison": 27752.0,
+    "rakuten_vti": 35053.0,
+    "ishares": 65485.0
+  },
+  "2025-08-20": {
+    "hifumi": 79921.0,
+    "saison": 27660.0,
+    "rakuten_vti": 34801.0,
+    "ishares": 65066.0
+  },
+  "2025-08-21": {
+    "hifumi": 79676.0,
+    "saison": 27621.0,
+    "rakuten_vti": 34655.0,
+    "ishares": 64791.0
+  },
+  "2025-08-22": {
+    "hifumi": 80137.0,
+    "saison": 27748.0,
+    "rakuten_vti": 34776.0,
+    "ishares": 64985.0
+  },
+  "2025-08-25": {
+    "hifumi": 80293.0,
+    "saison": 27719.0,
+    "rakuten_vti": 35121.0,
+    "ishares": 65499.0
+  },
+  "2025-08-26": {
+    "hifumi": 79481.0,
+    "saison": 27667.0,
+    "rakuten_vti": 34882.0,
+    "ishares": 65083.0
+  },
+  "2025-08-27": {
+    "hifumi": 79346.0,
+    "saison": 27747.0,
+    "rakuten_vti": 35134.0,
+    "ishares": 65519.0
+  },
+  "2025-08-28": {
+    "hifumi": 79667.0,
+    "saison": 27729.0,
+    "rakuten_vti": 35197.0,
+    "ishares": 65618.0
+  },
+  "2025-08-29": {
+    "hifumi": 79476.0,
+    "saison": 27697.0,
+    "rakuten_vti": 35204.0,
+    "ishares": 65632.0
   },
   "2025-09-01": {
-    "ishares": 65406.0,
     "hifumi": 79005.0,
     "saison": 27733.0,
-    "rakuten_vti": 35080.0
+    "rakuten_vti": 35080.0,
+    "ishares": 65406.0
+  },
+  "2025-09-02": {
+    "hifumi": 79393.0,
+    "saison": 27715.0,
+    "rakuten_vti": 35095.0,
+    "ishares": 65434.0
+  },
+  "2025-09-03": {
+    "hifumi": 78436.0,
+    "saison": 27859.0,
+    "rakuten_vti": 35194.0,
+    "ishares": 65578.0
+  },
+  "2025-09-04": {
+    "hifumi": 79114.0,
+    "saison": 27723.0,
+    "rakuten_vti": 35161.0,
+    "ishares": 65589.0
+  },
+  "2025-09-05": {
+    "hifumi": 79600.0,
+    "saison": 27873.0,
+    "rakuten_vti": 35527.0,
+    "ishares": 66230.0
+  },
+  "2025-09-08": {
+    "hifumi": 80292.0,
+    "saison": 27973.0,
+    "rakuten_vti": 35513.0,
+    "ishares": 66152.0
+  },
+  "2025-09-09": {
+    "hifumi": 80071.0,
+    "saison": 27922.0,
+    "rakuten_vti": 35362.0,
+    "ishares": 65828.0
+  },
+  "2025-09-10": {
+    "hifumi": 80861.0,
+    "saison": 27984.0,
+    "rakuten_vti": 35444.0,
+    "ishares": 66046.0
+  },
+  "2025-09-11": {
+    "hifumi": 80716.0,
+    "saison": 28007.0,
+    "rakuten_vti": 35544.0,
+    "ishares": 66254.0
+  },
+  "2025-09-12": {
+    "hifumi": 80758.0,
+    "saison": 28101.0,
+    "rakuten_vti": 35809.0,
+    "ishares": 66687.0
+  },
+  "2025-09-16": {
+    "hifumi": 80703.0,
+    "saison": 28224.0,
+    "rakuten_vti": 35988.0,
+    "ishares": 67112.0
+  },
+  "2025-09-17": {
+    "hifumi": 80041.0,
+    "saison": 28136.0,
+    "rakuten_vti": 35700.0,
+    "ishares": 66559.0
+  },
+  "2025-09-18": {
+    "hifumi": 80469.0,
+    "saison": 28171.0,
+    "rakuten_vti": 35773.0,
+    "ishares": 66683.0
+  },
+  "2025-09-19": {
+    "hifumi": 80505.0,
+    "saison": 28388.0,
+    "rakuten_vti": 36260.0,
+    "ishares": 67482.0
+  },
+  "2025-09-22": {
+    "hifumi": 80582.0,
+    "saison": 28411.0,
+    "rakuten_vti": 36455.0,
+    "ishares": 67915.0
+  },
+  "2025-09-24": {
+    "hifumi": 80802.0,
+    "saison": 28347.0,
+    "rakuten_vti": 36308.0,
+    "ishares": 67675.0
+  },
+  "2025-09-25": {
+    "hifumi": 81310.0,
+    "saison": 28463.0,
+    "rakuten_vti": 36400.0,
+    "ishares": 67865.0
+  },
+  "2025-09-26": {
+    "hifumi": 81368.0,
+    "saison": 28536.0,
+    "rakuten_vti": 36454.0,
+    "ishares": 68016.0
+  },
+  "2025-09-29": {
+    "hifumi": 80673.0,
+    "saison": 28492.0,
+    "rakuten_vti": 36540.0,
+    "ishares": 68129.0
+  },
+  "2025-09-30": {
+    "hifumi": 80847.0,
+    "saison": 28455.0,
+    "rakuten_vti": 36542.0,
+    "ishares": 68167.0
   },
   "2025-10-01": {
-    "ishares": 68100.0,
     "hifumi": 79621.0,
     "saison": 28426.0,
-    "rakuten_vti": 36486.0
+    "rakuten_vti": 36486.0,
+    "ishares": 68100.0
   },
-  "2025-11-01": {
-    "ishares": 72783.0,
+  "2025-10-02": {
+    "hifumi": 79287.0,
+    "saison": 28296.0,
+    "rakuten_vti": 36370.0,
+    "ishares": 67906.0
+  },
+  "2025-10-03": {
+    "hifumi": 79868.0,
+    "saison": 28384.0,
+    "rakuten_vti": 36475.0,
+    "ishares": 68072.0
+  },
+  "2025-10-06": {
+    "hifumi": 82527.0,
+    "saison": 28843.0,
+    "rakuten_vti": 37083.0,
+    "ishares": 69160.0
+  },
+  "2025-10-07": {
+    "hifumi": 82432.0,
+    "saison": 29015.0,
+    "rakuten_vti": 37395.0,
+    "ishares": 69734.0
+  },
+  "2025-10-08": {
+    "hifumi": 83037.0,
+    "saison": 29275.0,
+    "rakuten_vti": 37670.0,
+    "ishares": 70329.0
+  },
+  "2025-10-09": {
+    "hifumi": 83398.0,
+    "saison": 29408.0,
+    "rakuten_vti": 38027.0,
+    "ishares": 70945.0
+  },
+  "2025-10-10": {
+    "hifumi": 81626.0,
+    "saison": 29435.0,
+    "rakuten_vti": 37982.0,
+    "ishares": 70909.0
+  },
+  "2025-10-14": {
+    "hifumi": 79736.0,
+    "saison": 29191.0,
+    "rakuten_vti": 37406.0,
+    "ishares": 69768.0
+  },
+  "2025-10-15": {
+    "hifumi": 80832.0,
+    "saison": 29064.0,
+    "rakuten_vti": 37193.0,
+    "ishares": 69314.0
+  },
+  "2025-10-16": {
+    "hifumi": 81221.0,
+    "saison": 28958.0,
+    "rakuten_vti": 37137.0,
+    "ishares": 69173.0
+  },
+  "2025-10-17": {
+    "hifumi": 80235.0,
+    "saison": 28905.0,
+    "rakuten_vti": 36707.0,
+    "ishares": 68479.0
+  },
+  "2025-10-20": {
+    "hifumi": 82202.0,
+    "saison": 29135.0,
+    "rakuten_vti": 37081.0,
+    "ishares": 69235.0
+  },
+  "2025-10-21": {
+    "hifumi": 82298.0,
+    "saison": 29082.0,
+    "rakuten_vti": 37385.0,
+    "ishares": 69742.0
+  },
+  "2025-10-22": {
+    "hifumi": 83018.0,
+    "saison": 29338.0,
+    "rakuten_vti": 37666.0,
+    "ishares": 70260.0
+  },
+  "2025-10-23": {
+    "hifumi": 82821.0,
+    "saison": 29414.0,
+    "rakuten_vti": 37573.0,
+    "ishares": 70172.0
+  },
+  "2025-10-24": {
+    "hifumi": 83204.0,
+    "saison": 29546.0,
+    "rakuten_vti": 37920.0,
+    "ishares": 70767.0
+  },
+  "2025-10-27": {
+    "hifumi": 84769.0,
+    "saison": 29674.0,
+    "rakuten_vti": 38307.0,
+    "ishares": 71492.0
+  },
+  "2025-10-28": {
+    "hifumi": 83745.0,
+    "saison": 29729.0,
+    "rakuten_vti": 38625.0,
+    "ishares": 72133.0
+  },
+  "2025-10-29": {
+    "hifumi": 83668.0,
+    "saison": 29632.0,
+    "rakuten_vti": 38439.0,
+    "ishares": 71854.0
+  },
+  "2025-10-30": {
+    "hifumi": 84523.0,
+    "saison": 29819.0,
+    "rakuten_vti": 38716.0,
+    "ishares": 72460.0
+  },
+  "2025-10-31": {
+    "hifumi": 85130.0,
+    "saison": 29900.0,
+    "rakuten_vti": 38626.0,
+    "ishares": 72287.0
+  },
+  "2025-11-04": {
     "hifumi": 84628.0,
     "saison": 29915.0,
-    "rakuten_vti": 38894.0
+    "rakuten_vti": 38894.0,
+    "ishares": 72783.0
+  },
+  "2025-11-05": {
+    "hifumi": 83898.0,
+    "saison": 29625.0,
+    "rakuten_vti": 38203.0,
+    "ishares": 71537.0
+  },
+  "2025-11-06": {
+    "hifumi": 85203.0,
+    "saison": 29740.0,
+    "rakuten_vti": 38503.0,
+    "ishares": 72016.0
+  },
+  "2025-11-07": {
+    "hifumi": 84142.0,
+    "saison": 29461.0,
+    "rakuten_vti": 37868.0,
+    "ishares": 70868.0
+  },
+  "2025-11-10": {
+    "hifumi": 85012.0,
+    "saison": 29651.0,
+    "rakuten_vti": 38120.0,
+    "ishares": 71269.0
+  },
+  "2025-11-11": {
+    "hifumi": 84841.0,
+    "saison": 29842.0,
+    "rakuten_vti": 38786.0,
+    "ishares": 72575.0
+  },
+  "2025-11-12": {
+    "hifumi": 85459.0,
+    "saison": 29930.0,
+    "rakuten_vti": 38861.0,
+    "ishares": 72677.0
+  },
+  "2025-11-13": {
+    "hifumi": 86133.0,
+    "saison": 30108.0,
+    "rakuten_vti": 39064.0,
+    "ishares": 73081.0
+  },
+  "2025-11-14": {
+    "hifumi": 85568.0,
+    "saison": 29984.0,
+    "rakuten_vti": 38301.0,
+    "ishares": 71761.0
+  },
+  "2025-11-17": {
+    "hifumi": 85340.0,
+    "saison": 29915.0,
+    "rakuten_vti": 38284.0,
+    "ishares": 71729.0
+  },
+  "2025-11-18": {
+    "hifumi": 82602.0,
+    "saison": 29838.0,
+    "rakuten_vti": 38043.0,
+    "ishares": 71352.0
+  },
+  "2025-11-19": {
+    "hifumi": 82502.0,
+    "saison": 29782.0,
+    "rakuten_vti": 37833.0,
+    "ishares": 70856.0
+  },
+  "2025-11-20": {
+    "hifumi": 83954.0,
+    "saison": 29996.0,
+    "rakuten_vti": 38384.0,
+    "ishares": 71919.0
+  },
+  "2025-11-21": {
+    "hifumi": 83855.0,
+    "saison": 29870.0,
+    "rakuten_vti": 37821.0,
+    "ishares": 70912.0
+  },
+  "2025-11-25": {
+    "hifumi": 83738.0,
+    "saison": 29999.0,
+    "rakuten_vti": 38676.0,
+    "ishares": 72379.0
+  },
+  "2025-11-26": {
+    "hifumi": 85507.0,
+    "saison": 30068.0,
+    "rakuten_vti": 38967.0,
+    "ishares": 72830.0
+  },
+  "2025-11-27": {
+    "hifumi": 85903.0,
+    "saison": 30137.0,
+    "rakuten_vti": 39117.0,
+    "ishares": 73111.0
+  },
+  "2025-11-28": {
+    "hifumi": 85934.0,
+    "saison": 30332.0,
+    "rakuten_vti": 39297.0,
+    "ishares": 73449.0
   },
   "2025-12-01": {
-    "ishares": 73502.0,
     "hifumi": 84894.0,
     "saison": 30261.0,
-    "rakuten_vti": 39324.0
+    "rakuten_vti": 39324.0,
+    "ishares": 73502.0
   },
-  "2026-01-01": {
-    "ishares": 74324.0,
+  "2025-12-02": {
+    "hifumi": 85111.0,
+    "saison": 30173.0,
+    "rakuten_vti": 39089.0,
+    "ishares": 73079.0
+  },
+  "2025-12-03": {
+    "hifumi": 85122.0,
+    "saison": 30167.0,
+    "rakuten_vti": 39171.0,
+    "ishares": 73269.0
+  },
+  "2025-12-04": {
+    "hifumi": 86449.0,
+    "saison": 30138.0,
+    "rakuten_vti": 39210.0,
+    "ishares": 73272.0
+  },
+  "2025-12-05": {
+    "hifumi": 85724.0,
+    "saison": 30118.0,
+    "rakuten_vti": 39226.0,
+    "ishares": 73251.0
+  },
+  "2025-12-08": {
+    "hifumi": 86708.0,
+    "saison": 30163.0,
+    "rakuten_vti": 39310.0,
+    "ishares": 73441.0
+  },
+  "2025-12-09": {
+    "hifumi": 86734.0,
+    "saison": 30249.0,
+    "rakuten_vti": 39394.0,
+    "ishares": 73596.0
+  },
+  "2025-12-10": {
+    "hifumi": 86698.0,
+    "saison": 30351.0,
+    "rakuten_vti": 39569.0,
+    "ishares": 73937.0
+  },
+  "2025-12-11": {
+    "hifumi": 85912.0,
+    "saison": 30279.0,
+    "rakuten_vti": 39605.0,
+    "ishares": 73930.0
+  },
+  "2025-12-12": {
+    "hifumi": 87829.0,
+    "saison": 30324.0,
+    "rakuten_vti": 39697.0,
+    "ishares": 74032.0
+  },
+  "2025-12-15": {
+    "hifumi": 87991.0,
+    "saison": 30275.0,
+    "rakuten_vti": 39322.0,
+    "ishares": 73387.0
+  },
+  "2025-12-16": {
+    "hifumi": 86431.0,
+    "saison": 30106.0,
+    "rakuten_vti": 39018.0,
+    "ishares": 72855.0
+  },
+  "2025-12-17": {
+    "hifumi": 86224.0,
+    "saison": 30008.0,
+    "rakuten_vti": 38798.0,
+    "ishares": 72429.0
+  },
+  "2025-12-18": {
+    "hifumi": 85663.0,
+    "saison": 30027.0,
+    "rakuten_vti": 38602.0,
+    "ishares": 72063.0
+  },
+  "2025-12-19": {
+    "hifumi": 86487.0,
+    "saison": 30137.0,
+    "rakuten_vti": 38959.0,
+    "ishares": 72718.0
+  },
+  "2025-12-22": {
+    "hifumi": 86923.0,
+    "saison": 30574.0,
+    "rakuten_vti": 39752.0,
+    "ishares": 74189.0
+  },
+  "2025-12-23": {
+    "hifumi": 87247.0,
+    "saison": 30512.0,
+    "rakuten_vti": 39795.0,
+    "ishares": 74249.0
+  },
+  "2025-12-24": {
+    "hifumi": 86663.0,
+    "saison": 30494.0,
+    "rakuten_vti": 39793.0,
+    "ishares": 74333.0
+  },
+  "2025-12-25": {
+    "hifumi": 87084.0,
+    "saison": 30488.0,
+    "rakuten_vti": 39852.0,
+    "ishares": 74449.0
+  },
+  "2025-12-26": {
+    "hifumi": 87183.0,
+    "saison": 30627.0,
+    "rakuten_vti": 40002.0,
+    "ishares": 74731.0
+  },
+  "2025-12-29": {
+    "hifumi": 87390.0,
+    "saison": 30613.0,
+    "rakuten_vti": 39967.0,
+    "ishares": 74699.0
+  },
+  "2025-12-30": {
+    "hifumi": 86947.0,
+    "saison": 30606.0,
+    "rakuten_vti": 39840.0,
+    "ishares": 74487.0
+  },
+  "2026-01-05": {
     "hifumi": 88948.0,
     "saison": 30628.0,
-    "rakuten_vti": 39778.0
+    "rakuten_vti": 39778.0,
+    "ishares": 74324.0
   },
-  "2026-02-01": {
-    "ishares": 74317.0,
+  "2026-01-06": {
+    "hifumi": 90748.0,
+    "saison": 30619.0,
+    "rakuten_vti": 39928.0,
+    "ishares": 74543.0
+  },
+  "2026-01-07": {
+    "hifumi": 90005.0,
+    "saison": 30755.0,
+    "rakuten_vti": 40195.0,
+    "ishares": 74961.0
+  },
+  "2026-01-08": {
+    "hifumi": 89577.0,
+    "saison": 30794.0,
+    "rakuten_vti": 40107.0,
+    "ishares": 74810.0
+  },
+  "2026-01-09": {
+    "hifumi": 90217.0,
+    "saison": 30843.0,
+    "rakuten_vti": 40192.0,
+    "ishares": 74936.0
+  },
+  "2026-01-13": {
+    "hifumi": 92900.0,
+    "saison": 31134.0,
+    "rakuten_vti": 40826.0,
+    "ishares": 76098.0
+  },
+  "2026-01-14": {
+    "hifumi": 94242.0,
+    "saison": 31308.0,
+    "rakuten_vti": 40996.0,
+    "ishares": 76418.0
+  },
+  "2026-01-15": {
+    "hifumi": 94869.0,
+    "saison": 31156.0,
+    "rakuten_vti": 40660.0,
+    "ishares": 75724.0
+  },
+  "2026-01-16": {
+    "hifumi": 94973.0,
+    "saison": 31235.0,
+    "rakuten_vti": 40834.0,
+    "ishares": 76013.0
+  },
+  "2026-01-19": {
+    "hifumi": 94790.0,
+    "saison": 31036.0,
+    "rakuten_vti": 40497.0,
+    "ishares": 75358.0
+  },
+  "2026-01-20": {
+    "hifumi": 93769.0,
+    "saison": 31133.0,
+    "rakuten_vti": 40661.0,
+    "ishares": 75664.0
+  },
+  "2026-01-21": {
+    "hifumi": 93106.0,
+    "saison": 30965.0,
+    "rakuten_vti": 39873.0,
+    "ishares": 74164.0
+  },
+  "2026-01-22": {
+    "hifumi": 93596.0,
+    "saison": 30982.0,
+    "rakuten_vti": 40350.0,
+    "ishares": 75012.0
+  },
+  "2026-01-23": {
+    "hifumi": 93875.0,
+    "saison": 31148.0,
+    "rakuten_vti": 40653.0,
+    "ishares": 75575.0
+  },
+  "2026-01-26": {
+    "hifumi": 91667.0,
+    "saison": 30608.0,
+    "rakuten_vti": 39651.0,
+    "ishares": 73808.0
+  },
+  "2026-01-27": {
+    "hifumi": 92060.0,
+    "saison": 30593.0,
+    "rakuten_vti": 39688.0,
+    "ishares": 73948.0
+  },
+  "2026-01-28": {
+    "hifumi": 91367.0,
+    "saison": 30408.0,
+    "rakuten_vti": 39352.0,
+    "ishares": 73350.0
+  },
+  "2026-01-29": {
+    "hifumi": 91505.0,
+    "saison": 30540.0,
+    "rakuten_vti": 39506.0,
+    "ishares": 73680.0
+  },
+  "2026-01-30": {
+    "hifumi": 91829.0,
+    "saison": 30596.0,
+    "rakuten_vti": 39546.0,
+    "ishares": 73754.0
+  },
+  "2026-02-02": {
     "hifumi": 91029.0,
     "saison": 30828.0,
-    "rakuten_vti": 39765.0
+    "rakuten_vti": 39765.0,
+    "ishares": 74317.0
   },
-  "2026-03-01": {
-    "ishares": 74303.0,
+  "2026-02-03": {
+    "hifumi": 94272.0,
+    "saison": 30868.0,
+    "rakuten_vti": 40068.0,
+    "ishares": 74842.0
+  },
+  "2026-02-04": {
+    "hifumi": 94506.0,
+    "saison": 30833.0,
+    "rakuten_vti": 39880.0,
+    "ishares": 74426.0
+  },
+  "2026-02-05": {
+    "hifumi": 93829.0,
+    "saison": 30996.0,
+    "rakuten_vti": 39890.0,
+    "ishares": 74444.0
+  },
+  "2026-02-06": {
+    "hifumi": 95081.0,
+    "saison": 30849.0,
+    "rakuten_vti": 39369.0,
+    "ishares": 73486.0
+  },
+  "2026-02-09": {
+    "hifumi": 98202.0,
+    "saison": 31097.0,
+    "rakuten_vti": 40237.0,
+    "ishares": 74978.0
+  },
+  "2026-02-10": {
+    "hifumi": 100787.0,
+    "saison": 31081.0,
+    "rakuten_vti": 40231.0,
+    "ishares": 74957.0
+  },
+  "2026-02-12": {
+    "hifumi": 101028.0,
+    "saison": 30660.0,
+    "rakuten_vti": 39365.0,
+    "ishares": 73383.0
+  },
+  "2026-02-13": {
+    "hifumi": 99589.0,
+    "saison": 30445.0,
+    "rakuten_vti": 38639.0,
+    "ishares": 72077.0
+  },
+  "2026-02-16": {
+    "hifumi": 98367.0,
+    "saison": 30517.0,
+    "rakuten_vti": 38747.0,
+    "ishares": 72189.0
+  },
+  "2026-02-17": {
+    "hifumi": 97677.0,
+    "saison": 30540.0,
+    "rakuten_vti": 38810.0,
+    "ishares": 72305.0
+  },
+  "2026-02-18": {
+    "hifumi": 98958.0,
+    "saison": 30543.0,
+    "rakuten_vti": 38833.0,
+    "ishares": 72372.0
+  },
+  "2026-02-19": {
+    "hifumi": 100450.0,
+    "saison": 30854.0,
+    "rakuten_vti": 39430.0,
+    "ishares": 73474.0
+  },
+  "2026-02-20": {
+    "hifumi": 99590.0,
+    "saison": 30916.0,
+    "rakuten_vti": 39447.0,
+    "ishares": 73466.0
+  },
+  "2026-02-24": {
+    "hifumi": 99275.0,
+    "saison": 30879.0,
+    "rakuten_vti": 39172.0,
+    "ishares": 73096.0
+  },
+  "2026-02-25": {
+    "hifumi": 99915.0,
+    "saison": 31152.0,
+    "rakuten_vti": 39739.0,
+    "ishares": 74089.0
+  },
+  "2026-02-26": {
+    "hifumi": 101060.0,
+    "saison": 31345.0,
+    "rakuten_vti": 40131.0,
+    "ishares": 74860.0
+  },
+  "2026-02-27": {
+    "hifumi": 102451.0,
+    "saison": 31262.0,
+    "rakuten_vti": 39883.0,
+    "ishares": 74279.0
+  },
+  "2026-03-02": {
     "hifumi": 101412.0,
     "saison": 31365.0,
-    "rakuten_vti": 39868.0
+    "rakuten_vti": 39868.0,
+    "ishares": 74303.0
+  },
+  "2026-03-03": {
+    "hifumi": 97825.0,
+    "saison": 31543.0,
+    "rakuten_vti": 40153.0,
+    "ishares": 74764.0
+  },
+  "2026-03-04": {
+    "hifumi": 94020.0,
+    "saison": 31270.0,
+    "rakuten_vti": 39799.0,
+    "ishares": 74197.0
+  },
+  "2026-03-05": {
+    "hifumi": 96022.0,
+    "saison": 30952.0,
+    "rakuten_vti": 39814.0,
+    "ishares": 74211.0
+  },
+  "2026-03-06": {
+    "hifumi": 96590.0,
+    "saison": 30967.0,
+    "rakuten_vti": 39771.0,
+    "ishares": 74200.0
+  },
+  "2026-03-09": {
+    "hifumi": 92644.0,
+    "saison": 30960.0,
+    "rakuten_vti": 39542.0,
+    "ishares": 73806.0
+  },
+  "2026-03-10": {
+    "hifumi": 94962.0,
+    "saison": 30891.0,
+    "rakuten_vti": 39637.0,
+    "ishares": 73996.0
+  },
+  "2026-03-11": {
+    "hifumi": 95828.0,
+    "saison": 30874.0,
+    "rakuten_vti": 39672.0,
+    "ishares": 74094.0
+  },
+  "2026-03-12": {
+    "hifumi": 94471.0,
+    "saison": 31102.0,
+    "rakuten_vti": 39854.0,
+    "ishares": 74418.0
+  },
+  "2026-03-13": {
+    "hifumi": 94075.0,
+    "saison": 30896.0,
+    "rakuten_vti": 39261.0,
+    "ishares": 73354.0
+  },
+  "2026-03-16": {
+    "hifumi": 93492.0,
+    "saison": 30728.0,
+    "rakuten_vti": 39087.0,
+    "ishares": 73020.0
+  },
+  "2026-03-17": {
+    "hifumi": 93863.0,
+    "saison": 30763.0,
+    "rakuten_vti": 39471.0,
+    "ishares": 73727.0
+  },
+  "2026-03-18": {
+    "hifumi": 96215.0,
+    "saison": 30858.0,
+    "rakuten_vti": 39559.0,
+    "ishares": 73829.0
+  },
+  "2026-03-19": {
+    "hifumi": 93358.0,
+    "saison": 30865.0,
+    "rakuten_vti": 39184.0,
+    "ishares": 73142.0
+  },
+  "2026-03-23": {
+    "hifumi": 89626.0,
+    "saison": 30525.0,
+    "rakuten_vti": 38413.0,
+    "ishares": 71709.0
+  },
+  "2026-03-24": {
+    "hifumi": 91720.0,
+    "saison": 30328.0,
+    "rakuten_vti": 38619.0,
+    "ishares": 72005.0
+  },
+  "2026-03-25": {
+    "hifumi": 94233.0,
+    "saison": 30322.0,
+    "rakuten_vti": 38545.0,
+    "ishares": 71860.0
+  },
+  "2026-03-26": {
+    "hifumi": 93838.0,
+    "saison": 30496.0,
+    "rakuten_vti": 38989.0,
+    "ishares": 72635.0
+  },
+  "2026-03-27": {
+    "hifumi": 93663.0,
+    "saison": 30473.0,
+    "rakuten_vti": 38337.0,
+    "ishares": 71381.0
+  },
+  "2026-03-30": {
+    "hifumi": 91519.0,
+    "saison": 30212.0,
+    "rakuten_vti": 37759.0,
+    "ishares": 70342.0
+  },
+  "2026-03-31": {
+    "hifumi": 90298.0,
+    "saison": 30073.0,
+    "rakuten_vti": 37564.0,
+    "ishares": 70067.0
   },
   "2026-04-01": {
-    "ishares": 71627.0,
     "hifumi": 95006.0,
     "saison": 30276.0,
-    "rakuten_vti": 38419.0
+    "rakuten_vti": 38419.0,
+    "ishares": 71627.0
+  },
+  "2026-04-02": {
+    "hifumi": 93442.0,
+    "saison": 30347.0,
+    "rakuten_vti": 38673.0,
+    "ishares": 72088.0
+  },
+  "2026-04-03": {
+    "hifumi": 94407.0,
+    "saison": 30694.0,
+    "rakuten_vti": 38974.0,
+    "ishares": 72634.0
+  },
+  "2026-04-06": {
+    "hifumi": 94196.0,
+    "saison": 30642.0,
+    "rakuten_vti": 38991.0,
+    "ishares": 72665.0
+  },
+  "2026-04-07": {
+    "hifumi": 94518.0,
+    "saison": 30721.0,
+    "rakuten_vti": 39185.0,
+    "ishares": 73017.0
+  },
+  "2026-04-08": {
+    "hifumi": 97925.0,
+    "saison": 30622.0,
+    "rakuten_vti": 38917.0,
+    "ishares": 72527.0
+  },
+  "2026-04-09": {
+    "hifumi": 97052.0,
+    "saison": 30867.0,
+    "rakuten_vti": 39974.0,
+    "ishares": 74467.0
+  },
+  "2026-04-10": {
+    "hifumi": 97212.0,
+    "saison": 31351.0,
+    "rakuten_vti": 40280.0,
+    "ishares": 75087.0
+  },
+  "2026-04-13": {
+    "hifumi": 96455.0,
+    "saison": 31386.0,
+    "rakuten_vti": 40378.0,
+    "ishares": 75315.0
+  },
+  "2026-04-14": {
+    "hifumi": 97357.0,
+    "saison": 31440.0,
+    "rakuten_vti": 40648.0,
+    "ishares": 75766.0
+  },
+  "2026-04-15": {
+    "hifumi": 96954.0,
+    "saison": 31488.0,
+    "rakuten_vti": 41043.0,
+    "ishares": 76508.0
+  },
+  "2026-04-16": {
+    "hifumi": 97927.0,
+    "saison": 31687.0,
+    "rakuten_vti": 41329.0,
+    "ishares": 77064.0
+  },
+  "2026-04-17": {
+    "hifumi": 95931.0,
+    "saison": 31805.0,
+    "rakuten_vti": 41580.0,
+    "ishares": 77525.0
+  },
+  "2026-04-20": {
+    "hifumi": 96794.0,
+    "saison": 31863.0,
+    "rakuten_vti": 42012.0,
+    "ishares": 78271.0
+  },
+  "2026-04-21": {
+    "hifumi": 96466.0,
+    "saison": 31946.0,
+    "rakuten_vti": 41973.0,
+    "ishares": 78130.0
+  },
+  "2026-04-22": {
+    "hifumi": 95631.0,
+    "saison": 31867.0,
+    "rakuten_vti": 41741.0,
+    "ishares": 77697.0
+  },
+  "2026-04-23": {
+    "hifumi": 94984.0,
+    "saison": 31946.0,
+    "rakuten_vti": 42189.0,
+    "ishares": 78577.0
+  },
+  "2026-04-24": {
+    "hifumi": 94801.0,
+    "saison": 31940.0,
+    "rakuten_vti": 42143.0,
+    "ishares": 78500.0
+  },
+  "2026-04-27": {
+    "hifumi": 95104.0,
+    "saison": 31963.0,
+    "rakuten_vti": 42339.0,
+    "ishares": 78971.0
+  },
+  "2026-04-28": {
+    "hifumi": 96733.0,
+    "saison": 31990.0,
+    "rakuten_vti": 42392.0,
+    "ishares": 79094.0
+  },
+  "2026-04-30": {
+    "hifumi": 95692.0,
+    "saison": 32031.0,
+    "rakuten_vti": 42337.0,
+    "ishares": 79115.0
   },
   "2026-05-01": {
-    "ishares": 78291.0,
     "hifumi": 95298.0,
     "saison": 31503.0,
-    "rakuten_vti": 41949.0
+    "rakuten_vti": 41949.0,
+    "ishares": 78291.0
+  },
+  "2026-05-07": {
+    "hifumi": 98033.0,
+    "saison": 31664.0,
+    "rakuten_vti": 42650.0,
+    "ishares": 79565.0
+  },
+  "2026-05-08": {
+    "hifumi": 97705.0,
+    "saison": 31932.0,
+    "rakuten_vti": 42637.0,
+    "ishares": 79638.0
+  },
+  "2026-05-11": {
+    "hifumi": 98359.0,
+    "saison": 32062.0,
+    "rakuten_vti": 42942.0,
+    "ishares": 80268.0
+  },
+  "2026-05-12": {
+    "hifumi": 99799.0,
+    "saison": 32133.0,
+    "rakuten_vti": 43144.0,
+    "ishares": 80669.0
+  },
+  "2026-05-13": {
+    "hifumi": 100722.0,
+    "saison": 32145.0,
+    "rakuten_vti": 43149.0,
+    "ishares": 80739.0
+  },
+  "2026-05-14": {
+    "hifumi": 99381.0,
+    "saison": 32116.0,
+    "rakuten_vti": 43402.0,
+    "ishares": 81235.0
+  },
+  "2026-05-15": {
+    "hifumi": 98147.0,
+    "saison": 32318.0,
+    "rakuten_vti": 43907.0,
+    "ishares": 82210.0
+  },
+  "2026-05-18": {
+    "hifumi": 96921.0,
+    "saison": 32270.0,
+    "rakuten_vti": 43467.0,
+    "ishares": 81436.0
+  },
+  "2026-05-19": {
+    "hifumi": 97097.0,
+    "saison": 32109.0,
+    "rakuten_vti": 43436.0,
+    "ishares": 81404.0
+  },
+  "2026-05-20": {
+    "hifumi": 95381.0,
+    "saison": 32001.0,
+    "rakuten_vti": 43160.0,
+    "ishares": 80886.0
+  },
+  "2026-05-21": {
+    "hifumi": 96964.0,
+    "saison": 32056.0,
+    "rakuten_vti": 43632.0,
+    "ishares": 81678.0
+  },
+  "2026-05-22": {
+    "hifumi": 98319.0,
+    "saison": 32210.0,
+    "rakuten_vti": 43802.0,
+    "ishares": 81945.0
+  },
+  "2026-05-25": {
+    "hifumi": 99886.0,
+    "saison": 32292.0,
+    "rakuten_vti": 43928.0,
+    "ishares": 82124.0
+  },
+  "2026-05-26": {
+    "hifumi": 99855.0,
+    "saison": 32371.0,
+    "rakuten_vti": 43959.0,
+    "ishares": 82181.0
+  },
+  "2026-05-27": {
+    "hifumi": 99097.0,
+    "saison": 32616.0,
+    "rakuten_vti": 44364.0,
+    "ishares": 82877.0
+  },
+  "2026-05-28": {
+    "hifumi": 98770.0,
+    "saison": 32670.0,
+    "rakuten_vti": 44444.0,
+    "ishares": 83064.0
+  },
+  "2026-05-29": {
+    "hifumi": 100093.0,
+    "saison": 32727.0,
+    "rakuten_vti": 44645.0,
+    "ishares": 83363.0
   },
   "2026-06-01": {
-    "ishares": 83605.0,
     "hifumi": 98943.0,
     "saison": 32752.0,
-    "rakuten_vti": 44770.0
+    "rakuten_vti": 44770.0,
+    "ishares": 83605.0
+  },
+  "2026-06-02": {
+    "hifumi": 98426.0,
+    "saison": 32904.0,
+    "rakuten_vti": 44957.0,
+    "ishares": 83978.0
+  },
+  "2026-06-03": {
+    "hifumi": 100603.0,
+    "saison": 32926.0,
+    "rakuten_vti": 45137.0,
+    "ishares": 84214.0
+  },
+  "2026-06-04": {
+    "hifumi": 99919.0,
+    "saison": 32895.0,
+    "rakuten_vti": 44811.0,
+    "ishares": 83573.0
+  },
+  "2026-06-05": {
+    "hifumi": 99844.0,
+    "saison": 32913.0,
+    "rakuten_vti": 45033.0,
+    "ishares": 83995.0
+  },
+  "2026-06-08": {
+    "hifumi": 96632.0,
+    "saison": 32604.0,
+    "rakuten_vti": 43919.0,
+    "ishares": 81974.0
+  },
+  "2026-06-09": {
+    "hifumi": 98222.0,
+    "saison": 32512.0,
+    "rakuten_vti": 44035.0,
+    "ishares": 82136.0
   }
 }
