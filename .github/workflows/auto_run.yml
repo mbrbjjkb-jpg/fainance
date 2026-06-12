@@ -13,11 +13,11 @@ jobs:
     steps:
     # 1. リポジトリ内のファイルをダウンロード（展開）
     - name: コードのチェックアウト
-      uses: actions/setup-python@v4
+      uses: actions/checkout@v3
 
     # 2. Python環境をクラウド上にセットアップ
     - name: Python環境のセットアップ
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v4
       with:
         python-version: '3.10'
 
@@ -27,16 +27,16 @@ jobs:
         python -m pip install --upgrade pip
         pip install requests beautifulsoup4
 
-    # 4. 自動取得スクリプトの実行（fainanceフォルダ内で実行するように指定）
+    # 4. 自動取得スクリプトの実行
     - name: 最新の価格データを取得
       run: python update_daily_prices.py
 
-    # 5. fainance/prices_daily.json に変更（追記）があった場合のみ、自動コミットしてGitHubにプッシュ（上書き保存）
+    # 5. prices_daily.json に変更（追記）があった場合のみ、自動コミットしてGitHubにプッシュ（上書き保存）
     - name: 変更があった場合はリポジトリを自動更新
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git add fainance/prices_daily.json
+        git add prices_daily.json
         if ! git diff-index --quiet HEAD --; then
           git commit -m "【自動記録】最新の価格データを prices_daily.json に自動追記しました"
           git push
