@@ -602,6 +602,11 @@ function calculateMonthlyDetails(index, forceLatest = false) {
   const startDate = new Date('2016-06-01'); const targetDate = new Date(startDate); targetDate.setMonth(targetDate.getMonth() + index);
   const dateStr = `${targetDate.getFullYear()}-${('0' + (targetDate.getMonth() + 1)).slice(-2)}-01`;
   let monthlyTotalMarket = 0; let monthlyTotalPurchase = 0; const fundValues = [0, 0, 0, 0, 0];
+  
+  // 課税口座の資産合計・元本投資額の計算用変数
+  let taxableMarket = 0;
+  let taxablePurchase = 0;
+
   const nameToJsonKeyMap = { 'hifumi': { idx: 0, key: 'hifumi' }, 'saison': { idx: 1, key: 'saison' }, 'vti_new': { idx: 2, key: 'rakuten_vti' }, 'ishares': { idx: 3, key: 'ishares' }, 'vti_old': { idx: 4, key: 'rakuten_vti' } };
   const latestIdx = getLatestDatabaseIndex(); const isFuture = (index > latestIdx); 
   let targetSearchDate = dateStr;
@@ -640,7 +645,15 @@ function calculateMonthlyDetails(index, forceLatest = false) {
         const elapsedFromStart = (targetDate.getFullYear() - pStart.getFullYear()) * 12 + (targetDate.getMonth() - pStart.getMonth());
         if (fullHistoryMonths > 0) currentPrice = startPrice + ((currentPriceTarget - startPrice) / fullHistoryMonths) * elapsedFromStart;
       }
-      const value = (currentUnits || 0) * (currentPrice || 0); monthlyTotalMarket += value; monthlyTotalPurchase += (currentPurchase || 0);
+      const value = (currentUnits || 0) * (currentPrice || 0); 
+      monthlyTotalMarket += value; monthlyTotalPurchase += (currentPurchase || 0);
+      
+      // 非NISA（課税口座）の場合のみ、課税総額と元本を個別に集計
+      if (!s.isNISA) {
+        taxableMarket += value;
+        taxablePurchase += currentPurchase;
+      }
+
       if (map) fundValues[map.idx] = Math.round(value);
     } else {
       const elapsedFutureMonths = index - latestIdx; const rate = 0.08 / 12;
@@ -652,7 +665,26 @@ function calculateMonthlyDetails(index, forceLatest = false) {
       monthlyTotalMarket += futureVal; if (map) fundValues[map.idx] = Math.round(futureVal) || 0;
     }
   });
-  return { dateLabel: `${targetDate.getFullYear()}/${('0' + (targetDate.getMonth() + 1)).slice(-2)}`, totalMarket: Math.round(monthlyTotalMarket) || 0, totalPurchase: Math.round(monthlyTotalPurchase) || 0, fundValues: fundValues };
+
+  // 過去データの税引後評価額を算出 (税金20%想定)
+  let tax = 0;
+  let afterTaxMarket = monthlyTotalMarket;
+  if (!isFuture) {
+    const taxableProfit = Math.max(0, taxableMarket - taxablePurchase);
+    tax = taxableProfit * 0.2;
+    afterTaxMarket = monthlyTotalMarket - tax;
+  } else {
+    // 未来予測時はすでに税金を差し引いた金額をプロットしているためそのまま代入
+    afterTaxMarket = monthlyTotalMarket;
+  }
+
+  return { 
+    dateLabel: `${targetDate.getFullYear()}/${('0' + (targetDate.getMonth() + 1)).slice(-2)}`, 
+    totalMarket: Math.round(monthlyTotalMarket) || 0, 
+    totalPurchase: Math.round(monthlyTotalPurchase) || 0, 
+    fundValues: fundValues,
+    afterTaxMarket: Math.round(afterTaxMarket) || 0 // 追加
+  };
 }
 
 // ★ 描画関連の関数群（安全設計版）
@@ -999,12 +1031,64 @@ function generateAndRenderChart(totals) {
       plugins: {
         datalabels: { display: false },
         legend: { labels: { filter: function(item, data) { if (data && data.datasets && data.datasets[item.datasetIndex]) { return !data.datasets[item.datasetIndex].hideInLegend; } return true; } } },
-        tooltip: { callbacks: { labelTextColor: function(context) { if (context.dataset.label.includes('評価損益')) { const val = context.parsed.y; return val < 0 ? '#ff4d4d' : '#48bb78'; } return '#ffffff'; }, label: function(context) { let label = context.dataset.label || ''; if (label) { label = label.split(' (')[0] || label; if (label.includes('評価損益')) label = '【評価損益】'; else if (label.includes('過去資産実績')) label = '【総資産時価】'; else if (label.includes('過去投資額')) label = '【元本投資額】'; label += ': '; } if (context.parsed.y !== null) { const value = context.parsed.y; if (context.dataset.label.includes('評価損益') && value > 0) { label += '+'; } label += Math.round(value).toLocaleString() + ' 円'; } return label; } } }
+        tooltip: { 
+          callbacks: { 
+            labelTextColor: function(context) { 
+              if (context.dataset.label.includes('評価損益')) { 
+                const val = context.parsed.y; 
+                return val < 0 ? '#ff4d4d' : '#48bb78'; 
+              } 
+              return '#ffffff'; 
+            }, 
+            label: function(context) { 
+              let label = context.dataset.label || ''; 
+              if (label) { 
+                label = label.split(' (')[0] || label; 
+                if (label.includes('評価損益')) label = '【評価損益】'; 
+                else if (label.includes('過去資産実績')) label = '【総資産時価】'; 
+                else if (label.includes('過去投資額')) label = '【元本投資額】'; 
+                label += ': '; 
+              } 
+              if (context.parsed.y !== null) { 
+                const value = context.parsed.y; 
+                if (context.dataset.label.includes('評価損益') && value > 0) { 
+                  label += '+'; 
+                } 
+                label += Math.round(value).toLocaleString() + ' 円'; 
+
+                // 「総資産時価（過去資産実績）」ホバー時のみ、改行して税引き後評価額を追加
+                if (context.dataset.label.includes('過去資産実績')) {
+                  const idx = context.dataIndex;
+                  const lbl = context.chart.data.labels[idx];
+                  const isLatestDay = lbl && !lbl.startsWith('20');
+                  let afterTaxVal = 0;
+
+                  if (isLatestDay) {
+                    const totals = calculateCurrentTotals();
+                    afterTaxVal = totals.afterTaxMarket;
+                  } else if (lbl) {
+                    const year = parseInt(lbl.substring(0, 4));
+                    const month = parseInt(lbl.substring(5, 7));
+                    const targetIndex = (year - 2016) * 12 + (month - 6);
+                    if (!isNaN(targetIndex)) {
+                      const details = calculateMonthlyDetails(targetIndex, false);
+                      afterTaxVal = details.afterTaxMarket;
+                    }
+                  }
+                  if (afterTaxVal > 0) {
+                    // 配列を返却することで、Chart.jsがツールチップ内で自動改行して描画します
+                    return [label, `【税引き後評価額】: ${Math.round(afterTaxVal).toLocaleString()} 円`];
+                  }
+                }
+              } 
+              return label; 
+            } 
+          } 
+        }
       }
     }
   });
 }
-
 // ----------------------------------------------------
 // 【以下、ボタンやモーダルのシステム動作（変更なし）】
 // ----------------------------------------------------
