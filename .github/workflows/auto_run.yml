@@ -13,11 +13,11 @@ jobs:
     steps:
     # 1. リポジトリ内のファイルをダウンロード（展開）
     - name: コードのチェックアウト
-      uses: actions/checkout@v3
+      uses: actions/setup-python@v4
 
     # 2. Python環境をクラウド上にセットアップ
     - name: Python環境のセットアップ
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
 
@@ -30,7 +30,6 @@ jobs:
     # 4. 自動取得スクリプトの実行（fainanceフォルダ内で実行するように指定）
     - name: 最新の価格データを取得
       run: python update_daily_prices.py
-      working-directory: fainance
 
     # 5. fainance/prices_daily.json に変更（追記）があった場合のみ、自動コミットしてGitHubにプッシュ（上書き保存）
     - name: 変更があった場合はリポジトリを自動更新
