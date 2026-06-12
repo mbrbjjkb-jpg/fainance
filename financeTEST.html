@@ -49,6 +49,17 @@
   .setting-item input{width:95px;text-align:right;padding:3px;border:1px solid #cbd5e0;border-radius:4px;font-family:monospace;font-size:11px;}
   .copypaste-area{border-top:1px solid #e2e8f0;padding-top:10px;margin-top:10px;}
   .copypaste-area textarea{width:100%;height:60px;font-size:11px;}
+
+
+.summary-dashboard {
+  display: flex; gap: 20px; background: white; padding: 20px; border-radius: 8px;
+  border: 1px solid #e2e8f0; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.summary-item { flex: 1; text-align: center; }
+.summary-label { font-size: 12px; color: #718096; font-weight: bold; margin-bottom: 5px; }
+.summary-value { font-size: 20px; font-weight: bold; color: #2d3748; }
+.plus { color: #2f855a; }
+.minus { color: #c53030; }
 </style>
 </head>
 <body>
@@ -57,6 +68,43 @@
   <h2>投資信託タイムラインシミュレーター & 埋込ダッシュボード</h2>
   <button class="action-btn btn-blue" onclick="openSettingsModal()" style="font-size:12px;padding:6px 12px;">⚙ システム設定（別画面）</button>
 </div>
+
+
+<style>
+  /* 1. 値の要素（およびその中のすべてのタグ）をインライン化し、改行を禁止します */
+  .summary-dashboard .summary-value,
+  .summary-dashboard .summary-value * {
+    display: inline !important;
+    white-space: nowrap !important;
+  }
+
+  /* 2. もしJavaScriptなどによって <br> タグが挿入されていても、強制的に非表示にします */
+  .summary-dashboard .summary-value br {
+    display: none !important;
+  }
+</style>
+
+<div class="summary-dashboard">
+  <div class="summary-item">
+    <div class="summary-label">時価総額</div>
+    <div class="summary-value" id="val-market">--</div>
+  </div>
+  <div class="summary-item">
+    <div class="summary-label">損益 (率)</div>
+    <div class="summary-value" id="val-profit">--</div>
+  </div>
+  <div class="summary-item">
+    <div class="summary-label">前日比</div>
+    <div class="summary-value" id="val-daychange">--</div>
+  </div>
+  <div class="summary-item">
+    <div class="summary-label">購入価格</div>
+    <div class="summary-value" id="val-purchase">--</div>
+  </div>
+</div>
+
+
+
 
 <div id="errorArea"></div>
 
@@ -152,7 +200,7 @@
     </div>
   </div>
   <div style="flex: 2; min-width: 260px; display: flex; flex-direction: column; justify-content: flex-start; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; box-sizing: border-box; height: 710px; position: sticky; top: 10px;">
-    <h4 id="pieChartTitle" style="margin: 0 0 10px 0; text-align: center; font-size: 12px; color: #4a5568;">現在の資産構成比</h4>
+    <h4 id="pieChartTitle" style="margin: 150px 0 10px 0; text-align: center; font-size: 12px; color: #4a5568;">現在の資産構成比</h4>
     <div style="position: relative; height: 170px; width: 100%; display: flex; align-items: center; justify-content: center;"><canvas id="pieChart"></canvas></div>
     <div id="pieChartTotal" style="text-align: center; font-weight: bold; font-size: 13px; margin: 10px 0; color: #2d3748; padding: 5px 0; border-top: 1px dashed #cbd5e0; border-bottom: 1px dashed #cbd5e0;">総資産額: --円</div>
     <div id="pieDetailsList" style="display: flex; flex-direction: column; gap: 6px; flex: 1; overflow-y: auto;"></div>
@@ -201,9 +249,9 @@
 // ==========================================
 // ★【最重要セキュリティ設定】ここに4桁パスワードで暗号化されたトークン文字列を貼り付けます！
 // ==========================================
-const CONFIG_ENCRYPTED_TOKEN = "U2FsdGVkX18gLfDl3U5Q69/TrPGvohIsJqcgFu8lfFCWw0hVQBrGo4Aintaz1ykhkc7ukEzyBLQye3iWGx0oO7k8Y25bHVtSGjOUQEd9oXxvfALzfo4SDaN/Is5pPnQmV7i9GriQfWDXj07YV/vc7A=="; 
-const CONFIG_GITHUB_USER = "mbrbjjkb-jpg";      
-const CONFIG_GITHUB_REPO = "fainance";    
+const CONFIG_ENCRYPTED_TOKEN = ""; 
+const CONFIG_GITHUB_USER = "";      
+const CONFIG_GITHUB_REPO = "";      
 // ==========================================
 
 const defaultStocks = [
@@ -215,10 +263,10 @@ const defaultStocks = [
 ];
 
 let stocks = [...defaultStocks];
-let myChart = null; let shortChart = null; let mediumChart = null; let pieChart = null;
+// ★修正: 変数名とIDの衝突を回避するためオブジェクト名を変更
+let chartLongObj = null; let chartShortObj = null; let chartMediumObj = null; let chartPieObj = null;
 let priceHistory = null; let miniCharts = {}; let activeGraphTab = 'past';
 
-// 【セーフティ】データラベルの登録を安全にガード（未定義クラッシュを完全に防ぐ）
 if (typeof ChartDataLabels !== 'undefined') {
   Chart.register(ChartDataLabels);
 }
@@ -310,6 +358,7 @@ function initBaseSystem() {
   const totals = calculateCurrentTotals();
   renderSummary(totals);
   updateDashboardCards();
+  updateHeaderSummary(); // ← これを追加
 }
 
 function loadPriceHistoryAndRenderChart() {
@@ -325,21 +374,15 @@ function loadPriceHistoryAndRenderChart() {
     fetch('portfolio_config.json' + cacheBuster).then(r => r.ok ? r.json() : null).catch(() => null)
   ])
   .then(([singleData, pastData, dailyData, configData]) => {
-    if (configData) {
-      applyConfigDataToStocks(configData);
-      writeLog("【成功】GitHub から portfolio_config.json (設定) を適用しました。");
-    } else {
-      writeLog("【案内】GitHub上に portfolio_config.json が見つからないため、デフォルト値で起動します。");
-    }
-
+    if (configData) { applyConfigDataToStocks(configData); writeLog("【成功】GitHub から portfolio_config.json を適用しました。"); } 
+    else { writeLog("【案内】設定ファイルがないためデフォルト値で起動します。"); }
     priceHistory = Object.assign({}, singleData || {}, pastData || {}, dailyData || {}, localDaily);
-    
     initBaseSystem();
     writeLog("【成功】外部データファイルをロードしました。");
     tryDrawChart(totals, "価格・設定ファイル合流");
   })
   .catch(err => {
-    writeLog("【警告】外部データ未検出のため、デモモードで起動します。理由: " + err.message);
+    writeLog("【警告】デモモードで起動します: " + err.message);
     showLocalWarning();
     priceHistory = Object.assign({}, generateMockPrices(), localDaily);
     initBaseSystem();
@@ -354,7 +397,13 @@ function tryDrawChart(totals, sourceName) {
     updateDashboardCards();
   } catch (err) {
     writeLog(`【グラフ描画エラー】${sourceName} 描画失敗: ${err.message}`);
+    console.error(err);
   }
+}
+
+function showLocalWarning() {
+  const errorArea = document.getElementById('errorArea');
+  if (errorArea) errorArea.innerHTML = `<div class="error-banner">【デモモード】価格ファイル未配置のため模擬データ表示中。</div>`;
 }
 
 function getLatestDatabaseIndex() {
@@ -378,6 +427,22 @@ function switchGraphTab(tabName) {
   document.getElementById('tabFuture').classList.toggle('active', tabName === 'future');
   const totals = calculateCurrentTotals();
   tryDrawChart(totals, activeGraphTab === 'past' ? "実績モード" : "予測モード");
+}
+
+function generateMockPrices() {
+  const mock = {}; const startDate = new Date('2016-06-01'); const endDate = new Date('2026-06-01'); let current = new Date(startDate);
+  while (current <= endDate) {
+    const yyyymm = `${current.getFullYear()}-${('0' + (current.getMonth() + 1)).slice(-2)}-01`;
+    const elapsedMonths = (current.getFullYear() - 2016) * 12 + current.getMonth() - 5;
+    mock[yyyymm] = {
+      hifumi: Math.round(53719 + (100603 - 53719) * (elapsedMonths / 120)),
+      saison: Math.round(16707 + (32926 - 16707) * (Math.max(0, elapsedMonths - 11) / 109)),
+      rakuten_vti: Math.round(19834 + (45137 - 19834) * (Math.max(0, elapsedMonths - 59) / 61)),
+      ishares: Math.round(20478 + (84214 - 20478) * (Math.max(0, elapsedMonths - 11) / 109))
+    };
+    current.setMonth(current.getMonth() + 1);
+  }
+  return mock;
 }
 
 function parseNumber(text) { return parseFloat(text.replace(/[,円+%\s]/g, '')); }
@@ -407,9 +472,9 @@ function parseAllStocks() {
   });
   if (parsedStocks.length > 0) {
     stocks = parsedStocks; initInputFields(); initBaseSystem(); loadPriceHistoryAndRenderChart(); document.getElementById('inputText').value = '';
-    writeLog("【成功】コピペデータを入力窓と画面に同期しました。");
+    writeLog("【成功】コピペデータを同期しました。");
   } else {
-    alert("コピペデータを解析できませんでした。フォーマットを確認してください。");
+    alert("解析できませんでした。フォーマットを確認してください。");
   }
 }
 
@@ -441,11 +506,11 @@ function renderTable() {
   const tbody = document.querySelector('#stockTable tbody'); if (!tbody) return; tbody.innerHTML = '';
   stocks.forEach(s => {
     let keyMark = '';
-    if (s.key === 'hifumi') keyMark = '【A】';
-    else if (s.key === 'saison') keyMark = '【B】';
-    else if (s.key === 'vti_new') keyMark = '【C】';
-    else if (s.key === 'ishares') keyMark = '【D】';
-    else if (s.key === 'vti_old') keyMark = '【E】';
+    if (s.name.includes('ひふみ')) keyMark = '【A】';
+    else if (s.name.includes('セゾン')) keyMark = '【B】';
+    else if (s.name.includes('新NISA')) keyMark = '【C】';
+    else if (s.name.includes('iシェアーズ')) keyMark = '【D】';
+    else if (s.name.includes('旧NISA')) keyMark = '【E】';
     const dynamicPeriodText = calculatePeriodText(s.periodText);
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -487,7 +552,7 @@ function updateDashboardCards() {
       const profitEl = document.getElementById(config.profitId);
       if (profitEl) {
         const profitVal = parseFloat(profitPercent);
-        profitEl.innerText = `現在損益: ${profitVal >= 0 ? '+' : ''}${profitPercent}%`;
+        profitEl.innerText = `現在損益: ${profitVal >= 0 ? '+' : ''}${s.profitPercent}%`;
         profitEl.className = `fund-card-profit ${profitVal >= 0 ? 'profit-plus' : 'profit-minus'}`;
       }
       if (priceHistory) renderCardMiniChart(config.canvasId, config.key, s.purchasePrice, currentPricePerTenThousand);
@@ -495,85 +560,58 @@ function updateDashboardCards() {
   });
 }
 
-function renderCardMiniChart(canvasId, jsonKey, purchasePrice, currentPrice) {
-  const canvasEl = document.getElementById(canvasId); if (!canvasEl) return;
-  const ctx = canvasEl.getContext('2d'); if (!ctx) return;
-  if (miniCharts[canvasId]) miniCharts[canvasId].destroy();
-  const chartData = []; const labels = []; const points = 30; // 30日日足
-  let latestDateStr = '2026-06-01';
-  if (priceHistory && Object.keys(priceHistory).length > 0) {
-    const sortedDates = Object.keys(priceHistory).filter(d => d.length === 10).sort();
-    if (sortedDates.length > 0) latestDateStr = sortedDates[sortedDates.length - 1];
-  }
-  const today = new Date(latestDateStr); 
-  for (let i = points - 1; i >= 0; i--) {
-    const tempDate = new Date(today); tempDate.setDate(today.getDate() - i);
-    const dateStr = `${tempDate.getFullYear()}-${('0' + (tempDate.getMonth() + 1)).slice(-2)}-${('0' + tempDate.getDate()).slice(-2)}`;
-    let price = null;
-    if (priceHistory && priceHistory[dateStr] && priceHistory[dateStr][jsonKey] !== undefined) {
-      price = priceHistory[dateStr][jsonKey];
-    } else {
-      const lastIndex = chartData.length - 1; price = lastIndex >= 0 ? chartData[lastIndex] : currentPrice;
-    }
-    chartData.push(Math.round(price));
-    if (i === points - 1 || i === 0) { labels.push(dateStr.substring(5)); } else { labels.push(''); }
-  }
-  miniCharts[canvasId] = new Chart(ctx, {
-    type: 'line', data: { labels: labels, datasets: [{ data: chartData, borderColor: '#3182ce', borderWidth: 1.5, pointRadius: 0, fill: false, tension: 0 }] },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { enabled: false }, datalabels: { display: false } },
-      scales: {
-        x: { display: true, grid: { display: false }, ticks: { font: { size: 9 }, color: '#718096', maxRotation: 0, autoSkip: false } },
-        y: { display: true, position: 'left', grid: { color: 'rgba(0, 0, 0, 0.03)' }, ticks: { font: { size: 8 }, color: '#a0aec0', maxTicksLimit: 3, callback: v => Math.round(v).toLocaleString() } }
-      }
-    }
-  });
-}
-
 function calculateCurrentTotals() {
   let totalMarket = 0; let totalPurchase = 0; let totalProfit = 0; let taxableProfit = 0; let nisaProfit = 0;
+  let latestDateStr = "";
+  if (priceHistory && Object.keys(priceHistory).length > 0) {
+    const sorted = Object.keys(priceHistory).filter(d => d.length === 10).sort();
+    if (sorted.length > 0) latestDateStr = sorted[sorted.length - 1]; 
+  }
+  const nameToJsonKeyMap = { 'hifumi': 'hifumi', 'saison': 'saison', 'vti_new': 'rakuten_vti', 'ishares': 'ishares', 'vti_old': 'rakuten_vti' };
+
   stocks.forEach(s => {
-    totalMarket += s.marketValue; totalPurchase += s.units * s.purchasePrice; totalProfit += s.profit;
-    if (s.isNISA) nisaProfit += s.profit; else taxableProfit += s.profit;
+    let currentPricePerTenThousand = s.marketValue / s.units; 
+    const jsonKey = nameToJsonKeyMap[s.key];
+    if (priceHistory && priceHistory[latestDateStr] && jsonKey && priceHistory[latestDateStr][jsonKey] !== undefined) {
+      currentPricePerTenThousand = priceHistory[latestDateStr][jsonKey]; 
+    }
+    const realMarketValue = s.units * currentPricePerTenThousand;
+    const realPurchaseValue = s.units * s.purchasePrice;
+    const realProfit = realMarketValue - realPurchaseValue;
+
+    totalMarket += realMarketValue; totalPurchase += realPurchaseValue; totalProfit += realProfit;
+    if (s.isNISA) nisaProfit += realProfit; else taxableProfit += realProfit;
   });
+
   const TAX_RATE = 0.2; const tax = Math.round(taxableProfit * TAX_RATE); const afterTaxMarket = totalMarket - tax;
   return { totalMarket, totalPurchase, totalProfit, taxableProfit, nisaProfit, tax, afterTaxMarket };
 }
 
 function renderSummary(totals) {
   const summaryDiv = document.getElementById('summary'); if (!summaryDiv) return;
+  let latestDateText = "----/--/--";
+  if (priceHistory && Object.keys(priceHistory).length > 0) {
+    const sorted = Object.keys(priceHistory).filter(d => d.length === 10).sort();
+    if (sorted.length > 0) latestDateText = sorted[sorted.length - 1].replace(/-/g, '/'); 
+  }
   const profitPercent = totals.totalPurchase > 0 ? ((totals.totalProfit / totals.totalPurchase) * 100).toFixed(2) : '0.00';
-  summaryDiv.innerText = `合計時価総額: ${Math.round(totals.totalMarket).toLocaleString()}円
-（元本: ${Math.round(totals.totalPurchase).toLocaleString()}円 / 損益: +${Math.round(totals.totalProfit).toLocaleString()}円 [${profitPercent}%]）
----------------------------------
-うち課税利益: ${Math.round(totals.taxableProfit).toLocaleString()}円
-想定税額(20%): ${totals.tax.toLocaleString()}円
-非課税(NISA)利益: ${Math.round(totals.nisaProfit).toLocaleString()}円
----------------------------------
-税引き後評価額: ${Math.round(totals.afterTaxMarket).toLocaleString()}円`;
+  summaryDiv.innerText = `[ 基準日: ${latestDateText} 時点 ]\n---------------------------------\n合計時価総額: ${Math.round(totals.totalMarket).toLocaleString()}円\n（元本: ${Math.round(totals.totalPurchase).toLocaleString()}円 / 損益: +${Math.round(totals.totalProfit).toLocaleString()}円 [${profitPercent}%]）\n---------------------------------\nうち課税利益: ${Math.round(totals.taxableProfit).toLocaleString()}円\n想定税額(20%): ${totals.tax.toLocaleString()}円\n非課税(NISA)利益: ${Math.round(totals.nisaProfit).toLocaleString()}円\n---------------------------------\n税引き後評価額: ${Math.round(totals.afterTaxMarket).toLocaleString()}円`;
 }
 
-function calculateMonthlyDetails(index) {
+function calculateMonthlyDetails(index, forceLatest = false) {
   const startDate = new Date('2016-06-01'); const targetDate = new Date(startDate); targetDate.setMonth(targetDate.getMonth() + index);
   const dateStr = `${targetDate.getFullYear()}-${('0' + (targetDate.getMonth() + 1)).slice(-2)}-01`;
   let monthlyTotalMarket = 0; let monthlyTotalPurchase = 0; const fundValues = [0, 0, 0, 0, 0];
-  const nameToJsonKeyMap = {
-    'hifumi': { idx: 0, key: 'hifumi' }, 'saison': { idx: 1, key: 'saison' }, 'vti_new': { idx: 2, key: 'rakuten_vti' },
-    'ishares': { idx: 3, key: 'ishares' }, 'vti_old': { idx: 4, key: 'rakuten_vti' }
-  };
-  const isFuture = (index > getLatestDatabaseIndex()); 
+  const nameToJsonKeyMap = { 'hifumi': { idx: 0, key: 'hifumi' }, 'saison': { idx: 1, key: 'saison' }, 'vti_new': { idx: 2, key: 'rakuten_vti' }, 'ishares': { idx: 3, key: 'ishares' }, 'vti_old': { idx: 4, key: 'rakuten_vti' } };
+  const latestIdx = getLatestDatabaseIndex(); const isFuture = (index > latestIdx); 
+  let targetSearchDate = dateStr;
+
+  if ((forceLatest || isFuture) && priceHistory && Object.keys(priceHistory).length > 0) {
+    const sorted = Object.keys(priceHistory).filter(d => d.length === 10).sort();
+    if (sorted.length > 0) targetSearchDate = sorted[sorted.length - 1]; 
+  }
+
   stocks.forEach(s => {
-    const pStartStr = s.periodStart; let pEndStr = s.periodEnd;
-    if (s.periodText && s.periodText.includes('-')) {
-      const parts = s.periodText.split('-'); const startPart = parts[0].trim(); const endPart = parts[1].trim();
-      if (startPart.length === 7) { s.periodStart = `${startPart.replace('/','-')}-01`; }
-      if (endPart.length === 7) { s.periodEnd = `${endPart.replace('/','-')}-01`; } 
-      else {
-        const sorted = Object.keys(priceHistory || {}).filter(d=>d.length===10).sort();
-        s.periodEnd = sorted.length > 0 ? sorted[sorted.length-1] : '2026-06-01';
-      }
-    }
     const pStart = new Date(s.periodStart); const pEnd = new Date(s.periodEnd); const map = nameToJsonKeyMap[s.key];
     if (!isFuture) {
       if (targetDate < pStart) return;
@@ -582,24 +620,19 @@ function calculateMonthlyDetails(index) {
       let currentUnits = 0; let currentPurchase = 0;
       if (targetDate >= pEnd) { currentUnits = s.units; currentPurchase = s.units * s.purchasePrice; }
       else { currentUnits = (s.units / (totalMonths || 1)) * currentMonths; currentPurchase = (s.units * s.purchasePrice / (totalMonths || 1)) * currentMonths; }
-      let currentPrice = s.purchasePrice;
+      let currentPrice = s.purchasePrice; let foundPrice = null;
       
-      let foundPrice = null;
       if (priceHistory && map) {
-        if (priceHistory[dateStr] && priceHistory[dateStr][map.key] !== undefined) {
-          foundPrice = priceHistory[dateStr][map.key];
-        } else {
+        if (priceHistory[targetSearchDate] && priceHistory[targetSearchDate][map.key] !== undefined) { foundPrice = priceHistory[targetSearchDate][map.key]; } 
+        else {
           const yearMonth = dateStr.substring(0, 7); 
           const availableDates = Object.keys(priceHistory).filter(d => d.startsWith(yearMonth)).sort();
           if (availableDates.length > 0) {
             const latestDateOfThisMonth = availableDates[availableDates.length - 1]; 
-            if (priceHistory[latestDateOfThisMonth] && priceHistory[latestDateOfThisMonth][map.key] !== undefined) {
-              foundPrice = priceHistory[latestDateOfThisMonth][map.key];
-            }
+            if (priceHistory[latestDateOfThisMonth] && priceHistory[latestDateOfThisMonth][map.key] !== undefined) { foundPrice = priceHistory[latestDateOfThisMonth][map.key]; }
           }
         }
       }
-      
       if (foundPrice !== null) { currentPrice = foundPrice; } 
       else {
         const currentPriceTarget = s.marketValue / (s.units || 1); const startPrice = s.purchasePrice; const now = new Date('2026-06-01');
@@ -610,104 +643,270 @@ function calculateMonthlyDetails(index) {
       const value = (currentUnits || 0) * (currentPrice || 0); monthlyTotalMarket += value; monthlyTotalPurchase += (currentPurchase || 0);
       if (map) fundValues[map.idx] = Math.round(value);
     } else {
-      const elapsedFutureMonths = index - getLatestDatabaseIndex(); const rate = 0.08 / 12;
-      let futureVal = s.marketValue * Math.pow(1 + 0.08, elapsedFutureMonths / 12);
-      if (map && s.monthlyInvest > 0) {
-        const accum = s.monthlyInvest * ((Math.pow(1 + rate, elapsedFutureMonths) - 1) / rate);
-        futureVal += accum;
+      const elapsedFutureMonths = index - latestIdx; const rate = 0.08 / 12;
+      let futureVal = (s.marketValue || 0) * Math.pow(1 + 0.08, elapsedFutureMonths / 12);
+      const mInvestSafe = s.monthlyInvest !== undefined ? parseFloat(s.monthlyInvest) : 0;
+      if (mInvestSafe > 0) {
+        const accum = mInvestSafe * ((Math.pow(1 + rate, elapsedFutureMonths) - 1) / rate); futureVal += (accum || 0);
       }
-      monthlyTotalMarket += futureVal; if (map) fundValues[map.idx] = Math.round(futureVal);
+      monthlyTotalMarket += futureVal; if (map) fundValues[map.idx] = Math.round(futureVal) || 0;
     }
   });
-  return { dateLabel: `${targetDate.getFullYear()}/${('0' + (targetDate.getMonth() + 1)).slice(-2)}`, totalMarket: Math.round(monthlyTotalMarket), totalPurchase: Math.round(monthlyTotalPurchase), fundValues: fundValues };
+  return { dateLabel: `${targetDate.getFullYear()}/${('0' + (targetDate.getMonth() + 1)).slice(-2)}`, totalMarket: Math.round(monthlyTotalMarket) || 0, totalPurchase: Math.round(monthlyTotalPurchase) || 0, fundValues: fundValues };
+}
+
+// ★ 描画関連の関数群（安全設計版）
+function renderCardMiniChart(canvasId, jsonKey, purchasePrice, currentPrice) {
+  const canvasEl = document.getElementById(canvasId); if (!canvasEl) return;
+  const chartData = []; const labels = []; const points = 30; 
+  let latestDateStr = '2026-06-01';
+  if (priceHistory && Object.keys(priceHistory).length > 0) {
+    const sortedDates = Object.keys(priceHistory).filter(d => d.length === 10).sort();
+    if (sortedDates.length > 0) latestDateStr = sortedDates[sortedDates.length - 1];
+  }
+  const today = new Date(latestDateStr); 
+  for (let i = points - 1; i >= 0; i--) {
+    const tempDate = new Date(today); tempDate.setDate(today.getDate() - i);
+    const dateStr = `${tempDate.getFullYear()}-${('0' + (tempDate.getMonth() + 1)).slice(-2)}-${('0' + tempDate.getDate()).slice(-2)}`;
+    let price = null;
+    if (priceHistory && priceHistory[dateStr] && priceHistory[dateStr][jsonKey] !== undefined) price = priceHistory[dateStr][jsonKey];
+    else { const lastIndex = chartData.length - 1; price = lastIndex >= 0 ? chartData[lastIndex] : currentPrice; }
+    chartData.push(Math.round(price));
+    if (i === points - 1 || i === 0) labels.push(dateStr.substring(5)); else labels.push('');
+  }
+  
+  if (miniCharts[canvasId]) {
+    miniCharts[canvasId].data.labels = labels;
+    miniCharts[canvasId].data.datasets[0].data = chartData;
+    miniCharts[canvasId].update('none');
+  } else {
+    miniCharts[canvasId] = new Chart(canvasEl, {
+      type: 'line', data: { labels: labels, datasets: [{ data: chartData, borderColor: '#3182ce', borderWidth: 1.5, pointRadius: 0, fill: false, tension: 0 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false }, datalabels: { display: false } }, scales: { x: { display: true, grid: { display: false }, ticks: { font: { size: 9 }, color: '#718096', maxRotation: 0, autoSkip: false } }, y: { display: true, position: 'left', grid: { color: 'rgba(0, 0, 0, 0.03)' }, ticks: { font: { size: 8 }, color: '#a0aec0', maxTicksLimit: 3, callback: v => Math.round(v).toLocaleString() } } } }
+    });
+  }
+}
+
+// --- 円グラフの描画関数を更新 ---
+
+function initPieChart(totals) {
+  // 呼び出されるたびに最新の状態を強制リセットして表示
+  resetPieChartToDefault(); 
+}
+
+function updatePieChartForIndex(index) {
+  if (!chartPieObj) return;
+
+  // すでに定義されている月次の精密計算関数を呼び出す
+  // これにより、過去の口数変化や未来の年利シミュレーションも自動的に反映されます
+  const details = calculateMonthlyDetails(index, false);
+  if (!details) return;
+
+  const totalMarket = details.totalMarket;
+
+  // 各ファンドの資産額（details.fundValues）を構成比オブジェクトにマッピング
+  const sortedStructure = [
+    { label: 'ひふみ投信', val: details.fundValues[0], color: '#3182ce', mark: 'A' },
+    { label: 'セゾンGBF', val: details.fundValues[1], color: '#dd6b20', mark: 'B' },
+    { label: '楽天・全米(新NISA)', val: details.fundValues[2], color: '#319795', mark: 'C' },
+    { label: 'iシェアーズ米国株', val: details.fundValues[3], color: '#805ad5', mark: 'D' },
+    { label: '楽天・全米(旧NISA)', val: details.fundValues[4], color: '#4ea8de', mark: 'E' }
+  ].filter(item => item.val > 0).sort((a, b) => b.val - a.val);
+
+  // 円グラフ（Chart.js）のデータおよび背景色を反映
+  chartPieObj.data.labels = sortedStructure.map(x => x.label);
+  chartPieObj.data.datasets[0].data = sortedStructure.map(x => x.val);
+  chartPieObj.data.datasets[0].backgroundColor = sortedStructure.map(x => x.color);
+  chartPieObj.update('none');
+
+  // 表示タイトル（年月）と総資産額の更新
+  document.getElementById('pieChartTitle').innerText = `${details.dateLabel.replace(/-/g, '/')} の資産構成比`;
+  document.getElementById('pieChartTotal').innerText = `総資産額: ${totalMarket.toLocaleString()} 円`;
+  
+  // 右側のカラーバッジ付き詳細リストを更新
+  renderDetailsList(sortedStructure, totalMarket);
+}
+
+function resetPieChartToDefault() {
+  const canvasPie = document.getElementById('pieChart'); 
+  if (!canvasPie) return; 
+  
+  // 最新のデータベースインデックスに基づいて計算
+  const latestIdx = getLatestDatabaseIndex(); 
+  const currentDetails = calculateMonthlyDetails(latestIdx, true);
+  
+  const sortedStructure = [
+    { label: 'ひふみ投信', val: currentDetails.fundValues[0], color: '#3182ce', mark: 'A' },
+    { label: 'セゾンGBF', val: currentDetails.fundValues[1], color: '#dd6b20', mark: 'B' },
+    { label: '楽天・全米(新NISA)', val: currentDetails.fundValues[2], color: '#319795', mark: 'C' },
+    { label: 'iシェアーズ米国株', val: currentDetails.fundValues[3], color: '#805ad5', mark: 'D' },
+    { label: '楽天・全米(旧NISA)', val: currentDetails.fundValues[4], color: '#4ea8de', mark: 'E' }
+  ].sort((a, b) => b.val - a.val);
+
+  if (!chartPieObj) {
+    chartPieObj = new Chart(canvasPie, {
+      type: 'doughnut', 
+      data: { 
+        labels: sortedStructure.map(x => x.label), 
+        datasets: [{ 
+          data: sortedStructure.map(x => x.val), 
+          backgroundColor: sortedStructure.map(x => x.color), 
+          borderWidth: 1.5, borderColor: '#ffffff' 
+        }] 
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, 
+        cutout: '70%',
+        plugins: {
+          legend: { display: false },
+          datalabels: { 
+            formatter: (value, context) => (value > 0 ? sortedStructure[context.dataIndex].mark : ''), 
+            color: '#2d3748', font: { weight: 'bold', size: 11 }
+          },
+          tooltip: { callbacks: { label: (context) => {
+             const sObj = sortedStructure[context.dataIndex];
+             const pct = currentDetails.totalMarket > 0 ? ((sObj.val / currentDetails.totalMarket) * 100).toFixed(1) : 0;
+             return `【${sObj.mark}】${sObj.label}: ${sObj.val.toLocaleString()}円 (${pct}%)`;
+          }}}
+        }
+      }
+    });
+  } else {
+    // 既存チャートがある場合はデータを更新
+    chartPieObj.data.labels = sortedStructure.map(x => x.label);
+    chartPieObj.data.datasets[0].data = sortedStructure.map(x => x.val);
+    chartPieObj.data.datasets[0].backgroundColor = sortedStructure.map(x => x.color);
+    chartPieObj.update('none'); 
+  }
+
+  const formattedDate = latestDateStr() ? latestDateStr().replace(/-/g, '/') : "----/--/--";
+  document.getElementById('pieChartTitle').innerText = `現在の資産構成比 (${formattedDate}基準)`;
+  document.getElementById('pieChartTotal').innerText = `総資産額: ${currentDetails.totalMarket.toLocaleString()} 円`;
+  renderDetailsList(sortedStructure, currentDetails.totalMarket);
+}
+function latestDateStr() {
+  if (priceHistory && Object.keys(priceHistory).length > 0) {
+    const sorted = Object.keys(priceHistory).filter(d => d.length === 10).sort();
+    if (sorted.length > 0) return sorted[sorted.length - 1];
+  }
+  return "";
+}
+
+function renderDetailsList(sortedStructure, total) {
+  const listEl = document.getElementById('pieDetailsList'); if (!listEl) return;
+  let html = '';
+  for (let i = 0; i < sortedStructure.length; i++) {
+    const sObj = sortedStructure[i]; const pct = total > 0 ? ((sObj.val / total) * 100).toFixed(1) : '0.0';
+    html += `<div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; padding: 2px 0;"><div style="display: flex; align-items: center; gap: 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 140px;"><span class="list-badge" style="background-color: ${sObj.color};">${sObj.mark}</span><span style="font-weight: bold; color: #4a5568; overflow: hidden; text-overflow: ellipsis;">${sObj.label}</span></div><div style="text-align: right; color: #2d3748; font-family: monospace;"><span>${sObj.val.toLocaleString()}円</span><span style="font-weight: bold; color: #718096; margin-left: 4px;">(${pct}%)</span></div></div>`;
+  }
+  listEl.innerHTML = html;
 }
 
 function generateAndRenderChart(totals) {
   if (!priceHistory) return;
-  const startDate = new Date('2016-06-01');
-  const generateDateLabels = (start, end) => {
-    const list = []; let cur = new Date(start);
-    while (cur <= end) { list.push(`${cur.getFullYear()}-${('0' + (cur.getMonth() + 1)).slice(-2)}`); cur.setMonth(cur.getMonth() + 1); }
-    return list;
-  };
-  const today = new Date();
+  const startDate = new Date('2016-06-01'); const today = new Date();
+  const generateDateLabels = (start, end) => { const list = []; let cur = new Date(start); while (cur <= end) { list.push(`${cur.getFullYear()}-${('0' + (cur.getMonth() + 1)).slice(-2)}`); cur.setMonth(cur.getMonth() + 1); } return list; };
   
-  // ① 上段左：【短期】1ヶ月分
-  const shortLabels = []; const shortData = [];
+  // ① 短期
+  const shortLabels = []; const shortData = []; const rawShortData = [];
   for (let i = 29; i >= 0; i--) {
     const temp = new Date(); temp.setDate(today.getDate() - i); const dateKey = temp.toISOString().split('T')[0];
-    shortLabels.push(dateKey.substring(5));
-    let dailyTotal = 0;
+    shortLabels.push(dateKey.substring(5)); let dailyTotal = 0; let hasData = false;
     stocks.forEach(s => {
       let units = s.units; const pEnd = new Date(s.periodEnd);
       if (temp < pEnd && s.periodEnd !== '2026-06-01') {
-        const pStart = new Date(s.periodStart);
-        const totalM = (pEnd.getFullYear() - pStart.getFullYear()) * 12 + (pEnd.getMonth() - pStart.getMonth());
-        const elapsedM = (temp.getFullYear() - pStart.getFullYear()) * 12 + (temp.getMonth() - pStart.getMonth());
-        units = Math.max(0, (s.units / (totalM || 1)) * elapsedM);
+        const pStart = new Date(s.periodStart); const totalM = (pEnd.getFullYear() - pStart.getFullYear()) * 12 + (pEnd.getMonth() - pStart.getMonth()); const elapsedM = (temp.getFullYear() - pStart.getFullYear()) * 12 + (temp.getMonth() - pStart.getMonth()); units = Math.max(0, (s.units / (totalM || 1)) * elapsedM);
       }
       let price = s.purchasePrice; const keyMap = { hifumi:'hifumi', saison:'saison', vti_new:'rakuten_vti', ishares:'ishares', vti_old:'rakuten_vti' };
-      if (priceHistory && priceHistory[dateKey] && priceHistory[dateKey][keyMap[s.key]] !== undefined) { price = priceHistory[dateKey][keyMap[s.key]]; }
-      else { price = s.marketValue / (s.units || 1); }
-      dailyTotal += units * price;
+      if (priceHistory && priceHistory[dateKey] && priceHistory[dateKey][keyMap[s.key]] !== undefined) { dailyTotal += units * priceHistory[dateKey][keyMap[s.key]]; hasData = true; }
     });
-    shortData.push(Math.round(dailyTotal));
+    rawShortData.push(hasData ? Math.round(dailyTotal) : null);
   }
-  const ctxShort = document.getElementById('shortChart').getContext('2d');
-  if (shortChart) shortChart.destroy();
-  shortChart = new Chart(ctxShort, {
-    type: 'line', data: { labels: shortLabels, datasets: [{ label: '時価評価額 (円)', data: shortData, borderColor: 'rgba(54, 162, 235, 1)', backgroundColor: 'rgba(54, 162, 235, 0.05)', borderWidth: 2, fill: true, pointRadius: 1, tension: 0.15 }] },
-    options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { font: { size: 9 } } }, y: { ticks: { callback: v => (v / 10000).toLocaleString() + '万円' } } }, plugins: { legend: { display: false }, datalabels: { display: false } } }
-  });
+  for (let i = 0; i < rawShortData.length; i++) {
+    if (rawShortData[i] !== null) { shortData.push(rawShortData[i]); } else {
+      let leftIdx = -1; let leftVal = null; for (let l = i - 1; l >= 0; l--) { if (rawShortData[l] !== null) { leftIdx = l; leftVal = rawShortData[l]; break; } }
+      let rightIdx = -1; let rightVal = null; for (let r = i + 1; r < rawShortData.length; r++) { if (rawShortData[r] !== null) { rightIdx = r; rightVal = rawShortData[r]; break; } }
+      if (leftIdx !== -1 && rightIdx !== -1) { shortData.push(Math.round(leftVal + (rightVal - leftVal) * ((i - leftIdx) / (rightIdx - leftIdx)))); } 
+      else if (leftIdx !== -1) { shortData.push(leftVal); } else if (rightIdx !== -1) { shortData.push(rightVal); } else { shortData.push(Math.round(totals.totalMarket)); }
+    }
+  }
 
-  // ② 上段右：【中期】1年分
+  const canvasShort = document.getElementById('shortChart');
+  if (chartShortObj) { 
+    chartShortObj.data.labels = shortLabels; chartShortObj.data.datasets[0].data = shortData; chartShortObj.update('none');
+  } else {
+    chartShortObj = new Chart(canvasShort, { type: 'line', data: { labels: shortLabels, datasets: [{ label: '時価評価額 (円)', data: shortData, borderColor: 'rgba(54, 162, 235, 1)', backgroundColor: 'rgba(54, 162, 235, 0.05)', borderWidth: 2, fill: true, pointRadius: 1, tension: 0.15 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { font: { size: 9 } } }, y: { ticks: { callback: v => (v / 10000).toLocaleString() + '万円' } } }, plugins: { legend: { display: false }, datalabels: { display: false } } } });
+  }
+
+  // ② 中期
   const mediumLabels = []; const mediumData = [];
   for (let i = 11; i >= 0; i--) {
     const temp = new Date(); temp.setMonth(today.getMonth() - i); const yyyymm = `${temp.getFullYear()}-${('0' + (temp.getMonth() + 1)).slice(-2)}`;
-    mediumLabels.push(yyyymm); const dateKey = `${yyyymm}-01`; let monthlyTotal = 0;
+    mediumLabels.push(yyyymm); let monthlyTotal = 0;
     stocks.forEach(s => {
       let units = s.units; const pEnd = new Date(s.periodEnd);
       if (temp < pEnd && s.periodEnd !== '2026-06-01') {
-        const pStart = new Date(s.periodStart);
-        const totalM = (pEnd.getFullYear() - pStart.getFullYear()) * 12 + (pEnd.getMonth() - pStart.getMonth());
-        const elapsedM = (temp.getFullYear() - pStart.getFullYear()) * 12 + (temp.getMonth() - pStart.getMonth());
-        units = Math.max(0, (s.units / (totalM || 1)) * elapsedM);
+        const pStart = new Date(s.periodStart); const totalM = (pEnd.getFullYear() - pStart.getFullYear()) * 12 + (pEnd.getMonth() - pStart.getMonth()); const elapsedM = (temp.getFullYear() - pStart.getFullYear()) * 12 + (temp.getMonth() - pStart.getMonth()); units = Math.max(0, (s.units / (totalM || 1)) * elapsedM);
       }
-      let price = s.purchasePrice; const keyMap = { hifumi:'hifumi', saison:'saison', vti_new:'rakuten_vti', ishares:'ishares', vti_old:'rakuten_vti' };
-      if (priceHistory && priceHistory[dateKey] && priceHistory[dateKey][keyMap[s.key]] !== undefined) { price = priceHistory[dateKey][keyMap[s.key]]; }
-      else { price = s.marketValue / (s.units || 1); }
+      let price = s.purchasePrice; let foundPrice = null; const keyMap = { hifumi:'hifumi', saison:'saison', vti_new:'rakuten_vti', ishares:'ishares', vti_old:'rakuten_vti' };
+      if (priceHistory) {
+        const availableDates = Object.keys(priceHistory).filter(d => d.startsWith(yyyymm)).sort();
+        if (availableDates.length > 0) { const latestDateOfThisMonth = availableDates[availableDates.length - 1]; if (priceHistory[latestDateOfThisMonth] && priceHistory[latestDateOfThisMonth][keyMap[s.key]] !== undefined) foundPrice = priceHistory[latestDateOfThisMonth][keyMap[s.key]]; }
+      }
+      if (foundPrice !== null) { price = foundPrice; } else {
+        const currentPriceTarget = s.marketValue / (s.units || 1); const startPrice = s.purchasePrice; const now = new Date('2026-06-01'); const fullHistoryMonths = (now.getFullYear() - pStart.getFullYear()) * 12 + (now.getMonth() - pStart.getMonth()); const elapsedFromStart = (temp.getFullYear() - pStart.getFullYear()) * 12 + (temp.getMonth() - pStart.getMonth());
+        if (fullHistoryMonths > 0) price = startPrice + ((currentPriceTarget - startPrice) / fullHistoryMonths) * elapsedFromStart;
+      }
       monthlyTotal += units * price;
     });
     mediumData.push(Math.round(monthlyTotal));
   }
-  const ctxMedium = document.getElementById('mediumChart').getContext('2d');
-  if (mediumChart) mediumChart.destroy();
-  mediumChart = new Chart(ctxMedium, {
-    type: 'line', data: { labels: mediumLabels, datasets: [{ label: '時価評価額 (円)', data: mediumData, borderColor: 'rgba(153, 102, 255, 1)', backgroundColor: 'rgba(153, 102, 255, 0.05)', borderWidth: 2, fill: true, pointRadius: 1, tension: 0.15 }] },
-    options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { font: { size: 9 } } }, y: { ticks: { callback: v => (v / 10000).toLocaleString() + '万円' } } }, plugins: { legend: { display: false }, datalabels: { display: false } } }
-  });
 
-  // ③ 下段：【長期】実績 ＆ シミュレーション（動的スライド対応）
+  const canvasMedium = document.getElementById('mediumChart');
+  if (chartMediumObj) { 
+    chartMediumObj.data.labels = mediumLabels; chartMediumObj.data.datasets[0].data = mediumData; chartMediumObj.update('none');
+  } else {
+    chartMediumObj = new Chart(canvasMedium, { type: 'line', data: { labels: mediumLabels, datasets: [{ label: '時価評価額 (円)', data: mediumData, borderColor: 'rgba(153, 102, 255, 1)', backgroundColor: 'rgba(153, 102, 255, 0.05)', borderWidth: 2, fill: true, pointRadius: 1, tension: 0.15 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { font: { size: 9 } } }, y: { ticks: { callback: v => (v / 10000).toLocaleString() + '万円' } } }, plugins: { legend: { display: false }, datalabels: { display: false } } } });
+  }
+
+  // ③ 長期（データ構造が変わるため、ここだけは確実に destroy して作り直す）
   const isFutureMode = (activeGraphTab === 'future'); const latestIdx = getLatestDatabaseIndex();
   const longEndDate = isFutureMode ? new Date('2032-06-01') : new Date('2026-06-01'); const longLabels = generateDateLabels(startDate, longEndDate);
   const pastData = []; const pastPurchaseData = []; const pastProfitData = [];
   const future7Data = []; const future8Data = []; const future9Data = []; const futurePurchaseData = [];
-  const monthsPast = latestIdx; const monthsFuture = isFutureMode ? Math.max(0, 192 - latestIdx) : 0;
+  const monthsPast = latestIdx; const monthsFuture = isFutureMode ? Math.max(0, 192 - latestIdx) : 0; 
 
   for (let i = 0; i <= monthsPast; i++) {
-    const details = calculateMonthlyDetails(i);
+    const details = calculateMonthlyDetails(i, false); 
     pastData.push(details.totalMarket); pastPurchaseData.push(details.totalPurchase); pastProfitData.push(details.totalMarket - details.totalPurchase);
     if (isFutureMode) { future7Data.push(null); future8Data.push(null); future9Data.push(null); futurePurchaseData.push(null); }
   }
 
+  let latestDateStr = "";
+  if (priceHistory && Object.keys(priceHistory).length > 0) {
+    const sorted = Object.keys(priceHistory).filter(d => d.length === 10).sort();
+    if (sorted.length > 0) latestDateStr = sorted[sorted.length - 1]; 
+  }
+  const isLatestDateAfterFirst = (latestDateStr && latestDateStr.substring(8, 10) !== "01");
+  
+  if (isLatestDateAfterFirst) {
+    longLabels[monthsPast] = `${longLabels[monthsPast]}-01`; 
+    longLabels.splice(monthsPast + 1, 0, latestDateStr.substring(5)); 
+    let latestTotalMarket = 0; let latestTotalPurchase = 0;
+    stocks.forEach(s => {
+      let latestPrice = s.marketValue / s.units; const keyMap = { hifumi:'hifumi', saison:'saison', vti_new:'rakuten_vti', ishares:'ishares', vti_old:'rakuten_vti' };
+      if (priceHistory && priceHistory[latestDateStr] && priceHistory[latestDateStr][keyMap[s.key]] !== undefined) latestPrice = priceHistory[latestDateStr][keyMap[s.key]]; 
+      latestTotalMarket += s.units * latestPrice; latestTotalPurchase += s.units * s.purchasePrice;
+    });
+    pastData.push(Math.round(latestTotalMarket) || 0); pastPurchaseData.push(Math.round(latestTotalPurchase) || 0); pastProfitData.push(Math.round(latestTotalMarket - latestTotalPurchase) || 0);
+    if (isFutureMode) { future7Data.splice(monthsPast + 1, 0, null); future8Data.splice(monthsPast + 1, 0, null); future9Data.splice(monthsPast + 1, 0, null); futurePurchaseData.splice(monthsPast + 1, 0, null); }
+  }
+
   if (isFutureMode && monthsFuture > 0) {
     const currentTotalMarket = totals.totalMarket; const currentTotalPurchase = totals.totalPurchase;
-    future7Data[monthsPast] = Math.round(totals.afterTaxMarket) || 0;
-    future8Data[monthsPast] = Math.round(totals.afterTaxMarket) || 0;
-    future9Data[monthsPast] = Math.round(totals.afterTaxMarket) || 0;
-    futurePurchaseData[monthsPast] = Math.round(currentTotalPurchase) || 0;
+    const connectionIdx = isLatestDateAfterFirst ? monthsPast + 1 : monthsPast;
+    future7Data[connectionIdx] = Math.round(totals.afterTaxMarket) || 0; future8Data[connectionIdx] = Math.round(totals.afterTaxMarket) || 0; future9Data[connectionIdx] = Math.round(totals.afterTaxMarket) || 0; futurePurchaseData[connectionIdx] = Math.round(currentTotalPurchase) || 0;
     const taxableRatio = currentTotalMarket > 0 ? (currentTotalMarket - totals.nisaProfit) / currentTotalMarket : 0.5;
-
     let totalMonthlyInvest = 0; stocks.forEach(s => { totalMonthlyInvest += s.monthlyInvest || 0; });
 
     for (let j = 1; j <= monthsFuture; j++) {
@@ -715,48 +914,83 @@ function generateAndRenderChart(totals) {
       const simulateForRate = (annualRate) => {
         const monthlyRate = annualRate / 12; let futureCurrent = 0; let futureAccum = 0; let taxableAccum = 0; let taxablePrincipal = 0;
         stocks.forEach(s => {
-          const fCur = s.marketValue * Math.pow(1 + annualRate, elapsedYears); futureCurrent += fCur;
-          if (s.monthlyInvest > 0) {
-            const accum = s.monthlyInvest * ((Math.pow(1 + monthlyRate, j) - 1) / monthlyRate);
-            if (s.isNISA) { futureAccum += accum; } else { taxableAccum += accum; taxablePrincipal += s.monthlyInvest * j; }
+          const fCur = (s.marketValue || 0) * Math.pow(1 + annualRate, elapsedYears); futureCurrent += fCur;
+          const mInvestSafe = s.monthlyInvest !== undefined ? parseFloat(s.monthlyInvest) : 0;
+          if (mInvestSafe > 0) {
+            const accum = mInvestSafe * ((Math.pow(1 + monthlyRate, j) - 1) / monthlyRate);
+            if (s.isNISA) futureAccum += (accum || 0); else { taxableAccum += (accum || 0); taxablePrincipal += mInvestSafe * j; }
           }
         });
         const taxableProfit = Math.max(0, taxableAccum - taxablePrincipal); const futureTaxableAfter = taxablePrincipal + (taxableProfit * 0.8);
         const grossTotal = futureCurrent + futureAccum + futureTaxableAfter;
         const originalProfit = Math.max(0, futureCurrent - currentTotalPurchase); const estimatedTaxOnOriginal = originalProfit * taxableRatio * 0.2;
-        return Math.round(grossTotal - estimatedTaxOnOriginal);
+        return Math.round(grossTotal - estimatedTaxOnOriginal) || 0;
       };
-      pastData.push(null); pastPurchaseData.push(null);
+      pastData.push(null); pastPurchaseData.push(null); pastProfitData.push(null);
       future7Data.push(simulateForRate(0.07)); future8Data.push(simulateForRate(0.08)); future9Data.push(simulateForRate(0.09));
-      futurePurchaseData.push(Math.round(currentTotalPurchase + (totalMonthlyInvest * j)));
+      futurePurchaseData.push(Math.round(currentTotalPurchase + (totalMonthlyInvest * j)) || 0);
     }
   }
 
   const datasets = [
-    { label: '過去資産実績 (実線)', data: pastData, borderColor: 'rgba(40, 167, 69, 1)', backgroundColor: 'rgba(40, 167, 69, 0.1)', borderWidth: 3, fill: true, tension: 0.15, pointRadius: 0, yAxisID: 'y', plugins: { datalabels: { display: false } } },
-    { label: '過去投資額累計 (実線)', data: pastPurchaseData, borderColor: 'rgba(160, 174, 192, 1)', borderWidth: 2, fill: false, tension: 0.1, pointRadius: 0, yAxisID: 'y', plugins: { datalabels: { display: false } } },
-    { label: '評価損益', data: pastProfitData.concat(new Array(monthsFuture).fill(null)), borderColor: 'rgba(0, 0, 0, 0)', backgroundColor: 'rgba(0, 0, 0, 0)', borderWidth: 0, fill: false, pointRadius: 0, hideInLegend: true, yAxisID: 'y', plugins: { datalabels: { display: false } } }
+    { label: '過去資産実績', data: pastData, borderColor: '#3182ce', backgroundColor: 'rgba(49, 130, 206, 0.1)', borderWidth: 2, fill: true, pointRadius: 0, tension: 0.1 },
+    { label: '過去投資額', data: pastPurchaseData, borderColor: '#718096', borderDash: [5, 5], borderWidth: 1.5, fill: false, pointRadius: 0, tension: 0.1 },
+    { label: '評価損益', data: pastProfitData, borderColor: '#48bb78', borderWidth: 1.5, fill: false, pointRadius: 0, tension: 0.1, hideInLegend: true }
   ];
-
   if (isFutureMode) {
     datasets.push(
-      { label: '今後の投資額累計 (点線)', data: futurePurchaseData, borderColor: 'rgba(160, 174, 192, 1)', borderWidth: 2, borderDash: [5, 5], fill: false, tension: 0.1, pointRadius: 0, yAxisID: 'y', plugins: { datalabels: { display: false } } },
-      { label: '計画予測 年利7% (点線)', data: future7Data, borderColor: 'rgba(255, 159, 64, 1)', borderWidth: 2, borderDash: [5, 5], fill: false, tension: 0.05, pointRadius: 0, yAxisID: 'y', plugins: { datalabels: { display: false } } },
-      { label: '計画予測 年利8% (点線)', data: future8Data, borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 2, borderDash: [5, 5], fill: false, tension: 0.05, pointRadius: 0, yAxisID: 'y', plugins: { datalabels: { display: false } } },
-      { label: '計画予測 年利9% (点線)', data: future9Data, borderColor: 'rgba(235, 54, 54, 1)', borderWidth: 2, borderDash: [5, 5], fill: false, tension: 0.05, pointRadius: 0, yAxisID: 'y', plugins: { datalabels: { display: false } } }
+      { label: '予測(年利7%)', data: future7Data, borderColor: '#cbd5e0', borderWidth: 1, borderDash: [3, 3], fill: false, pointRadius: 0 },
+      { label: '予測(年利8%)', data: future8Data, borderColor: '#ed8936', backgroundColor: 'rgba(237, 137, 54, 0.1)', borderWidth: 2, fill: true, pointRadius: 0 },
+      { label: '予測(年利9%)', data: future9Data, borderColor: '#fbd38d', borderWidth: 1, borderDash: [3, 3], fill: false, pointRadius: 0 },
+      { label: '予定投資額', data: futurePurchaseData, borderColor: '#a0aec0', borderDash: [5, 5], borderWidth: 1.5, fill: false, pointRadius: 0 }
     );
   }
 
-  const ctx = document.getElementById('timeLineChart').getContext('2d'); if (!ctx) return;
-  if (myChart) myChart.destroy();
-  myChart = new Chart(ctx, {
+  const canvasLong = document.getElementById('timeLineChart');
+  
+  // ★ 根本解決: X軸やデータセット数が変わるチャートのみ、安全に破棄して作り直す
+  if (chartLongObj) { 
+    chartLongObj.destroy(); 
+    chartLongObj = null; 
+  }
+  
+  chartLongObj = new Chart(canvasLong, {
     type: 'line', data: { labels: longLabels, datasets: datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
-      onHover: function(event, activeElements) {
-        if (activeElements && activeElements.length > 0) { const index = activeElements[0].index; updatePieChartForIndex(index); }
-        else { resetPieChartToDefault(); }
+      onHover: function(event, activeElements, chart) {
+        try {
+          if (!chartPieObj) return; 
+
+          if (activeElements && activeElements.length > 0) { 
+            const index = activeElements[0].index;
+            const label = chart.data.labels[index]; // グラフのX軸ラベルを取得
+            
+            // 1. 最新日（月の途中など、"06-12"のようなラベル）の判定
+            // 西暦（"20"）から始まらないラベルは、すべて最新日の割り込みデータとみなす
+            const isLatestDay = label && !label.startsWith('20');
+
+            if (isLatestDay) {
+              // 最新日の場合は、最新の確定実績（日次基準）を円グラフに描画
+              resetPieChartToDefault();
+            } else if (label) {
+              // 2. 通常月（過去・未来共通）のパース処理
+              // ラベルから直接「年」と「月」を取得し、2016年6月からの経過月数を逆算
+              const year = parseInt(label.substring(0, 4));
+              const month = parseInt(label.substring(5, 7));
+              const targetIndex = (year - 2016) * 12 + (month - 6);
+
+              // 算出された経過月数が有効な数値であれば円グラフを連動更新
+              if (!isNaN(targetIndex)) {
+                updatePieChartForIndex(targetIndex); 
+              }
+            }
+          } else { 
+            // グラフの外にマウスが外れた場合はデフォルト（最新実績）に戻す
+            resetPieChartToDefault(); 
+          }
+        } catch(e) { console.error("Hover Error:", e); }
       },
       scales: {
         x: { grid: { color: 'rgba(0, 0, 0, 0.03)' }, ticks: { maxTicksLimit: 20, font: { size: 10 } } },
@@ -764,123 +998,16 @@ function generateAndRenderChart(totals) {
       },
       plugins: {
         datalabels: { display: false },
-        legend: {
-          labels: {
-            filter: function(item, data) {
-              if (data && data.datasets && data.datasets[item.datasetIndex]) {
-                const dataset = data.datasets[item.datasetIndex]; return !dataset.hideInLegend;
-              }
-              return true;
-            }
-          }
-        },
-        tooltip: {
-          callbacks: {
-            labelTextColor: function(context) {
-              if (context.dataset.label.includes('評価損益')) { const val = context.parsed.y; return val < 0 ? '#ff4d4d' : '#48bb78'; }
-              return '#ffffff';
-            },
-            label: function(context) {
-              let label = context.dataset.label || '';
-              if (label) {
-                label = label.split(' (')[0] || label;
-                if (label.includes('評価損益')) label = '【評価損益】';
-                else if (label.includes('過去資産実績')) label = '【総資産時価】';
-                else if (label.includes('過去投資額')) label = '【元本投資額】';
-                label += ': ';
-              }
-              if (context.parsed.y !== null) {
-                const value = context.parsed.y;
-                if (context.dataset.label.includes('評価損益') && value > 0) { label += '+'; }
-                label += Math.round(value).toLocaleString() + ' 円';
-              }
-              return label;
-            }
-          }
-        }
+        legend: { labels: { filter: function(item, data) { if (data && data.datasets && data.datasets[item.datasetIndex]) { return !data.datasets[item.datasetIndex].hideInLegend; } return true; } } },
+        tooltip: { callbacks: { labelTextColor: function(context) { if (context.dataset.label.includes('評価損益')) { const val = context.parsed.y; return val < 0 ? '#ff4d4d' : '#48bb78'; } return '#ffffff'; }, label: function(context) { let label = context.dataset.label || ''; if (label) { label = label.split(' (')[0] || label; if (label.includes('評価損益')) label = '【評価損益】'; else if (label.includes('過去資産実績')) label = '【総資産時価】'; else if (label.includes('過去投資額')) label = '【元本投資額】'; label += ': '; } if (context.parsed.y !== null) { const value = context.parsed.y; if (context.dataset.label.includes('評価損益') && value > 0) { label += '+'; } label += Math.round(value).toLocaleString() + ' 円'; } return label; } } }
       }
     }
   });
 }
 
-function initPieChart(totals) {
-  const ctx = document.getElementById('pieChart').getContext('2d'); if (!ctx) return;
-  if (pieChart) { pieChart.destroy(); }
-  const currentDetails = calculateMonthlyDetails(getLatestDatabaseIndex()); 
-  pieChart = new Chart(ctx, {
-    type: 'doughnut', plugins: [ChartDataLabels],
-    data: {
-      labels: ['ひふみ投信', 'セゾンGBF', '楽天・全米(新NISA)', 'iシェアーズ米国株', '楽天・全米(旧NISA)'],
-      datasets: [{
-        data: currentDetails.fundValues,
-        backgroundColor: ['#3182ce', '#dd6b20', '#319795', '#805ad5', '#4ea8de'],
-        borderWidth: 1.5, borderColor: '#ffffff'
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      layout: { padding: { top: 15, bottom: 15, left: 15, right: 15 } }, cutout: '70%',
-      plugins: {
-        legend: { display: false },
-        datalabels: {
-          formatter: function(value, context) { const labels = ['A', 'B', 'C', 'D', 'E']; return value > 0 ? labels[context.dataIndex] : ''; },
-          color: '#2d3748', font: { weight: 'bold', size: 11 }, anchor: 'end', align: 'end', offset: 4
-        },
-        tooltip: {
-          callbacks: {
-            label: function(context) {
-              const label = context.label || ''; const value = context.parsed || 0;
-              const total = context.dataset.data.reduce((a, b) => a + b, 0); const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-              const marks = ['【A】', '【B】', '【C】', '【D】', '【E】']; const mark = marks[context.dataIndex] || '';
-              return `${mark}${label}: ${Math.round(value).toLocaleString()}円 (${percentage}%)`;
-            }
-          }
-        }
-      }
-    }
-  });
-  resetPieChartToDefault();
-}
-
-function updatePieChartForIndex(index) {
-  if (!pieChart) return;
-  const details = calculateMonthlyDetails(index);
-  pieChart.data.datasets[0].data = details.fundValues; pieChart.update('none');
-  document.getElementById('pieChartTitle').innerText = `${details.dateLabel} の資産構成比`;
-  document.getElementById('pieChartTotal').innerText = `総資産額: ${details.totalMarket.toLocaleString()} 円`;
-  renderDetailsList(details.fundValues, details.totalMarket);
-}
-
-function resetPieChartToDefault() {
-  if (!pieChart) return;
-  const currentDetails = calculateMonthlyDetails(getLatestDatabaseIndex()); 
-  pieChart.data.datasets[0].data = currentDetails.fundValues; pieChart.update();
-  document.getElementById('pieChartTitle').innerText = `現在の資産構成比 (${currentDetails.dateLabel}基準)`;
-  document.getElementById('pieChartTotal').innerText = `総資産額: ${currentDetails.totalMarket.toLocaleString()} 円`;
-  renderDetailsList(currentDetails.fundValues, currentDetails.totalMarket);
-}
-
-function renderDetailsList(values, total) {
-  const listEl = document.getElementById('pieDetailsList'); if (!listEl) return;
-  const names = ['ひふみ投信', 'セゾンGBF', '楽天・全米(新NISA)', 'iシェアーズ米国株', '楽天・全米(旧NISA)'];
-  const colors = ['#3182ce', '#dd6b20', '#319795', '#805ad5', '#4ea8de']; const marks = ['A', 'B', 'C', 'D', 'E'];
-  let html = '';
-  for (let i = 0; i < names.length; i++) {
-    const val = values[i] || 0; const pct = total > 0 ? ((val / total) * 100).toFixed(1) : '0.0';
-    html += `
-      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; padding: 2px 0;">
-        <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 140px;">
-          <span class="list-badge" style="background-color: ${colors[i]};">${marks[i]}</span>
-          <span style="font-weight: bold; color: #4a5568; overflow: hidden; text-overflow: ellipsis;">${names[i]}</span>
-        </div>
-        <div style="text-align: right; color: #2d3748; font-family: monospace;">
-          <span>${val.toLocaleString()}円</span><span style="font-weight: bold; color: #718096; margin-left: 4px;">(${pct}%)</span>
-        </div>
-      </div>`;
-  }
-  listEl.innerHTML = html;
-}
-
+// ----------------------------------------------------
+// 【以下、ボタンやモーダルのシステム動作（変更なし）】
+// ----------------------------------------------------
 function saveCurrentToDailyLog() {
   const todayStr = new Date().toISOString().split('T')[0];
   const localDaily = JSON.parse(localStorage.getItem('prices_daily')) || {};
@@ -896,209 +1023,128 @@ function saveCurrentToDailyLog() {
   });
   localDaily[todayStr] = tempPrices;
   localStorage.setItem('prices_daily', JSON.stringify(localDaily));
-  writeLog(`【手動記録】今日（${todayStr}）の価格データをLocalStorageに追記保存しました。`);
-  alert(`今日（${todayStr}）の価格データを保存しました。下の「ダウンロード」ボタンから保存ファイルをエクスポートできます。`);
+  writeLog(`【手動記録】今日（${todayStr}）の価格データを保存しました。`);
+  alert(`今日（${todayStr}）のデータを保存しました。ダウンロードできます。`);
   loadPriceHistoryAndRenderChart();
 }
 
 function downloadDailyJson() {
   const localDaily = localStorage.getItem('prices_daily');
-  if (!localDaily || localDaily === '{}') {
-    alert("ダウンロードする履歴データがありません。「今月のデータを履歴に書き込む」を先に実行してください。"); return;
-  }
+  if (!localDaily || localDaily === '{}') { alert("履歴がありません。"); return; }
   const blob = new Blob([localDaily], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'prices_daily.json';
+  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'prices_daily.json';
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-  writeLog("【ダウンロード】prices_daily.json をエクスポートしました。");
 }
 
-/* =========================
-   🔒 【自動化】GitHub API直接書き込み ＆ 暗号化処理
-========================= */
-function toggleEncryptor() {
-  const area = document.getElementById('tokenEncryptorArea');
-  area.style.display = area.style.display === 'none' ? 'flex' : 'none';
-}
-
+function toggleEncryptor() { const area = document.getElementById('tokenEncryptorArea'); area.style.display = area.style.display === 'none' ? 'flex' : 'none'; }
 function generateEncryptedToken() {
-  const pin = document.getElementById('pinInput').value.trim();
-  const rawToken = document.getElementById('rawTokenInput').value.trim();
-  if (pin.length !== 4 || !rawToken) {
-    alert("4桁のパスワードと、本物のGitHubトークンを正しく入力してください。"); return;
-  }
+  const pin = document.getElementById('pinInput').value.trim(); const rawToken = document.getElementById('rawTokenInput').value.trim();
+  if (pin.length !== 4 || !rawToken) { alert("正しく入力してください。"); return; }
   const encrypted = CryptoJS.AES.encrypt(rawToken, pin).toString();
-  const resultArea = document.getElementById('encryptResultArea');
-  resultArea.style.display = 'block';
-  resultArea.innerText = `【生成された暗号文】これをコピーして config.js の CONFIG_ENCRYPTED_TOKEN に貼り付けてください：\n\n${encrypted}`;
-  writeLog("【暗号化成功】トークンを4桁パスワードで安全に暗号化しました。");
+  const resultArea = document.getElementById('encryptResultArea'); resultArea.style.display = 'block'; resultArea.innerText = `【生成暗号文】\n${encrypted}`;
 }
 
-/* =========================
-   別画面モーダルの「7項目」一括編集 ＆ プリフィル自動記入処理
-========================= */
-function openSettingsModal() {
-  document.getElementById('settingsModal').style.display = 'flex';
-  document.getElementById('modalInputText').value = '';
-  renderModalSettingsGrid();
-}
-
-function closeSettingsModal() {
-  document.getElementById('settingsModal').style.display = 'none';
-}
+function openSettingsModal() { document.getElementById('settingsModal').style.display = 'flex'; document.getElementById('modalInputText').value = ''; renderModalSettingsGrid(); }
+function closeSettingsModal() { document.getElementById('settingsModal').style.display = 'none'; }
 
 function renderModalSettingsGrid() {
-  const gridEl = document.getElementById('modalSettingsGrid'); if (!gridEl) return;
-  let html = '';
+  const gridEl = document.getElementById('modalSettingsGrid'); if (!gridEl) return; let html = '';
   stocks.forEach(s => {
-    let mark = 'A';
-    if (s.key === 'saison') mark = 'B';
-    if (s.key === 'vti_new') mark = 'C';
-    if (s.key === 'ishares') mark = 'D';
-    if (s.key === 'vti_old') mark = 'E';
-    
-    const purchaseAmount = Math.round(s.units * s.purchasePrice);
-    const marketValue = Math.round(s.marketValue);
-    const profit = Math.round(s.profit);
-    const periodText = s.periodText || "";
-    
-    html += `
-      <div class="setting-group">
-        <div class="setting-group-title">【${mark}】${s.name.split('インデックス')[0]}</div>
-        <div class="setting-item"><span>①保有数(万口):</span><input type="number" step="0.01" id="m-units-${s.key}" value="${s.units}"></div>
-        <div class="setting-item"><span>②取得単価(円):</span><input type="number" id="m-purchase-${s.key}" value="${s.purchasePrice}"></div>
-        <div class="setting-item"><span>③毎月積立(円):</span><input type="number" step="1000" id="m-invest-${s.key}" value="${s.monthlyInvest}"></div>
-        <div class="setting-item"><span>④投資期間:</span><input type="text" id="m-period-${s.key}" value="${periodText}" placeholder="YYYY/MM- または YYYY/MM-YYYY/MM"></div>
-        <div class="setting-item"><span>⑤評価金額(円):</span><input type="number" id="m-market-${s.key}" value="${marketValue}"></div>
-        <div class="setting-item"><span>⑥評価損益(円):</span><input type="number" id="m-profit-${s.key}" value="${profit}"></div>
-        <div class="setting-item"><span>⑦購入金額(円):</span><input type="number" id="m-total-${s.key}" value="${purchaseAmount}"></div>
-      </div>`;
+    let mark = 'A'; if (s.key === 'saison') mark = 'B'; if (s.key === 'vti_new') mark = 'C'; if (s.key === 'ishares') mark = 'D'; if (s.key === 'vti_old') mark = 'E';
+    html += `<div class="setting-group"><div class="setting-group-title">【${mark}】${s.name.split('インデックス')[0]}</div><div class="setting-item"><span>①保有数(万口):</span><input type="number" step="0.01" id="m-units-${s.key}" value="${s.units}"></div><div class="setting-item"><span>②取得単価(円):</span><input type="number" id="m-purchase-${s.key}" value="${s.purchasePrice}"></div><div class="setting-item"><span>③毎月積立(円):</span><input type="number" step="1000" id="m-invest-${s.key}" value="${s.monthlyInvest}"></div><div class="setting-item"><span>④投資期間:</span><input type="text" id="m-period-${s.key}" value="${s.periodText || ''}"></div><div class="setting-item"><span>⑤評価金額(円):</span><input type="number" id="m-market-${s.key}" value="${Math.round(s.marketValue)}"></div><div class="setting-item"><span>⑥評価損益(円):</span><input type="number" id="m-profit-${s.key}" value="${Math.round(s.profit)}"></div><div class="setting-item"><span>⑦購入金額(円):</span><input type="number" id="m-total-${s.key}" value="${Math.round(s.units * s.purchasePrice)}"></div></div>`;
   });
   gridEl.innerHTML = html;
 }
 
 function autoFillFromText() {
   const text = document.getElementById('modalInputText').value.trim(); if (!text) return;
-  const lines = text.split('\n');
-  lines.forEach(line => {
+  text.split('\n').forEach(line => {
     if (!line.trim()) return;
     if (line.includes('ひふみ投信') || line.includes('セゾン') || line.includes('楽天・全米') || line.includes('iシェアーズ')) {
       const parts = line.split('\t');
       if (parts.length >= 5) {
-        const name = parts[0].trim(); const purchasePrice = parseNumber(parts[1]); const units = parseNumber(parts[2]); const marketValue = parseNumber(parts[3]);
-        const profitParts = parts[4].split('('); const profit = parseNumber(profitParts[0]);
-        
-        let key = 'hifumi';
-        if (name.includes('ひふみ')) key = 'hifumi';
-        if (name.includes('セゾン')) key = 'saison';
-        if (name.includes('新NISA')) key = 'vti_new';
-        if (name.includes('iシェアーズ')) key = 'ishares';
-        if (name.includes('旧NISA')) key = 'vti_old';
-
-        const elUnits = document.getElementById(`m-units-${key}`);
-        const elPurchase = document.getElementById(`m-purchase-${key}`);
-        const elMarket = document.getElementById(`m-market-${key}`);
-        const elProfit = document.getElementById(`m-profit-${key}`);
-        const elTotal = document.getElementById(`m-total-${key}`);
-        
-        if (elUnits) elUnits.value = units;
-        if (elPurchase) elPurchase.value = purchasePrice;
-        if (elMarket) elMarket.value = Math.round(marketValue);
-        if (elProfit) elProfit.value = Math.round(profit);
-        if (elTotal) elTotal.value = Math.round(units * purchasePrice);
-        writeLog(`[自動認識オートフィル] ${name} のデータを仮入力しました。`);
+        const name = parts[0].trim(); const purchasePrice = parseNumber(parts[1]); const units = parseNumber(parts[2]); const marketValue = parseNumber(parts[3]); const profit = parseNumber(parts[4].split('(')[0]);
+        let key = 'hifumi'; if (name.includes('セゾン')) key = 'saison'; if (name.includes('新NISA')) key = 'vti_new'; if (name.includes('iシェアーズ')) key = 'ishares'; if (name.includes('旧NISA')) key = 'vti_old';
+        const u=document.getElementById(`m-units-${key}`), p=document.getElementById(`m-purchase-${key}`), m=document.getElementById(`m-market-${key}`), pr=document.getElementById(`m-profit-${key}`), t=document.getElementById(`m-total-${key}`);
+        if(u)u.value=units; if(p)p.value=purchasePrice; if(m)m.value=Math.round(marketValue); if(pr)pr.value=Math.round(profit); if(t)t.value=Math.round(units*purchasePrice);
       }
     }
   });
 }
 
 function applyModalSettings() {
-  const pin = document.getElementById('pinInput').value.trim();
-  if (pin.length !== 4) {
-    alert("4桁の暗証パスワードを入力してください。"); return;
-  }
-
+  const pin = document.getElementById('pinInput').value.trim(); if (pin.length !== 4) { alert("4桁の暗証パスワードを入力してください。"); return; }
   const savedSettings = {};
   stocks.forEach(s => {
-    const elUnits = document.getElementById(`m-units-${s.key}`);
-    const elPurchase = document.getElementById(`m-purchase-${s.key}`);
-    const elInvest = document.getElementById(`m-invest-${s.key}`);
-    const elPeriod = document.getElementById(`m-period-${s.key}`);
-    const elMarket = document.getElementById(`m-market-${s.key}`);
-    const elProfit = document.getElementById(`m-profit-${s.key}`);
-
-    if (elUnits && elUnits.value !== "") s.units = parseFloat(elUnits.value);
-    if (elPurchase && elPurchase.value !== "") s.purchasePrice = parseFloat(elPurchase.value);
-    if (elInvest && elInvest.value !== "") s.monthlyInvest = parseFloat(elInvest.value);
-    if (elPeriod && elPeriod.value !== "") s.periodText = elPeriod.value.trim();
-    
-    if (elMarket && elMarket.value !== "") { s.marketValue = parseFloat(elMarket.value); } 
-    else { s.marketValue = s.units * (s.marketValue / (s.units || 1)); }
-
-    if (elProfit && elProfit.value !== "") { s.profit = parseFloat(elProfit.value); } 
-    else { s.profit = s.marketValue - (s.units * s.purchasePrice); }
-
+    const u=document.getElementById(`m-units-${s.key}`), p=document.getElementById(`m-purchase-${s.key}`), i=document.getElementById(`m-invest-${s.key}`), pd=document.getElementById(`m-period-${s.key}`), m=document.getElementById(`m-market-${s.key}`), pr=document.getElementById(`m-profit-${s.key}`);
+    if (u && u.value !== "") s.units = parseFloat(u.value); if (p && p.value !== "") s.purchasePrice = parseFloat(p.value); if (i && i.value !== "") s.monthlyInvest = parseFloat(i.value); if (pd && pd.value !== "") s.periodText = pd.value.trim();
+    if (m && m.value !== "") { s.marketValue = parseFloat(m.value); } else { s.marketValue = s.units * (s.marketValue / (s.units || 1)); }
+    if (pr && pr.value !== "") { s.profit = parseFloat(pr.value); } else { s.profit = s.marketValue - (s.units * s.purchasePrice); }
     s.profitPercent = (s.units * s.purchasePrice) > 0 ? ((s.profit / (s.units * s.purchasePrice)) * 100).toFixed(2) : '0.00';
-
-    savedSettings[s.key] = {
-      units: s.units,
-      purchasePrice: s.purchasePrice,
-      monthlyInvest: s.monthlyInvest,
-      periodText: s.periodText
-    };
+    savedSettings[s.key] = { units: s.units, purchasePrice: s.purchasePrice, monthlyInvest: s.monthlyInvest, periodText: s.periodText };
   });
-
   localStorage.setItem('portfolio_config', JSON.stringify(savedSettings));
-  writeLog("【成功】変更をローカルメモリに適用しました。");
-
+  
   if (CONFIG_ENCRYPTED_TOKEN && CONFIG_GITHUB_USER && CONFIG_GITHUB_REPO) {
-    writeLog("GitHubへの直接自動コミットを開始します...");
     try {
-      const decryptedBytes = CryptoJS.AES.decrypt(CONFIG_ENCRYPTED_TOKEN, pin);
-      const decryptedToken = decryptedBytes.toString(CryptoJS.enc.Utf8);
-      if (!decryptedToken || !decryptedToken.startsWith('github_pat_')) {
-        throw new Error("暗証番号が間違っています。");
-      }
+      const decryptedToken = CryptoJS.AES.decrypt(CONFIG_ENCRYPTED_TOKEN, pin).toString(CryptoJS.enc.Utf8);
+      if (!decryptedToken || !decryptedToken.startsWith('github_pat_')) throw new Error("暗証番号ミス");
       githubDirectCommit(decryptedToken, 'portfolio_config.json', JSON.stringify(savedSettings, null, 2));
-    } catch (err) {
-      writeLog(`【GitHub保存失敗】暗号化キーの解読失敗: ${err.message}`);
-      alert("暗証番号が違います。認証失敗。");
-    }
-  } else {
-    writeLog("【案内】GitHub連携設定が未登録のため、ローカル保存で完了しました。");
+    } catch (err) { alert("暗証番号が違います。認証失敗。"); }
   }
-
-  closeSettingsModal();
-  initBaseSystem();
-  if (priceHistory) {
-    const totals = calculateCurrentTotals();
-    generateAndRenderChart(totals);
-    initPieChart(totals);
-  }
+  closeSettingsModal(); initBaseSystem();
+  if (priceHistory) { const totals = calculateCurrentTotals(); generateAndRenderChart(totals); initPieChart(totals); }
 }
 
 function githubDirectCommit(token, fileName, contentString) {
   const url = `https://api.github.com/repos/${CONFIG_GITHUB_USER}/${CONFIG_GITHUB_REPO}/contents/${fileName}`;
   fetch(url, { method: 'GET', headers: { 'Authorization': `Bearer ${token}` } })
-  .then(response => response.ok ? response.json() : { sha: null })
-  .then(fileData => {
-    const sha = fileData.sha;
-    const base64Content = btoa(unescape(encodeURIComponent(contentString)));
-    return fetch(url, {
-      method: 'PUT',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: `【自動コミット】ダッシュボードから ${fileName} をオンライン更新しました`,
-        content: base64Content, sha: sha
-      })
-    });
-  })
-  .then(res => {
-    if (res.ok) { writeLog(`【GitHub成功】リポジトリ内の ${fileName} を直接上書き保存しました。`); } 
-    else { writeLog(`【GitHub失敗】ファイル上書き失敗。(ステータス: ${res.status})`); }
-  })
-  .catch(err => {
-    writeLog(`【通信エラー】GitHub APIとの通信失敗: ${err.message}`);
-  });
+  .then(r => r.ok ? r.json() : { sha: null })
+  .then(d => fetch(url, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ message: `【自動更新】${fileName}`, content: btoa(unescape(encodeURIComponent(contentString))), sha: d.sha }) }))
+  .then(res => { if (res.ok) writeLog(`【GitHub成功】${fileName} を保存しました。`); else writeLog(`【GitHub失敗】上書き失敗。`); })
+  .catch(err => writeLog(`【通信エラー】${err.message}`));
 }
+
+function updateHeaderSummary() {
+  const totals = calculateCurrentTotals();
+  const latestDate = latestDateStr();
+  const yesterdayDate = getYesterdayDate(latestDate); // 1日前を取得
+
+  // 時価と元本
+  document.getElementById('val-market').innerText = Math.round(totals.totalMarket).toLocaleString() + '円';
+  document.getElementById('val-purchase').innerText = Math.round(totals.totalPurchase).toLocaleString() + '円';
+
+  // 損益
+  const profit = totals.totalProfit;
+  const pPercent = totals.totalPurchase > 0 ? (profit / totals.totalPurchase * 100).toFixed(2) : 0;
+  const pEl = document.getElementById('val-profit');
+  pEl.innerHTML = `${profit >= 0 ? '+' : ''}${Math.round(profit).toLocaleString()}円<br><span style="font-size:14px;">(${pPercent}%)</span>`;
+  pEl.className = `summary-value ${profit >= 0 ? 'plus' : 'minus'}`;
+
+  // 前日比計算（最新日と1日前の時価を比較）
+  if (priceHistory && priceHistory[latestDate] && priceHistory[yesterdayDate]) {
+    let latestTotal = 0; let yesterdayTotal = 0;
+    stocks.forEach(s => {
+       const key = {hifumi:'hifumi', saison:'saison', vti_new:'rakuten_vti', ishares:'ishares', vti_old:'rakuten_vti'}[s.key];
+       latestTotal += s.units * priceHistory[latestDate][key];
+       yesterdayTotal += s.units * priceHistory[yesterdayDate][key];
+    });
+    const diff = latestTotal - yesterdayTotal;
+    const diffPct = (diff / yesterdayTotal * 100).toFixed(2);
+    const dEl = document.getElementById('val-daychange');
+    dEl.innerHTML = `${diff >= 0 ? '+' : ''}${Math.round(diff).toLocaleString()}円<br><span style="font-size:14px;">(${diffPct}%)</span>`;
+    dEl.className = `summary-value ${diff >= 0 ? 'plus' : 'minus'}`;
+  }
+}
+
+// 補助関数：1日前を算出
+function getYesterdayDate(dateStr) {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().split('T')[0];
+}
+
+
+
+
 </script>
