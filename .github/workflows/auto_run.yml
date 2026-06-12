@@ -1,10 +1,10 @@
 name: 投資信託価格 毎日自動巡回・記録システム
 
 on:
+  push:
   schedule:
-    # 毎日日本時間 21:30（基準価額が完全に確定した後の時間）に自動起動（UTC 12:30）
-    - cron: '*/10 * * * *'
-  workflow_dispatch: # GitHubの管理画面から、いつでも手動でボタンを押して即時実行させる機能
+    - cron: '17 * * * *'
+  workflow_dispatch:
 
 jobs:
   build:
