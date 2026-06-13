@@ -3,7 +3,10 @@ name: 投資信託価格 毎日自動巡回・記録システム
 on:
   push:
   schedule:
-    - cron: '17 * * * *'
+    # 日本時間 22:00〜05:45 まで15分おき (UTC 13:00〜20:45)
+    - cron: '*/15 13-20 * * *'
+    # 日本時間 06:00 ちょうど (UTC 21:00)
+    - cron: '0 21 * * *'
   workflow_dispatch:
 
 jobs:
@@ -31,15 +34,16 @@ jobs:
     - name: 最新の価格データを取得
       run: python update_daily_prices.py
 
-    # 5. prices_daily.json に変更（追記）があった場合のみ、自動コミットしてGitHubにプッシュ（上書き保存）
+    # 5. 変更（追記や確認ログの更新）があった場合のみ、自動コミットしてGitHubにプッシュ
     - name: 変更があった場合はリポジトリを自動更新
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git add prices_daily.json
+        # 記録データ(json)と確認完了フラグ(txt)の両方を監視対象にする
+        git add prices_daily.json last_checked.txt
         if ! git diff-index --quiet HEAD --; then
-          git commit -m "【自動記録】最新の価格データを prices_daily.json に自動追記しました"
+          git commit -m "【自動記録】本日の巡回・記録処理が完了しました"
           git push
         else
-          echo "本日のデータはすでに記録済みの、または差分がないため自動プッシュをスキップします。"
+          echo "本日はすでに処理済み、または変更がないためスキップします。"
         fi
