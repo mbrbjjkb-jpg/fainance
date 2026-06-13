@@ -251,18 +251,75 @@
 // ==========================================
 const CONFIG_ENCRYPTED_TOKEN = "U2FsdGVkX18gLfDl3U5Q69/TrPGvohIsJqcgFu8lfFCWw0hVQBrGo4Aintaz1ykhkc7ukEzyBLQye3iWGx0oO7k8Y25bHVtSGjOUQEd9oXxvfALzfo4SDaN/Is5pPnQmV7i9GriQfWDXj07YV/vc7A=="; 
 const CONFIG_GITHUB_USER = "mbrbjjkb-jpg";      
-const CONFIG_GITHUB_REPO = "fainance";    
+const CONFIG_GITHUB_REPO = "fainance";         
 // ==========================================
 
+// 2026年6月時点の数値を固定基準（アンカー）とする各銘柄の基本定義。
+// 事前計算されていた時価、損益、損益率はすべて破棄しています。
 const defaultStocks = [
-  {key:'hifumi',name:'ひふみ投信',purchasePrice:53719,units:67.6,marketValue:6800762.8,profit:3169358.4,profitPercent:'87.28',isNISA:false,periodStart:'2016-06-01',periodEnd:'2026-06-01',periodText:'2016/06-2026/06',monthlyInvest:20000},
-  {key:'saison',name:'セゾン･グローバルバランスファンド',purchasePrice:16707,units:83.8,marketValue:2759198.8,profit:1359152.2,profitPercent:'97.08',isNISA:false,periodStart:'2017-05-01',periodEnd:'2026-06-01',periodText:'2017/05-',monthlyInvest:20000},
-  {key:'vti_new',name:'楽天・全米株式インデックス･ファンド（新NISA）',purchasePrice:32700,units:29.2,marketValue:1318000.4,profit:363160.4,profitPercent:'38.03',isNISA:true,periodStart:'2024-01-01',periodEnd:'2026-06-01',periodText:'2024/01-',monthlyInvest:33000},
-  {key:'ishares',name:'iシェアーズ 米国株式(S&P500)インデックスF',purchasePrice:20478,units:70.3,marketValue:5920244.2,profit:4480640.8,profitPercent:'311.24',isNISA:false,periodStart:'2017-05-01',periodEnd:'2021-04-01',periodText:'2017/05-2021/04',monthlyInvest:0},
-  {key:'vti_old',name:'楽天・全米株式インデックス･ファンド（旧NISA）',purchasePrice:19834,units:53.2,marketValue:2401288.4,profit:1346119.6,profitPercent:'127.57',isNISA:true,periodStart:'2021-05-01',periodEnd:'2023-12-01',periodText:'2021/05-2023/12',monthlyInvest:0}
+  {
+    key: 'hifumi',
+    name: 'ひふみ投信',
+    anchorPurchasePrice: 53719,  // 2026年6月時点の取得単価
+    anchorUnits: 67.6,           // 2026年6月時点の保有数(万口)
+    isNISA: false,
+    periodStart: '2016-06-01',
+    periodEnd: '2026-06-01',
+    periodText: '2016/06-2026/06',
+    monthlyInvest: 20000
+  },
+  {
+    key: 'saison',
+    name: 'セゾン･グローバルバランスファンド',
+    anchorPurchasePrice: 16707,
+    anchorUnits: 83.8,
+    isNISA: false,
+    periodStart: '2017-05-01',
+    periodEnd: '2026-06-01',
+    periodText: '2017/05-',
+    monthlyInvest: 20000
+  },
+  {
+    key: 'vti_new',
+    name: '楽天・全米株式インデックス･ファンド（新NISA）',
+    anchorPurchasePrice: 32700,
+    anchorUnits: 29.2,
+    isNISA: true,
+    periodStart: '2024-01-01',
+    periodEnd: '2026-06-01',
+    periodText: '2024/01-',
+    monthlyInvest: 33000
+  },
+  {
+    key: 'ishares',
+    name: 'iシェアーズ 米国株式(S&P500)インデックスF',
+    anchorPurchasePrice: 20478,
+    anchorUnits: 70.3,
+    isNISA: false,
+    periodStart: '2017-05-01',
+    periodEnd: '2021-04-01',
+    periodText: '2017/05-2021/04',
+    monthlyInvest: 0
+  },
+  {
+    key: 'vti_old',
+    name: '楽天・全米株式インデックス･ファンド（旧NISA）',
+    anchorPurchasePrice: 19834,
+    anchorUnits: 53.2,
+    isNISA: true,
+    periodStart: '2021-05-01',
+    periodEnd: '2023-12-01',
+    periodText: '2021/05-2023/12',
+    monthlyInvest: 0
+  }
 ];
 
-let stocks = [...defaultStocks];
+// アプリケーションが動作中に保持する最新の保有状態
+let stocks = JSON.parse(JSON.stringify(defaultStocks));
+
+// 2026年6月以降の、各年月における実際の「口数」と「購入単価」の変化を記録する履歴オブジェクト。
+// 形式例： { "2026-07": { "hifumi": { units: 68.0, purchasePrice: 53800 }, "saison": { ... } }, "2026-08": { ... } }
+let portfolioHistory = {};
 // ★修正: 変数名とIDの衝突を回避するためオブジェクト名を変更
 let chartLongObj = null; let chartShortObj = null; let chartMediumObj = null; let chartPieObj = null;
 let priceHistory = null; let miniCharts = {}; let activeGraphTab = 'past';
@@ -291,34 +348,58 @@ window.onload = function() {
   loadPriceHistoryAndRenderChart();
 };
 
+// ==========================================
+// ブラウザ保存領域（LocalStorage）から設定と時系列履歴を読み込む
+// ==========================================
 function loadUserConfigFromStorage() {
+  // ① 現在アクティブな基本設定（口数・取得単価・積立額）のロード
   const savedSettings = JSON.parse(localStorage.getItem('portfolio_config')) || null;
   if (savedSettings) {
     stocks.forEach(s => {
       if (savedSettings[s.key]) {
-        s.units = savedSettings[s.key].units || s.units;
-        s.purchasePrice = savedSettings[s.key].purchasePrice || s.purchasePrice;
+        s.units = savedSettings[s.key].units !== undefined ? savedSettings[s.key].units : s.units;
+        s.purchasePrice = savedSettings[s.key].purchasePrice !== undefined ? savedSettings[s.key].purchasePrice : s.purchasePrice;
         s.monthlyInvest = savedSettings[s.key].monthlyInvest !== undefined ? savedSettings[s.key].monthlyInvest : s.monthlyInvest;
         s.periodText = savedSettings[s.key].periodText || s.periodText;
       }
     });
     writeLog("【ロード】ブラウザ内から前回の保有・積立設定を読み込みました。");
   }
+
+  // ② 2026年6月以降の口数・取得単価の時系列変更履歴のロード
+  const savedHistory = JSON.parse(localStorage.getItem('portfolio_history')) || null;
+  if (savedHistory) {
+    portfolioHistory = savedHistory;
+    writeLog("【ロード】ブラウザ内から時系列の口数・単価履歴を読み込みました。");
+  }
 }
 
+// ==========================================
+// 外部設定ファイル（portfolio_config.json）のデータを適用する
+// ==========================================
 function applyConfigDataToStocks(configData) {
+  let activeConfig = configData;
+  
+  // JSONが「現在の設定（activeSettings）」と「時系列履歴（history）」の両方を内包する構造に対応
+  if (configData && configData.activeSettings) {
+    activeConfig = configData.activeSettings;
+  }
+  if (configData && configData.history) {
+    portfolioHistory = configData.history;
+    writeLog("【成功】GitHubから時系列の口数・単価履歴を適用しました。");
+  }
+
   stocks.forEach(s => {
-    if (configData[s.key]) {
-      const cfg = configData[s.key];
+    if (activeConfig[s.key]) {
+      const cfg = activeConfig[s.key];
       if (cfg.units !== undefined) s.units = cfg.units;
       if (cfg.purchasePrice !== undefined) s.purchasePrice = cfg.purchasePrice;
       if (cfg.monthlyInvest !== undefined) s.monthlyInvest = cfg.monthlyInvest;
       if (cfg.periodText !== undefined) s.periodText = cfg.periodText;
-      s.marketValue = s.units * (s.marketValue / (s.units || 1));
-      s.profit = s.marketValue - (s.units * s.purchasePrice);
-      s.profitPercent = (s.units * s.purchasePrice) > 0 ? ((s.profit / (s.units * s.purchasePrice)) * 100).toFixed(2) : '0.00';
     }
   });
+  
+  // 計算値（marketValue、profit）の無駄なスライド再計算処理は完全に破棄されました。
   initInputFields();
 }
 
@@ -449,32 +530,54 @@ function parseNumber(text) { return parseFloat(text.replace(/[,円+%\s]/g, ''));
 
 function parseAllStocks() {
   const text = document.getElementById('inputText').value.trim(); if (!text) return;
-  const parsedStocks = []; const lines = text.split('\n');
+  const lines = text.split('\n');
+  let hasUpdated = false;
+
   lines.forEach(line => {
     if (!line.trim()) return;
     if (line.includes('ひふみ投信') || line.includes('セゾン') || line.includes('楽天・全米') || line.includes('iシェアーズ')) {
       const parts = line.split('\t');
-      if (parts.length >= 5) {
-        const name = parts[0].trim(); const purchasePrice = parseNumber(parts[1]); const units = parseNumber(parts[2]); const marketValue = parseNumber(parts[3]);
-        const profitParts = parts[4].split('('); const profit = parseNumber(profitParts[0]); const profitPercent = profitParts[1] ? profitParts[1].replace(/[)\s+%]/g, '') : '0';
-        const isNISA = parts[5] ? parts[5].includes('NISA') : false;
-        let periodText = parts[6] || ''; let periodStart = '2016-06-01'; let periodEnd = '2026-06-01'; let key = 'hifumi';
-        if (name.includes('ひふみ')) { periodStart = '2016-06-01'; key = 'hifumi'; }
-        if (name.includes('セゾン')) { periodStart = '2017-05-01'; key = 'saison'; }
-        if (name.includes('新NISA')) { periodStart = '2024-01-01'; key = 'vti_new'; }
-        if (name.includes('iシェアーズ')) { periodStart = '2017-05-01'; periodEnd = '2021-04-01'; key = 'ishares'; }
-        if (name.includes('旧NISA')) { periodStart = '2021-05-01'; periodEnd = '2023-12-01'; key = 'vti_old'; }
-        const elInvest = document.getElementById(`invest-${key}`);
-        const monthlyInvest = elInvest ? (parseFloat(elInvest.value) || 0) : 0;
-        parsedStocks.push({ key, name, purchasePrice, units, marketValue, profit, profitPercent, isNISA, periodStart, periodEnd, periodText, monthlyInvest });
+      // 名称・取得単価・保有口数の3要素を対象にパース
+      if (parts.length >= 3) {
+        const name = parts[0].trim(); 
+        const purchasePrice = parseNumber(parts[1]); 
+        const units = parseNumber(parts[2]);
+
+        let key = '';
+        if (name.includes('ひふみ')) key = 'hifumi';
+        if (name.includes('セゾン')) key = 'saison';
+        if (name.includes('新NISA')) key = 'vti_new';
+        if (name.includes('iシェアーズ')) key = 'ishares';
+        if (name.includes('旧NISA')) key = 'vti_old';
+
+        if (key) {
+          const s = stocks.find(item => item.key === key);
+          if (s) {
+            s.units = units;
+            s.purchasePrice = purchasePrice;
+            hasUpdated = true;
+          }
+        }
       }
     }
   });
-  if (parsedStocks.length > 0) {
-    stocks = parsedStocks; initInputFields(); initBaseSystem(); loadPriceHistoryAndRenderChart(); document.getElementById('inputText').value = '';
-    writeLog("【成功】コピペデータを同期しました。");
+
+  if (hasUpdated) {
+    // 変更された「現在の設定値」をローカルストレージへ即時反映
+    const savedSettings = {};
+    stocks.forEach(s => {
+      savedSettings[s.key] = { units: s.units, purchasePrice: s.purchasePrice, monthlyInvest: s.monthlyInvest, periodText: s.periodText };
+    });
+    localStorage.setItem('portfolio_config', JSON.stringify(savedSettings));
+
+    // 各画面コンポーネントを最新の3要素に基づいて再計算・再描画
+    initInputFields(); 
+    initBaseSystem(); 
+    loadPriceHistoryAndRenderChart();
+    document.getElementById('inputText').value = '';
+    writeLog("【成功】コピペデータから最新の口数と取得単価を同期しました。");
   } else {
-    alert("解析できませんでした。フォーマットを確認してください。");
+    alert("解析できませんでした。フォーマット（名称・取得単価・保有数の順）を確認してください。");
   }
 }
 
@@ -504,6 +607,21 @@ function calculatePeriodText(periodText) {
 
 function renderTable() {
   const tbody = document.querySelector('#stockTable tbody'); if (!tbody) return; tbody.innerHTML = '';
+  
+  let latestDateStr = "";
+  if (priceHistory && Object.keys(priceHistory).length > 0) {
+    const sorted = Object.keys(priceHistory).filter(d => d.length === 10).sort();
+    if (sorted.length > 0) latestDateStr = sorted[sorted.length - 1];
+  }
+
+  const nameToJsonKeyMap = { 
+    'hifumi': 'hifumi', 
+    'saison': 'saison', 
+    'vti_new': 'rakuten_vti', 
+    'ishares': 'ishares', 
+    'vti_old': 'rakuten_vti' 
+  };
+
   stocks.forEach(s => {
     let keyMark = '';
     if (s.name.includes('ひふみ')) keyMark = '【A】';
@@ -511,13 +629,34 @@ function renderTable() {
     else if (s.name.includes('新NISA')) keyMark = '【C】';
     else if (s.name.includes('iシェアーズ')) keyMark = '【D】';
     else if (s.name.includes('旧NISA')) keyMark = '【E】';
+
     const dynamicPeriodText = calculatePeriodText(s.periodText);
+    const jsonKey = nameToJsonKeyMap[s.key];
+
+    // ① 最新の基準価格を取得
+    let currentPrice = s.purchasePrice;
+    if (priceHistory && priceHistory[latestDateStr] && jsonKey && priceHistory[latestDateStr][jsonKey] !== undefined) {
+      currentPrice = priceHistory[latestDateStr][jsonKey];
+    }
+    
+    // ② 3要素（口数・基準価格・取得単価）から時価および個別損益をその場で計算
+    const marketValue = s.units * currentPrice;
+    const purchaseValue = s.units * s.purchasePrice;
+    const profit = marketValue - purchaseValue;
+    const profitPercent = purchaseValue > 0 ? ((profit / purchaseValue) * 100).toFixed(2) : '0.00';
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td style="text-align:left; font-weight:bold;">${keyMark}${s.name}</td>
-      <td>${Math.round(s.purchasePrice).toLocaleString()}円</td><td>${s.units}</td><td>${Math.round(s.marketValue).toLocaleString()}円</td>
-      <td style="color:${s.profit >= 0 ? 'green' : 'red'}">${Math.round(s.profit).toLocaleString()}円<br>(${s.profit >= 0 ? '+' : ''}${s.profitPercent}%)</td>
-      <td>${s.isNISA ? 'NISA' : '課税'}</td><td style="font-size:11px; color:#555;">${dynamicPeriodText}</td>`;
+      <td>${Math.round(s.purchasePrice).toLocaleString()}円</td>
+      <td>${s.units}</td>
+      <td>${Math.round(marketValue).toLocaleString()}円</td>
+      <td style="color:${profit >= 0 ? 'green' : 'red'}">
+        ${Math.round(profit).toLocaleString()}円<br>
+        (${profit >= 0 ? '+' : ''}${profitPercent}%)
+      </td>
+      <td>${s.isNISA ? 'NISA' : '課税'}</td>
+      <td style="font-size:11px; color:#555;">${dynamicPeriodText}</td>`;
     tbody.appendChild(tr);
   });
 }
@@ -530,7 +669,8 @@ function updateDashboardCards() {
     'ishares': { priceId: 'price-ishares', profitId: 'profit-ishares', dateId: 'date-ishares', canvasId: 'miniChart-ishares', key: 'ishares' },
     'vti_old': { priceId: 'price-vti-old', profitId: 'profit-vti-old', dateId: 'date-vti-old', canvasId: 'miniChart-vti-old', key: 'rakuten_vti' }
   };
-  let latestDateStr = ""; let latestDateText = "";
+  let latestDateStr = "";
+  let latestDateText = "";
   if (priceHistory && Object.keys(priceHistory).length > 0) {
     const sorted = Object.keys(priceHistory).filter(d => d.length === 10).sort();
     if (sorted.length > 0) {
@@ -541,18 +681,23 @@ function updateDashboardCards() {
   stocks.forEach(s => {
     const config = cardMapping[s.key];
     if (config) {
-      let currentPricePerTenThousand = s.marketValue / s.units;
+      // 基準価格の動的取得
+      let currentPricePerTenThousand = s.purchasePrice; 
       if (priceHistory && priceHistory[latestDateStr] && priceHistory[latestDateStr][config.key] !== undefined) {
         currentPricePerTenThousand = priceHistory[latestDateStr][config.key];
       }
       const elPrice = document.getElementById(config.priceId); if (elPrice) elPrice.innerText = `${Math.round(currentPricePerTenThousand).toLocaleString()} 円`;
       const elDate = document.getElementById(config.dateId); if (elDate) elDate.innerText = latestDateText;
-      let profitPercent = s.profitPercent;
-      if (s.purchasePrice > 0) { profitPercent = (((currentPricePerTenThousand - s.purchasePrice) / s.purchasePrice) * 100).toFixed(2); }
+      
+      // 損益率の動的計算
+      let profitPercent = '0.00';
+      if (s.purchasePrice > 0) { 
+        profitPercent = (((currentPricePerTenThousand - s.purchasePrice) / s.purchasePrice) * 100).toFixed(2); 
+      }
       const profitEl = document.getElementById(config.profitId);
       if (profitEl) {
         const profitVal = parseFloat(profitPercent);
-        profitEl.innerText = `現在損益: ${profitVal >= 0 ? '+' : ''}${s.profitPercent}%`;
+        profitEl.innerText = `現在損益: ${profitVal >= 0 ? '+' : ''}${profitPercent}%`;
         profitEl.className = `fund-card-profit ${profitVal >= 0 ? 'profit-plus' : 'profit-minus'}`;
       }
       if (priceHistory) renderCardMiniChart(config.canvasId, config.key, s.purchasePrice, currentPricePerTenThousand);
@@ -560,31 +705,82 @@ function updateDashboardCards() {
   });
 }
 
+// ==========================================
+// 1. 最新時点の合計値・評価額を動的に算出する関数
+// ==========================================
 function calculateCurrentTotals() {
-  let totalMarket = 0; let totalPurchase = 0; let totalProfit = 0; let taxableProfit = 0; let nisaProfit = 0;
+  let totalMarket = 0;
+  let totalPurchase = 0;
+  let totalProfit = 0;
+  let taxableProfit = 0;
+  let nisaProfit = 0;
+  let totalYesterdayMarket = 0; // 前日比（1営業日前）の計算用
+
   let latestDateStr = "";
+  let yesterdayDateStr = "";
   if (priceHistory && Object.keys(priceHistory).length > 0) {
     const sorted = Object.keys(priceHistory).filter(d => d.length === 10).sort();
-    if (sorted.length > 0) latestDateStr = sorted[sorted.length - 1]; 
+    if (sorted.length > 0) {
+      latestDateStr = sorted[sorted.length - 1];
+      yesterdayDateStr = getYesterdayDate(latestDateStr);
+    }
   }
-  const nameToJsonKeyMap = { 'hifumi': 'hifumi', 'saison': 'saison', 'vti_new': 'rakuten_vti', 'ishares': 'ishares', 'vti_old': 'rakuten_vti' };
+
+  const nameToJsonKeyMap = { 
+    'hifumi': 'hifumi', 
+    'saison': 'saison', 
+    'vti_new': 'rakuten_vti', 
+    'ishares': 'ishares', 
+    'vti_old': 'rakuten_vti' 
+  };
 
   stocks.forEach(s => {
-    let currentPricePerTenThousand = s.marketValue / s.units; 
     const jsonKey = nameToJsonKeyMap[s.key];
+    
+    // ① 最新日の基準価格を取得（履歴に存在しない場合は購入価格をフォールバック）
+    let currentPrice = s.purchasePrice;
     if (priceHistory && priceHistory[latestDateStr] && jsonKey && priceHistory[latestDateStr][jsonKey] !== undefined) {
-      currentPricePerTenThousand = priceHistory[latestDateStr][jsonKey]; 
+      currentPrice = priceHistory[latestDateStr][jsonKey];
     }
-    const realMarketValue = s.units * currentPricePerTenThousand;
+    
+    // ② 1営業日前の基準価格を取得（存在しない場合は最新日の価格をフォールバック）
+    let yesterdayPrice = currentPrice;
+    if (priceHistory && priceHistory[yesterdayDateStr] && jsonKey && priceHistory[yesterdayDateStr][jsonKey] !== undefined) {
+      yesterdayPrice = priceHistory[yesterdayDateStr][jsonKey];
+    }
+
+    // 3要素（口数・基準価格・取得単価）から時価および購入金額を直接算出
+    const realMarketValue = s.units * currentPrice;
     const realPurchaseValue = s.units * s.purchasePrice;
     const realProfit = realMarketValue - realPurchaseValue;
+    const yesterdayMarketValue = s.units * yesterdayPrice;
 
-    totalMarket += realMarketValue; totalPurchase += realPurchaseValue; totalProfit += realProfit;
-    if (s.isNISA) nisaProfit += realProfit; else taxableProfit += realProfit;
+    totalMarket += realMarketValue;
+    totalPurchase += realPurchaseValue;
+    totalProfit += realProfit;
+    totalYesterdayMarket += yesterdayMarketValue;
+
+    if (s.isNISA) {
+      nisaProfit += realProfit;
+    } else {
+      taxableProfit += realProfit;
+    }
   });
 
-  const TAX_RATE = 0.2; const tax = Math.round(taxableProfit * TAX_RATE); const afterTaxMarket = totalMarket - tax;
-  return { totalMarket, totalPurchase, totalProfit, taxableProfit, nisaProfit, tax, afterTaxMarket };
+  const TAX_RATE = 0.2;
+  const tax = Math.max(0, taxableProfit) * TAX_RATE; // 課税対象利益がプラスの場合のみ課税
+  const afterTaxMarket = totalMarket - tax;
+
+  return { 
+    totalMarket, 
+    totalPurchase, 
+    totalProfit, 
+    taxableProfit, 
+    nisaProfit, 
+    tax, 
+    afterTaxMarket,
+    totalYesterdayMarket // 前日比率の計算に使用
+  };
 }
 
 function renderSummary(totals) {
@@ -595,87 +791,157 @@ function renderSummary(totals) {
     if (sorted.length > 0) latestDateText = sorted[sorted.length - 1].replace(/-/g, '/'); 
   }
   const profitPercent = totals.totalPurchase > 0 ? ((totals.totalProfit / totals.totalPurchase) * 100).toFixed(2) : '0.00';
-  summaryDiv.innerText = `[ 基準日: ${latestDateText} 時点 ]\n---------------------------------\n合計時価総額: ${Math.round(totals.totalMarket).toLocaleString()}円\n（元本: ${Math.round(totals.totalPurchase).toLocaleString()}円 / 損益: +${Math.round(totals.totalProfit).toLocaleString()}円 [${profitPercent}%]）\n---------------------------------\nうち課税利益: ${Math.round(totals.taxableProfit).toLocaleString()}円\n想定税額(20%): ${totals.tax.toLocaleString()}円\n非課税(NISA)利益: ${Math.round(totals.nisaProfit).toLocaleString()}円\n---------------------------------\n税引き後評価額: ${Math.round(totals.afterTaxMarket).toLocaleString()}円`;
+  const sign = totals.totalProfit >= 0 ? '+' : '';
+  summaryDiv.innerText = `[ 基準日: ${latestDateText} 時点 ]\n---------------------------------\n合計時価総額: ${Math.round(totals.totalMarket).toLocaleString()}円\n（元本: ${Math.round(totals.totalPurchase).toLocaleString()}円 / 損益: ${sign}${Math.round(totals.totalProfit).toLocaleString()}円 [${sign}${profitPercent}%]）\n---------------------------------\nうち課税利益: ${Math.round(totals.taxableProfit).toLocaleString()}円\n想定税額(20%): ${Math.round(totals.tax).toLocaleString()}円\n非課税(NISA)利益: ${Math.round(totals.nisaProfit).toLocaleString()}円\n---------------------------------\n税引き後評価額: ${Math.round(totals.afterTaxMarket).toLocaleString()}円`;
 }
 
+// ==========================================
+// 2. 指定された年月の詳細（復元または未来予測）を動的に算出する関数
+// ==========================================
 function calculateMonthlyDetails(index, forceLatest = false) {
-  const startDate = new Date('2016-06-01'); const targetDate = new Date(startDate); targetDate.setMonth(targetDate.getMonth() + index);
+  const startDate = new Date('2016-06-01');
+  const targetDate = new Date(startDate);
+  targetDate.setMonth(targetDate.getMonth() + index);
   const dateStr = `${targetDate.getFullYear()}-${('0' + (targetDate.getMonth() + 1)).slice(-2)}-01`;
-  let monthlyTotalMarket = 0; let monthlyTotalPurchase = 0; const fundValues = [0, 0, 0, 0, 0];
-  
-  // 課税口座の資産合計・元本投資額の計算用変数
+  const yearMonth = dateStr.substring(0, 7);
+
+  const anchorIndex = 120; // 2016年6月から2026年6月までの月数（10年＝120ヶ月）
+  const latestIdx = getLatestDatabaseIndex();
+  const isFuture = (index > latestIdx);
+
+  let monthlyTotalMarket = 0;
+  let monthlyTotalPurchase = 0;
   let taxableMarket = 0;
   let taxablePurchase = 0;
+  const fundValues = [0, 0, 0, 0, 0];
 
-  const nameToJsonKeyMap = { 'hifumi': { idx: 0, key: 'hifumi' }, 'saison': { idx: 1, key: 'saison' }, 'vti_new': { idx: 2, key: 'rakuten_vti' }, 'ishares': { idx: 3, key: 'ishares' }, 'vti_old': { idx: 4, key: 'rakuten_vti' } };
-  const latestIdx = getLatestDatabaseIndex(); const isFuture = (index > latestIdx); 
+  const nameToJsonKeyMap = { 
+    'hifumi': { idx: 0, key: 'hifumi' }, 
+    'saison': { idx: 1, key: 'saison' }, 
+    'vti_new': { idx: 2, key: 'rakuten_vti' }, 
+    'ishares': { idx: 3, key: 'ishares' }, 
+    'vti_old': { idx: 4, key: 'rakuten_vti' } 
+  };
+
   let targetSearchDate = dateStr;
-
   if ((forceLatest || isFuture) && priceHistory && Object.keys(priceHistory).length > 0) {
     const sorted = Object.keys(priceHistory).filter(d => d.length === 10).sort();
     if (sorted.length > 0) targetSearchDate = sorted[sorted.length - 1]; 
   }
 
   stocks.forEach(s => {
-    const pStart = new Date(s.periodStart); const pEnd = new Date(s.periodEnd); const map = nameToJsonKeyMap[s.key];
+    const map = nameToJsonKeyMap[s.key];
+    if (!map) return;
+
+    const pStart = new Date(s.periodStart);
+    const pEnd = new Date(s.periodEnd);
+
+    // --- 1. 口数（U）と購入単価（P）の動的決定 ---
+    let currentUnits = 0;
+    let currentPurchasePrice = 0;
+
+    if (index <= anchorIndex) {
+      // 【区分A：2026年6月以前の過去復元期間】固定のアンカー値から逆算
+      if (targetDate < pStart) {
+        currentUnits = 0;
+        currentPurchasePrice = s.anchorPurchasePrice;
+      } else {
+        const totalMonths = (pEnd.getFullYear() - pStart.getFullYear()) * 12 + (pEnd.getMonth() - pStart.getMonth());
+        const currentMonths = (targetDate.getFullYear() - pStart.getFullYear()) * 12 + (targetDate.getMonth() - pStart.getMonth());
+        
+        if (targetDate >= pEnd) {
+          currentUnits = s.anchorUnits;
+        } else {
+          currentUnits = (s.anchorUnits / (totalMonths || 1)) * currentMonths;
+        }
+        currentPurchasePrice = s.anchorPurchasePrice;
+      }
+    } else {
+      // 【区分B：2026年6月以降の実績および未来予測期間】
+      // 履歴レコード（portfolioHistory）に該当年月のデータがあれば優先、なければ現在の設定値を参照
+      if (portfolioHistory && portfolioHistory[yearMonth] && portfolioHistory[yearMonth][s.key]) {
+        currentUnits = portfolioHistory[yearMonth][s.key].units;
+        currentPurchasePrice = portfolioHistory[yearMonth][s.key].purchasePrice;
+      } else {
+        currentUnits = s.units;
+        currentPurchasePrice = s.purchasePrice;
+      }
+    }
+
+    // --- 2. 基準価格（現在値）の取得 ---
+    let currentPrice = currentPurchasePrice;
+    let foundPrice = null;
+
     if (!isFuture) {
-      if (targetDate < pStart) return;
-      const totalMonths = (pEnd.getFullYear() - pStart.getFullYear()) * 12 + (pEnd.getMonth() - pStart.getMonth());
-      let currentMonths = (targetDate.getFullYear() - pStart.getFullYear()) * 12 + (targetDate.getMonth() - pStart.getMonth());
-      let currentUnits = 0; let currentPurchase = 0;
-      if (targetDate >= pEnd) { currentUnits = s.units; currentPurchase = s.units * s.purchasePrice; }
-      else { currentUnits = (s.units / (totalMonths || 1)) * currentMonths; currentPurchase = (s.units * s.purchasePrice / (totalMonths || 1)) * currentMonths; }
-      let currentPrice = s.purchasePrice; let foundPrice = null;
-      
-      if (priceHistory && map) {
-        if (priceHistory[targetSearchDate] && priceHistory[targetSearchDate][map.key] !== undefined) { foundPrice = priceHistory[targetSearchDate][map.key]; } 
-        else {
-          const yearMonth = dateStr.substring(0, 7); 
+      if (priceHistory) {
+        if (priceHistory[targetSearchDate] && priceHistory[targetSearchDate][map.key] !== undefined) {
+          foundPrice = priceHistory[targetSearchDate][map.key];
+        } else {
           const availableDates = Object.keys(priceHistory).filter(d => d.startsWith(yearMonth)).sort();
           if (availableDates.length > 0) {
             const latestDateOfThisMonth = availableDates[availableDates.length - 1]; 
-            if (priceHistory[latestDateOfThisMonth] && priceHistory[latestDateOfThisMonth][map.key] !== undefined) { foundPrice = priceHistory[latestDateOfThisMonth][map.key]; }
+            if (priceHistory[latestDateOfThisMonth] && priceHistory[latestDateOfThisMonth][map.key] !== undefined) {
+              foundPrice = priceHistory[latestDateOfThisMonth][map.key];
+            }
           }
         }
       }
-      if (foundPrice !== null) { currentPrice = foundPrice; } 
-      else {
-        const currentPriceTarget = s.marketValue / (s.units || 1); const startPrice = s.purchasePrice; const now = new Date('2026-06-01');
+      if (foundPrice !== null) {
+        currentPrice = foundPrice;
+      } else {
+        // 万が一価格履歴が存在しない場合の自動線形補間（フォールバック処理）
+        const anchorPrice = s.anchorPurchasePrice;
+        const currentPriceTarget = s.units > 0 ? (s.marketValue / s.units) : s.anchorPurchasePrice;
+        const now = new Date('2026-06-01');
         const fullHistoryMonths = (now.getFullYear() - pStart.getFullYear()) * 12 + (now.getMonth() - pStart.getMonth());
         const elapsedFromStart = (targetDate.getFullYear() - pStart.getFullYear()) * 12 + (targetDate.getMonth() - pStart.getMonth());
-        if (fullHistoryMonths > 0) currentPrice = startPrice + ((currentPriceTarget - startPrice) / fullHistoryMonths) * elapsedFromStart;
+        if (fullHistoryMonths > 0) {
+          currentPrice = anchorPrice + ((currentPriceTarget - anchorPrice) / fullHistoryMonths) * elapsedFromStart;
+        }
       }
-      const value = (currentUnits || 0) * (currentPrice || 0); 
-      monthlyTotalMarket += value; monthlyTotalPurchase += (currentPurchase || 0);
-      
-      // 非NISA（課税口座）の場合のみ、課税総額と元本を個別に集計
+    }
+
+    // --- 3. 評価額と元本の算出 ---
+    let value = 0;
+    let purchaseVal = currentUnits * currentPurchasePrice;
+
+    if (!isFuture) {
+      value = currentUnits * currentPrice;
+      monthlyTotalMarket += value;
+      monthlyTotalPurchase += purchaseVal;
+
       if (!s.isNISA) {
         taxableMarket += value;
-        taxablePurchase += currentPurchase;
+        taxablePurchase += purchaseVal;
       }
-
-      if (map) fundValues[map.idx] = Math.round(value);
+      fundValues[map.idx] = Math.round(value);
     } else {
-      const elapsedFutureMonths = index - latestIdx; const rate = 0.08 / 12;
-      let futureVal = (s.marketValue || 0) * Math.pow(1 + 0.08, elapsedFutureMonths / 12);
+      // 未来予測（シミュレーション）
+      const elapsedFutureMonths = index - latestIdx;
+      const rate = 0.08 / 12;
+      
+      // 予測開始の起点となる金額を算出（データベース上の最新値）
+      const latestDetails = calculateMonthlyDetails(latestIdx, true);
+      const startingValue = latestDetails.fundValues[map.idx] || 0;
+      
+      let futureVal = startingValue * Math.pow(1 + 0.08, elapsedFutureMonths / 12);
       const mInvestSafe = s.monthlyInvest !== undefined ? parseFloat(s.monthlyInvest) : 0;
       if (mInvestSafe > 0) {
-        const accum = mInvestSafe * ((Math.pow(1 + rate, elapsedFutureMonths) - 1) / rate); futureVal += (accum || 0);
+        const accum = mInvestSafe * ((Math.pow(1 + rate, elapsedFutureMonths) - 1) / rate);
+        futureVal += accum;
       }
-      monthlyTotalMarket += futureVal; if (map) fundValues[map.idx] = Math.round(futureVal) || 0;
+      monthlyTotalMarket += futureVal;
+      fundValues[map.idx] = Math.round(futureVal) || 0;
     }
   });
 
-  // 過去データの税引後評価額を算出 (税金20%想定)
+  // 課税利益に対する税金の控除
   let tax = 0;
   let afterTaxMarket = monthlyTotalMarket;
   if (!isFuture) {
     const taxableProfit = Math.max(0, taxableMarket - taxablePurchase);
     tax = taxableProfit * 0.2;
     afterTaxMarket = monthlyTotalMarket - tax;
-  } else {
-    // 未来予測時はすでに税金を差し引いた金額をプロットしているためそのまま代入
-    afterTaxMarket = monthlyTotalMarket;
   }
 
   return { 
@@ -683,7 +949,7 @@ function calculateMonthlyDetails(index, forceLatest = false) {
     totalMarket: Math.round(monthlyTotalMarket) || 0, 
     totalPurchase: Math.round(monthlyTotalPurchase) || 0, 
     fundValues: fundValues,
-    afterTaxMarket: Math.round(afterTaxMarket) || 0 // 追加
+    afterTaxMarket: Math.round(afterTaxMarket) || 0
   };
 }
 
@@ -1131,53 +1397,122 @@ function generateEncryptedToken() {
 function openSettingsModal() { document.getElementById('settingsModal').style.display = 'flex'; document.getElementById('modalInputText').value = ''; renderModalSettingsGrid(); }
 function closeSettingsModal() { document.getElementById('settingsModal').style.display = 'none'; }
 
+// ==========================================
+// モーダル内の入力設定フォームを動的に生成
+// ==========================================
 function renderModalSettingsGrid() {
   const gridEl = document.getElementById('modalSettingsGrid'); if (!gridEl) return; let html = '';
   stocks.forEach(s => {
-    let mark = 'A'; if (s.key === 'saison') mark = 'B'; if (s.key === 'vti_new') mark = 'C'; if (s.key === 'ishares') mark = 'D'; if (s.key === 'vti_old') mark = 'E';
-    html += `<div class="setting-group"><div class="setting-group-title">【${mark}】${s.name.split('インデックス')[0]}</div><div class="setting-item"><span>①保有数(万口):</span><input type="number" step="0.01" id="m-units-${s.key}" value="${s.units}"></div><div class="setting-item"><span>②取得単価(円):</span><input type="number" id="m-purchase-${s.key}" value="${s.purchasePrice}"></div><div class="setting-item"><span>③毎月積立(円):</span><input type="number" step="1000" id="m-invest-${s.key}" value="${s.monthlyInvest}"></div><div class="setting-item"><span>④投資期間:</span><input type="text" id="m-period-${s.key}" value="${s.periodText || ''}"></div><div class="setting-item"><span>⑤評価金額(円):</span><input type="number" id="m-market-${s.key}" value="${Math.round(s.marketValue)}"></div><div class="setting-item"><span>⑥評価損益(円):</span><input type="number" id="m-profit-${s.key}" value="${Math.round(s.profit)}"></div><div class="setting-item"><span>⑦購入金額(円):</span><input type="number" id="m-total-${s.key}" value="${Math.round(s.units * s.purchasePrice)}"></div></div>`;
+    let mark = 'A'; 
+    if (s.key === 'saison') mark = 'B'; 
+    if (s.key === 'vti_new') mark = 'C'; 
+    if (s.key === 'ishares') mark = 'D'; 
+    if (s.key === 'vti_old') mark = 'E';
+    
+    // 不要な「評価金額」「損益」のインプット欄は完全に撤廃されました。
+    html += `
+      <div class="setting-group">
+        <div class="setting-group-title">【${mark}】${s.name.split('インデックス')[0]}</div>
+        <div class="setting-item"><span>①保有数(万口):</span><input type="number" step="0.01" id="m-units-${s.key}" value="${s.units}"></div>
+        <div class="setting-item"><span>②取得単価(円):</span><input type="number" id="m-purchase-${s.key}" value="${s.purchasePrice}"></div>
+        <div class="setting-item"><span>③毎月積立(円):</span><input type="number" step="1000" id="m-invest-${s.key}" value="${s.monthlyInvest}"></div>
+        <div class="setting-item"><span>④投資期間:</span><input type="text" id="m-period-${s.key}" value="${s.periodText || ''}"></div>
+      </div>`;
   });
   gridEl.innerHTML = html;
 }
 
+// ==========================================
+// 証券会社コピペからモーダル入力項目へオートフィル
+// ==========================================
 function autoFillFromText() {
   const text = document.getElementById('modalInputText').value.trim(); if (!text) return;
   text.split('\n').forEach(line => {
     if (!line.trim()) return;
     if (line.includes('ひふみ投信') || line.includes('セゾン') || line.includes('楽天・全米') || line.includes('iシェアーズ')) {
       const parts = line.split('\t');
-      if (parts.length >= 5) {
-        const name = parts[0].trim(); const purchasePrice = parseNumber(parts[1]); const units = parseNumber(parts[2]); const marketValue = parseNumber(parts[3]); const profit = parseNumber(parts[4].split('(')[0]);
-        let key = 'hifumi'; if (name.includes('セゾン')) key = 'saison'; if (name.includes('新NISA')) key = 'vti_new'; if (name.includes('iシェアーズ')) key = 'ishares'; if (name.includes('旧NISA')) key = 'vti_old';
-        const u=document.getElementById(`m-units-${key}`), p=document.getElementById(`m-purchase-${key}`), m=document.getElementById(`m-market-${key}`), pr=document.getElementById(`m-profit-${key}`), t=document.getElementById(`m-total-${key}`);
-        if(u)u.value=units; if(p)p.value=purchasePrice; if(m)m.value=Math.round(marketValue); if(pr)pr.value=Math.round(profit); if(t)t.value=Math.round(units*purchasePrice);
+      if (parts.length >= 3) {
+        const name = parts[0].trim(); 
+        const purchasePrice = parseNumber(parts[1]); 
+        const units = parseNumber(parts[2]);
+        
+        let key = 'hifumi'; 
+        if (name.includes('セゾン')) key = 'saison'; 
+        if (name.includes('新NISA')) key = 'vti_new'; 
+        if (name.includes('iシェアーズ')) key = 'ishares'; 
+        if (name.includes('旧NISA')) key = 'vti_old';
+        
+        const u = document.getElementById(`m-units-${key}`);
+        const p = document.getElementById(`m-purchase-${key}`);
+        if (u) u.value = units; 
+        if (p) p.value = purchasePrice;
       }
     }
   });
 }
 
+// ==========================================
+// モーダルの変更を適用し、最新設定および時系列履歴を保存
+// ==========================================
 function applyModalSettings() {
   const pin = document.getElementById('pinInput').value.trim(); if (pin.length !== 4) { alert("4桁の暗証パスワードを入力してください。"); return; }
   const savedSettings = {};
+  
   stocks.forEach(s => {
-    const u=document.getElementById(`m-units-${s.key}`), p=document.getElementById(`m-purchase-${s.key}`), i=document.getElementById(`m-invest-${s.key}`), pd=document.getElementById(`m-period-${s.key}`), m=document.getElementById(`m-market-${s.key}`), pr=document.getElementById(`m-profit-${s.key}`);
-    if (u && u.value !== "") s.units = parseFloat(u.value); if (p && p.value !== "") s.purchasePrice = parseFloat(p.value); if (i && i.value !== "") s.monthlyInvest = parseFloat(i.value); if (pd && pd.value !== "") s.periodText = pd.value.trim();
-    if (m && m.value !== "") { s.marketValue = parseFloat(m.value); } else { s.marketValue = s.units * (s.marketValue / (s.units || 1)); }
-    if (pr && pr.value !== "") { s.profit = parseFloat(pr.value); } else { s.profit = s.marketValue - (s.units * s.purchasePrice); }
-    s.profitPercent = (s.units * s.purchasePrice) > 0 ? ((s.profit / (s.units * s.purchasePrice)) * 100).toFixed(2) : '0.00';
+    const u = document.getElementById(`m-units-${s.key}`);
+    const p = document.getElementById(`m-purchase-${s.key}`);
+    const i = document.getElementById(`m-invest-${s.key}`);
+    const pd = document.getElementById(`m-period-${s.key}`);
+    
+    if (u && u.value !== "") s.units = parseFloat(u.value); 
+    if (p && p.value !== "") s.purchasePrice = parseFloat(p.value); 
+    if (i && i.value !== "") s.monthlyInvest = parseFloat(i.value); 
+    if (pd && pd.value !== "") s.periodText = pd.value.trim();
+
     savedSettings[s.key] = { units: s.units, purchasePrice: s.purchasePrice, monthlyInvest: s.monthlyInvest, periodText: s.periodText };
   });
+  
+  // ① 最新のアクティブ設定を保存
   localStorage.setItem('portfolio_config', JSON.stringify(savedSettings));
   
+  // ② 現在の年月を基準に、2026年6月以降の実績期間であれば「時系列履歴データ（portfolioHistory）」にも変更を記録
+  const today = new Date();
+  const yearMonth = `${today.getFullYear()}-${('0' + (today.getMonth() + 1)).slice(-2)}`;
+  const currentIdx = (today.getFullYear() - 2016) * 12 + today.getMonth() - 5;
+  const anchorIndex = 120; // 2026年6月
+
+  if (currentIdx > anchorIndex) {
+    if (!portfolioHistory[yearMonth]) portfolioHistory[yearMonth] = {};
+    stocks.forEach(s => {
+      portfolioHistory[yearMonth][s.key] = { units: s.units, purchasePrice: s.purchasePrice };
+    });
+    localStorage.setItem('portfolio_history', JSON.stringify(portfolioHistory));
+  }
+
+  // ③ GitHub（自動コミット）へのデータ同期処理
   if (CONFIG_ENCRYPTED_TOKEN && CONFIG_GITHUB_USER && CONFIG_GITHUB_REPO) {
     try {
       const decryptedToken = CryptoJS.AES.decrypt(CONFIG_ENCRYPTED_TOKEN, pin).toString(CryptoJS.enc.Utf8);
-      if (!decryptedToken || !decryptedToken.startsWith('github_pat_')) throw new Error("暗証番号ミス");
-      githubDirectCommit(decryptedToken, 'portfolio_config.json', JSON.stringify(savedSettings, null, 2));
-    } catch (err) { alert("暗証番号が違います。認証失敗。"); }
+      if (!decryptedToken || !decryptedToken.startsWith('github_pat_')) throw new Error("認証暗号エラー");
+      
+      // 送出データに現在アクティブな最新設定と履歴の両方を統合
+      const outputConfig = {
+        activeSettings: savedSettings,
+        history: portfolioHistory
+      };
+      githubDirectCommit(decryptedToken, 'portfolio_config.json', JSON.stringify(outputConfig, null, 2));
+    } catch (err) { 
+      alert("暗証番号が違います。認証失敗。"); 
+    }
   }
-  closeSettingsModal(); initBaseSystem();
-  if (priceHistory) { const totals = calculateCurrentTotals(); generateAndRenderChart(totals); initPieChart(totals); }
+  
+  closeSettingsModal(); 
+  initBaseSystem();
+  if (priceHistory) { 
+    const totals = calculateCurrentTotals(); 
+    generateAndRenderChart(totals); 
+    initPieChart(totals); 
+  }
 }
 
 function githubDirectCommit(token, fileName, contentString) {
@@ -1191,8 +1526,6 @@ function githubDirectCommit(token, fileName, contentString) {
 
 function updateHeaderSummary() {
   const totals = calculateCurrentTotals();
-  const latestDate = latestDateStr();
-  const yesterdayDate = getYesterdayDate(latestDate); // 1日前を取得
 
   // 時価と元本
   document.getElementById('val-market').innerText = Math.round(totals.totalMarket).toLocaleString() + '円';
@@ -1205,29 +1538,23 @@ function updateHeaderSummary() {
   pEl.innerHTML = `${profit >= 0 ? '+' : ''}${Math.round(profit).toLocaleString()}円<br><span style="font-size:14px;">(${pPercent}%)</span>`;
   pEl.className = `summary-value ${profit >= 0 ? 'plus' : 'minus'}`;
 
-  // 前日比計算（最新日と1日前の時価を比較）
-  if (priceHistory && priceHistory[latestDate] && priceHistory[yesterdayDate]) {
-    let latestTotal = 0; let yesterdayTotal = 0;
-    stocks.forEach(s => {
-       const key = {hifumi:'hifumi', saison:'saison', vti_new:'rakuten_vti', ishares:'ishares', vti_old:'rakuten_vti'}[s.key];
-       latestTotal += s.units * priceHistory[latestDate][key];
-       yesterdayTotal += s.units * priceHistory[yesterdayDate][key];
-    });
-    const diff = latestTotal - yesterdayTotal;
-    const diffPct = (diff / yesterdayTotal * 100).toFixed(2);
-    const dEl = document.getElementById('val-daychange');
-    dEl.innerHTML = `${diff >= 0 ? '+' : ''}${Math.round(diff).toLocaleString()}円<br><span style="font-size:14px;">(${diffPct}%)</span>`;
-    dEl.className = `summary-value ${diff >= 0 ? 'plus' : 'minus'}`;
-  }
+  // 前日比計算（最新日と1日前を動的に直接比較）
+  const yesterdayTotal = totals.totalYesterdayMarket;
+  const diff = totals.totalMarket - yesterdayTotal;
+  const diffPct = yesterdayTotal > 0 ? (diff / yesterdayTotal * 100).toFixed(2) : '0.00';
+  const dEl = document.getElementById('val-daychange');
+  dEl.innerHTML = `${diff >= 0 ? '+' : ''}${Math.round(diff).toLocaleString()}円<br><span style="font-size:14px;">(${diffPct}%)</span>`;
+  dEl.className = `summary-value ${diff >= 0 ? 'plus' : 'minus'}`;
 }
 
-// 補助関数：1日前を算出
+// 補助関数：1日前を算出（ガード追加版）
 function getYesterdayDate(dateStr) {
+  if (!dateStr) return ""; // 引数が空なら即座に空文字を返す
   const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return ""; // 無効な日付（Invalid Date）の場合は空文字を返す
   d.setDate(d.getDate() - 1);
   return d.toISOString().split('T')[0];
 }
-
 
 
 
