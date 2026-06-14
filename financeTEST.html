@@ -1034,7 +1034,90 @@ function updatePieChartForIndex(index) {
   renderDetailsList(sortedStructure, totalMarket);
 }
 
-function resetPieChartToDefault()
+// ==========================================
+// デフォルト状態（最新日）の円グラフを描画する（最新の計算値を他と100%連動して直接引用）
+// ==========================================
+function resetPieChartToDefault() {
+  const canvasPie = document.getElementById('pieChart'); 
+  if (!canvasPie) return; 
+  
+  // 最新日の日付を特定
+  let latestDateStr = "";
+  if (priceHistory && Object.keys(priceHistory).length > 0) {
+    const sorted = Object.keys(priceHistory).filter(d => d.length === 10).sort();
+    if (sorted.length > 0) latestDateStr = sorted[sorted.length - 1];
+  }
+
+  const nameToJsonKeyMap = { 
+    'hifumi': 'hifumi', 
+    'saison': 'saison', 
+    'vti_new': 'rakuten_vti', 
+    'ishares': 'ishares', 
+    'vti_old': 'rakuten_vti' 
+  };
+
+  // 他の画面パーツと全く同じ「現在の口数 × 最新基準価格」の計算ロジックから直接引用
+  let totalMarket = 0;
+  const fundValues = stocks.map(s => {
+    const jsonKey = nameToJsonKeyMap[s.key];
+    let currentPrice = s.purchasePrice;
+    if (priceHistory && latestDateStr && priceHistory[latestDateStr] && jsonKey && priceHistory[latestDateStr][jsonKey] !== undefined) {
+      currentPrice = priceHistory[latestDateStr][jsonKey];
+    }
+    const marketValue = s.units * currentPrice;
+    totalMarket += marketValue;
+    return Math.round(marketValue);
+  });
+
+  const sortedStructure = [
+    { label: 'ひふみ投信', val: fundValues[0], color: '#3182ce', mark: 'A' },
+    { label: 'セゾンGBF', val: fundValues[1], color: '#dd6b20', mark: 'B' },
+    { label: '楽天・全米(新NISA)', val: fundValues[2], color: '#319795', mark: 'C' },
+    { label: 'iシェアーズ米国株', val: fundValues[3], color: '#805ad5', mark: 'D' },
+    { label: '楽天・全米(旧NISA)', val: fundValues[4], color: '#4ea8de', mark: 'E' }
+  ].sort((a, b) => b.val - a.val);
+
+  if (!chartPieObj) {
+    chartPieObj = new Chart(canvasPie, {
+      type: 'doughnut', 
+      data: { 
+        labels: sortedStructure.map(x => x.label), 
+        datasets: [{ 
+          data: sortedStructure.map(x => x.val), 
+          backgroundColor: sortedStructure.map(x => x.color), 
+          borderWidth: 1.5, borderColor: '#ffffff' 
+        }] 
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, 
+        cutout: '70%',
+        plugins: {
+          legend: { display: false },
+          datalabels: { 
+            formatter: (value, context) => (value > 0 ? sortedStructure[context.dataIndex].mark : ''), 
+            color: '#2d3748', font: { weight: 'bold', size: 11 }
+          },
+          tooltip: { callbacks: { label: (context) => {
+             const sObj = sortedStructure[context.dataIndex];
+             const pct = totalMarket > 0 ? ((sObj.val / totalMarket) * 100).toFixed(1) : 0;
+             return `【${sObj.mark}】${sObj.label}: ${sObj.val.toLocaleString()}円 (${pct}%)`;
+          }}}
+        }
+      }
+    });
+  } else {
+    // すでにグラフオブジェクトが存在する場合は、最新の値を流し込んで更新
+    chartPieObj.data.labels = sortedStructure.map(x => x.label);
+    chartPieObj.data.datasets[0].data = sortedStructure.map(x => x.val);
+    chartPieObj.data.datasets[0].backgroundColor = sortedStructure.map(x => x.color);
+    chartPieObj.update('none'); 
+  }
+
+  const formattedDate = latestDateStr ? latestDateStr.replace(/-/g, '/') : "----/--/--";
+  document.getElementById('pieChartTitle').innerText = `現在の資産構成比 (${formattedDate}基準)`;
+  document.getElementById('pieChartTotal').innerText = `総資産額: ${Math.round(totalMarket).toLocaleString()} 円`;
+  renderDetailsList(sortedStructure, totalMarket);
+}
 function latestDateStr() {
   if (priceHistory && Object.keys(priceHistory).length > 0) {
     const sorted = Object.keys(priceHistory).filter(d => d.length === 10).sort();
