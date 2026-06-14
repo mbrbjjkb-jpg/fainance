@@ -355,10 +355,9 @@ window.onload = function() {
 };
 
 // ==========================================
-// ブラウザ保存領域（LocalStorage）から設定と時系列履歴を読み込む
+// LocalStorageからロード（個別更新日の読み込みに対応）
 // ==========================================
 function loadUserConfigFromStorage() {
-  // ① 現在アクティブな基本設定（口数・取得単価・積立額）のロード
   const savedSettings = JSON.parse(localStorage.getItem('portfolio_config')) || null;
   if (savedSettings) {
     stocks.forEach(s => {
@@ -367,12 +366,12 @@ function loadUserConfigFromStorage() {
         s.purchasePrice = savedSettings[s.key].purchasePrice !== undefined ? savedSettings[s.key].purchasePrice : s.purchasePrice;
         s.monthlyInvest = savedSettings[s.key].monthlyInvest !== undefined ? savedSettings[s.key].monthlyInvest : s.monthlyInvest;
         s.periodText = savedSettings[s.key].periodText || s.periodText;
+        s.lastUpdated = savedSettings[s.key].lastUpdated || ''; // 更新日をロード
       }
     });
     writeLog("【ロード】ブラウザ内から前回の保有・積立設定を読み込みました。");
   }
 
-  // ② 2026年6月以降の口数・取得単価の時系列変更履歴のロード
   const savedHistory = JSON.parse(localStorage.getItem('portfolio_history')) || null;
   if (savedHistory) {
     portfolioHistory = savedHistory;
@@ -381,12 +380,10 @@ function loadUserConfigFromStorage() {
 }
 
 // ==========================================
-// 外部設定ファイル（portfolio_config.json）のデータを適用する
+// 外部設定ファイル適用（個別更新日の読み込みに対応）
 // ==========================================
 function applyConfigDataToStocks(configData) {
   let activeConfig = configData;
-  
-  // JSONが「現在の設定（activeSettings）」と「時系列履歴（history）」の両方を内包する構造に対応
   if (configData && configData.activeSettings) {
     activeConfig = configData.activeSettings;
   }
@@ -402,10 +399,9 @@ function applyConfigDataToStocks(configData) {
       if (cfg.purchasePrice !== undefined) s.purchasePrice = cfg.purchasePrice;
       if (cfg.monthlyInvest !== undefined) s.monthlyInvest = cfg.monthlyInvest;
       if (cfg.periodText !== undefined) s.periodText = cfg.periodText;
+      s.lastUpdated = cfg.lastUpdated || ''; // 更新日をロード
     }
   });
-  
-  // 計算値（marketValue、profit）の無駄なスライド再計算処理は完全に破棄されました。
   initInputFields();
 }
 
@@ -639,21 +635,24 @@ function renderTable() {
     const dynamicPeriodText = calculatePeriodText(s.periodText);
     const jsonKey = nameToJsonKeyMap[s.key];
 
-    // ① 最新の基準価格を取得
+    // 最新の基準価格を取得
     let currentPrice = s.purchasePrice;
     if (priceHistory && priceHistory[latestDateStr] && jsonKey && priceHistory[latestDateStr][jsonKey] !== undefined) {
       currentPrice = priceHistory[latestDateStr][jsonKey];
     }
     
-    // ② 3要素（口数・基準価格・取得単価）から時価および個別損益をその場で計算
+    // 3要素（口数・基準価格・取得単価）から時価および個別損益を計算
     const marketValue = s.units * currentPrice;
     const purchaseValue = s.units * s.purchasePrice;
     const profit = marketValue - purchaseValue;
     const profitPercent = purchaseValue > 0 ? ((profit / purchaseValue) * 100).toFixed(2) : '0.00';
 
+    // ★ 最終更新日の表示を追加（値がある場合のみ改行を挟んで表示）
+    const updateLabel = s.lastUpdated ? `<br><span style="font-size:10px; color:#718096; font-weight:normal;">(${s.lastUpdated}更新)</span>` : '';
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td style="text-align:left; font-weight:bold;">${keyMark}${s.name}</td>
+      <td style="text-align:left; font-weight:bold;">${keyMark}${s.name}${updateLabel}</td>
       <td>${Math.round(s.purchasePrice).toLocaleString()}円</td>
       <td>${s.units}</td>
       <td>${Math.round(marketValue).toLocaleString()}円</td>
@@ -1453,7 +1452,7 @@ function openSettingsModal() { document.getElementById('settingsModal').style.di
 function closeSettingsModal() { document.getElementById('settingsModal').style.display = 'none'; }
 
 // ==========================================
-// モーダル内の入力設定フォームを動的に生成
+// モーダル設定グリッド（個別更新ボタンを追加）
 // ==========================================
 function renderModalSettingsGrid() {
   const gridEl = document.getElementById('modalSettingsGrid'); if (!gridEl) return; let html = '';
@@ -1464,17 +1463,99 @@ function renderModalSettingsGrid() {
     if (s.key === 'ishares') mark = 'D'; 
     if (s.key === 'vti_old') mark = 'E';
     
-    // 不要な「評価金額」「損益」のインプット欄は完全に撤廃されました。
+    // 各投信設定の下に「この投信のみ更新」用の個別更新ボタンを設けました。
     html += `
-      <div class="setting-group">
-        <div class="setting-group-title">【${mark}】${s.name.split('インデックス')[0]}</div>
-        <div class="setting-item"><span>①保有数(万口):</span><input type="number" step="0.01" id="m-units-${s.key}" value="${s.units}"></div>
-        <div class="setting-item"><span>②取得単価(円):</span><input type="number" id="m-purchase-${s.key}" value="${s.purchasePrice}"></div>
-        <div class="setting-item"><span>③毎月積立(円):</span><input type="number" step="1000" id="m-invest-${s.key}" value="${s.monthlyInvest}"></div>
-        <div class="setting-item"><span>④投資期間:</span><input type="text" id="m-period-${s.key}" value="${s.periodText || ''}"></div>
+      <div class="setting-group" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 200px;">
+        <div>
+          <div class="setting-group-title">【${mark}】${s.name.split('インデックス')[0]}</div>
+          <div class="setting-item"><span>①保有数(万口):</span><input type="number" step="0.01" id="m-units-${s.key}" value="${s.units}"></div>
+          <div class="setting-item"><span>②取得単価(円):</span><input type="number" id="m-purchase-${s.key}" value="${s.purchasePrice}"></div>
+          <div class="setting-item"><span>③毎月積立(円):</span><input type="number" step="1000" id="m-invest-${s.key}" value="${s.monthlyInvest}"></div>
+          <div class="setting-item"><span>④投資期間:</span><input type="text" id="m-period-${s.key}" value="${s.periodText || ''}"></div>
+        </div>
+        <button class="action-btn btn-blue" onclick="updateSingleFundSettings('${s.key}')" style="width:100%; margin-top:10px; padding: 4px; font-size:10px;">この投信のみ更新して保存</button>
       </div>`;
   });
   gridEl.innerHTML = html;
+}
+
+// ==========================================
+// 特定の投信（キー指定）のみを個別に更新して保存・同期する
+// ==========================================
+function updateSingleFundSettings(key) {
+  const pin = document.getElementById('pinInput').value.trim();
+  if (pin.length !== 4) {
+    alert("個別に更新して保存する場合も、認証用に4桁の暗証パスワードを入力してください。");
+    return;
+  }
+  
+  const s = stocks.find(item => item.key === key);
+  if (!s) return;
+
+  const u = document.getElementById(`m-units-${key}`);
+  const p = document.getElementById(`m-purchase-${key}`);
+  const i = document.getElementById(`m-invest-${key}`);
+  const pd = document.getElementById(`m-period-${key}`);
+
+  if (u && u.value !== "") s.units = parseFloat(u.value); 
+  if (p && p.value !== "") s.purchasePrice = parseFloat(p.value); 
+  if (i && i.value !== "") s.monthlyInvest = parseFloat(i.value); 
+  if (pd && pd.value !== "") s.periodText = pd.value.trim();
+
+  // ★ 最終更新日の更新（現在の日付：YYYY年M月D日フォーマットに変換）
+  const today = new Date();
+  s.lastUpdated = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
+
+  // 保存用オブジェクトの構築（LocalStorageから既存の設定を読み出し、今回の対象だけ上書きマージ）
+  const savedSettings = JSON.parse(localStorage.getItem('portfolio_config')) || {};
+  savedSettings[key] = {
+    units: s.units,
+    purchasePrice: s.purchasePrice,
+    monthlyInvest: s.monthlyInvest,
+    periodText: s.periodText,
+    lastUpdated: s.lastUpdated // 更新日も含めて保存
+  };
+
+  localStorage.setItem('portfolio_config', JSON.stringify(savedSettings));
+
+  // 2026年6月以降の実績期間であれば「時系列履歴データ（portfolioHistory）」にもマージ
+  const yearMonth = `${today.getFullYear()}-${('0' + (today.getMonth() + 1)).slice(-2)}`;
+  const currentIdx = (today.getFullYear() - 2016) * 12 + today.getMonth() - 5;
+  const anchorIndex = 120; // 2026年6月
+
+  if (currentIdx > anchorIndex) {
+    if (!portfolioHistory[yearMonth]) portfolioHistory[yearMonth] = {};
+    portfolioHistory[yearMonth][key] = { units: s.units, purchasePrice: s.purchasePrice };
+    localStorage.setItem('portfolio_history', JSON.stringify(portfolioHistory));
+  }
+
+  // GitHub（自動コミット）へのデータ同期処理
+  if (CONFIG_ENCRYPTED_TOKEN && CONFIG_GITHUB_USER && CONFIG_GITHUB_REPO) {
+    try {
+      const decryptedToken = CryptoJS.AES.decrypt(CONFIG_ENCRYPTED_TOKEN, pin).toString(CryptoJS.enc.Utf8);
+      if (!decryptedToken || !decryptedToken.startsWith('github_pat_')) throw new Error("認証エラー");
+      
+      const outputConfig = {
+        activeSettings: savedSettings,
+        history: portfolioHistory
+      };
+      githubDirectCommit(decryptedToken, 'portfolio_config.json', JSON.stringify(outputConfig, null, 2));
+    } catch (err) { 
+      alert("暗証番号が違います。同期に失敗しました。");
+      return;
+    }
+  }
+
+  writeLog(`【個別更新】${s.name} の設定情報を手動更新（${s.lastUpdated}）しました。`);
+  alert(`${s.name} の設定情報のみを更新・保存しました。`);
+  
+  // 画面コンポーネントを最新の3要素に基づいて一斉に再計算・再描画
+  initBaseSystem();
+  if (priceHistory) { 
+    const totals = calculateCurrentTotals(); 
+    generateAndRenderChart(totals); 
+    initPieChart(totals); 
+  }
 }
 
 // ==========================================
