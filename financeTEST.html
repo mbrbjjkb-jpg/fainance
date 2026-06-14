@@ -1034,63 +1034,7 @@ function updatePieChartForIndex(index) {
   renderDetailsList(sortedStructure, totalMarket);
 }
 
-function resetPieChartToDefault() {
-  const canvasPie = document.getElementById('pieChart'); 
-  if (!canvasPie) return; 
-  
-  // 最新のデータベースインデックスに基づいて計算
-  const latestIdx = getLatestDatabaseIndex(); 
-  const currentDetails = calculateMonthlyDetails(latestIdx, true);
-  
-  const sortedStructure = [
-    { label: 'ひふみ投信', val: currentDetails.fundValues[0], color: '#3182ce', mark: 'A' },
-    { label: 'セゾンGBF', val: currentDetails.fundValues[1], color: '#dd6b20', mark: 'B' },
-    { label: '楽天・全米(新NISA)', val: currentDetails.fundValues[2], color: '#319795', mark: 'C' },
-    { label: 'iシェアーズ米国株', val: currentDetails.fundValues[3], color: '#805ad5', mark: 'D' },
-    { label: '楽天・全米(旧NISA)', val: currentDetails.fundValues[4], color: '#4ea8de', mark: 'E' }
-  ].sort((a, b) => b.val - a.val);
-
-  if (!chartPieObj) {
-    chartPieObj = new Chart(canvasPie, {
-      type: 'doughnut', 
-      data: { 
-        labels: sortedStructure.map(x => x.label), 
-        datasets: [{ 
-          data: sortedStructure.map(x => x.val), 
-          backgroundColor: sortedStructure.map(x => x.color), 
-          borderWidth: 1.5, borderColor: '#ffffff' 
-        }] 
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false, 
-        cutout: '70%',
-        plugins: {
-          legend: { display: false },
-          datalabels: { 
-            formatter: (value, context) => (value > 0 ? sortedStructure[context.dataIndex].mark : ''), 
-            color: '#2d3748', font: { weight: 'bold', size: 11 }
-          },
-          tooltip: { callbacks: { label: (context) => {
-             const sObj = sortedStructure[context.dataIndex];
-             const pct = currentDetails.totalMarket > 0 ? ((sObj.val / currentDetails.totalMarket) * 100).toFixed(1) : 0;
-             return `【${sObj.mark}】${sObj.label}: ${sObj.val.toLocaleString()}円 (${pct}%)`;
-          }}}
-        }
-      }
-    });
-  } else {
-    // 既存チャートがある場合はデータを更新
-    chartPieObj.data.labels = sortedStructure.map(x => x.label);
-    chartPieObj.data.datasets[0].data = sortedStructure.map(x => x.val);
-    chartPieObj.data.datasets[0].backgroundColor = sortedStructure.map(x => x.color);
-    chartPieObj.update('none'); 
-  }
-
-  const formattedDate = latestDateStr() ? latestDateStr().replace(/-/g, '/') : "----/--/--";
-  document.getElementById('pieChartTitle').innerText = `現在の資産構成比 (${formattedDate}基準)`;
-  document.getElementById('pieChartTotal').innerText = `総資産額: ${currentDetails.totalMarket.toLocaleString()} 円`;
-  renderDetailsList(sortedStructure, currentDetails.totalMarket);
-}
+function resetPieChartToDefault()
 function latestDateStr() {
   if (priceHistory && Object.keys(priceHistory).length > 0) {
     const sorted = Object.keys(priceHistory).filter(d => d.length === 10).sort();
