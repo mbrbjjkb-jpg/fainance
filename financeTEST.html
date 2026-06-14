@@ -314,8 +314,14 @@ const defaultStocks = [
   }
 ];
 
-// アプリケーションが動作中に保持する最新の保有状態
-let stocks = JSON.parse(JSON.stringify(defaultStocks));
+// アプリケーションが動作中に保持する最新の保有状態。
+// 起動時の初期値（ローカルストレージ未保存時）として、アンカー基準値（anchorUnits, anchorPurchasePrice）を
+// 画面や計算エンジンが動的に参照する units, purchasePrice プロパティへ自動コピーして初期化します。
+let stocks = defaultStocks.map(s => ({
+  ...s,
+  units: s.anchorUnits,
+  purchasePrice: s.anchorPurchasePrice
+}));
 
 // 2026年6月以降の、各年月における実際の「口数」と「購入単価」の変化を記録する履歴オブジェクト。
 // 形式例： { "2026-07": { "hifumi": { units: 68.0, purchasePrice: 53800 }, "saison": { ... } }, "2026-08": { ... } }
@@ -889,19 +895,23 @@ function calculateMonthlyDetails(index, forceLatest = false) {
       if (foundPrice !== null) {
         currentPrice = foundPrice;
       } else {
-        // 万が一価格履歴が存在しない場合の自動線形補間（フォールバック処理）
+// 万が一価格履歴が存在しない場合の自動線形補間（フォールバック処理）
         const anchorPrice = s.anchorPurchasePrice;
-        const currentPriceTarget = s.units > 0 ? (s.marketValue / s.units) : s.anchorPurchasePrice;
+        
+        // 破棄された古い marketValue の代わりに、存在する最新日付のデータベース基準価格を取得して補間の終点（ターゲット）にします
+        let latestPrice = s.anchorPurchasePrice;
+        if (priceHistory && latestDateStr && priceHistory[latestDateStr] && priceHistory[latestDateStr][map.key] !== undefined) {
+          latestPrice = priceHistory[latestDateStr][map.key];
+        }
+
         const now = new Date('2026-06-01');
         const fullHistoryMonths = (now.getFullYear() - pStart.getFullYear()) * 12 + (now.getMonth() - pStart.getMonth());
         const elapsedFromStart = (targetDate.getFullYear() - pStart.getFullYear()) * 12 + (targetDate.getMonth() - pStart.getMonth());
         if (fullHistoryMonths > 0) {
-          currentPrice = anchorPrice + ((currentPriceTarget - anchorPrice) / fullHistoryMonths) * elapsedFromStart;
+          currentPrice = anchorPrice + ((latestPrice - anchorPrice) / fullHistoryMonths) * elapsedFromStart;
         }
       }
-    }
-
-    // --- 3. 評価額と元本の算出 ---
+    }    // --- 3. 評価額と元本の算出 ---
     let value = 0;
     let purchaseVal = currentUnits * currentPurchasePrice;
 
@@ -1203,25 +1213,70 @@ function generateAndRenderChart(totals) {
   if (isFutureMode && monthsFuture > 0) {
     const currentTotalMarket = totals.totalMarket; const currentTotalPurchase = totals.totalPurchase;
     const connectionIdx = isLatestDateAfterFirst ? monthsPast + 1 : monthsPast;
-    future7Data[connectionIdx] = Math.round(totals.afterTaxMarket) || 0; future8Data[connectionIdx] = Math.round(totals.afterTaxMarket) || 0; future9Data[connectionIdx] = Math.round(totals.afterTaxMarket) || 0; futurePurchaseData[connectionIdx] = Math.round(currentTotalPurchase) || 0;
+    
+    // 最新日の税引き後評価額（totals.afterTaxMarket）から予測線の起点を正しく接続
+    future7Data[connectionIdx] = Math.round(totals.afterTaxMarket) || 0; 
+    future8Data[connectionIdx] = Math.round(totals.afterTaxMarket) || 0; 
+    future9Data[connectionIdx] = Math.round(totals.afterTaxMarket) || 0; 
+    futurePurchaseData[connectionIdx] = Math.round(currentTotalPurchase) || 0;
+    
     const taxableRatio = currentTotalMarket > 0 ? (currentTotalMarket - totals.nisaProfit) / currentTotalMarket : 0.5;
     let totalMonthlyInvest = 0; stocks.forEach(s => { totalMonthlyInvest += s.monthlyInvest || 0; });
 
     for (let j = 1; j <= monthsFuture; j++) {
       const elapsedYears = j / 12;
       const simulateForRate = (annualRate) => {
-        const monthlyRate = annualRate / 12; let futureCurrent = 0; let futureAccum = 0; let taxableAccum = 0; let taxablePrincipal = 0;
+        const monthlyRate = annualRate / 12; 
+        let futureCurrent = 0; 
+        let futureAccum = 0; 
+        let taxableAccum = 0; 
+        let taxablePrincipal = 0;
+
+        let latestDateStr = "";
+        if (priceHistory && Object.keys(priceHistory).length > 0) {
+          const sorted = Object.keys(priceHistory).filter(d => d.length === 10).sort();
+          if (sorted.length > 0) latestDateStr = sorted[sorted.length - 1];
+        }
+
+        const nameToJsonKeyMap = { 
+          'hifumi': 'hifumi', 
+          'saison': 'saison', 
+          'vti_new': 'rakuten_vti', 
+          'ishares': 'ishares', 
+          'vti_old': 'rakuten_vti' 
+        };
+
         stocks.forEach(s => {
-          const fCur = (s.marketValue || 0) * Math.pow(1 + annualRate, elapsedYears); futureCurrent += fCur;
+          const jsonKey = nameToJsonKeyMap[s.key];
+          
+          // ① 破棄された s.marketValue の代わりに、最新日の基準価格と口数から本当の最新時価を算出
+          let currentPrice = s.purchasePrice;
+          if (priceHistory && latestDateStr && priceHistory[latestDateStr] && jsonKey && priceHistory[latestDateStr][jsonKey] !== undefined) {
+            currentPrice = priceHistory[latestDateStr][jsonKey];
+          }
+          const actualMarketValue = s.units * currentPrice;
+
+          // ② 算出された実際の最新時価（actualMarketValue）を起点として複利運用を計算
+          const fCur = (actualMarketValue || 0) * Math.pow(1 + annualRate, elapsedYears); 
+          futureCurrent += fCur;
+
           const mInvestSafe = s.monthlyInvest !== undefined ? parseFloat(s.monthlyInvest) : 0;
           if (mInvestSafe > 0) {
+            // ③ 分母の不整合な変数を、現在計算中の複利月利（monthlyRate）に連動修正
             const accum = mInvestSafe * ((Math.pow(1 + monthlyRate, j) - 1) / monthlyRate);
-            if (s.isNISA) futureAccum += (accum || 0); else { taxableAccum += (accum || 0); taxablePrincipal += mInvestSafe * j; }
+            if (s.isNISA) {
+              futureAccum += (accum || 0);
+            } else {
+              taxableAccum += (accum || 0);
+              taxablePrincipal += mInvestSafe * j;
+            }
           }
         });
-        const taxableProfit = Math.max(0, taxableAccum - taxablePrincipal); const futureTaxableAfter = taxablePrincipal + (taxableProfit * 0.8);
+        const taxableProfit = Math.max(0, taxableAccum - taxablePrincipal); 
+        const futureTaxableAfter = taxablePrincipal + (taxableProfit * 0.8);
         const grossTotal = futureCurrent + futureAccum + futureTaxableAfter;
-        const originalProfit = Math.max(0, futureCurrent - currentTotalPurchase); const estimatedTaxOnOriginal = originalProfit * taxableRatio * 0.2;
+        const originalProfit = Math.max(0, futureCurrent - currentTotalPurchase); 
+        const estimatedTaxOnOriginal = originalProfit * taxableRatio * 0.2;
         return Math.round(grossTotal - estimatedTaxOnOriginal) || 0;
       };
       pastData.push(null); pastPurchaseData.push(null); pastProfitData.push(null);
