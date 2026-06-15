@@ -775,24 +775,31 @@ function updateDashboardCards() {
 }
 
 // ==========================================
-// 1. 最新時点の合計値・評価額を動的に算出する関数
+// 1. 最新時点の合計値・評価額を動的に算出する関数（前営業日比自動判定版）
 // ==========================================
 function calculateCurrentTotals() {
-  const scale = getDemoScale(); // ★デモ用スケールの取得
+  const scale = getDemoScale(); // デモ用スケールの取得
   let totalMarket = 0;
   let totalPurchase = 0;
   let totalProfit = 0;
   let taxableProfit = 0;
   let nisaProfit = 0;
-  let totalYesterdayMarket = 0; // 前日比（1営業日前）の計算用
+  let totalYesterdayMarket = 0; // 前営業日の時価総額（前日比計算用）
 
   let latestDateStr = "";
   let yesterdayDateStr = "";
   if (priceHistory && Object.keys(priceHistory).length > 0) {
     const sorted = Object.keys(priceHistory).filter(d => d.length === 10).sort();
     if (sorted.length > 0) {
-      latestDateStr = sorted[sorted.length - 1];
-      yesterdayDateStr = getYesterdayDate(latestDateStr);
+      latestDateStr = sorted[sorted.length - 1]; // ① 有効な最新日を取得
+      
+      // ★修正：カレンダーの引き算（getYesterdayDate）を完全に廃止し、
+      // データベース上で実際に前回の更新があった営業日（配列の1つ手前）を比較対象として直接取得します。
+      if (sorted.length > 1) {
+        yesterdayDateStr = sorted[sorted.length - 2]; // 前営業日
+      } else {
+        yesterdayDateStr = latestDateStr; // セーフティガード
+      }
     }
   }
 
@@ -807,19 +814,19 @@ function calculateCurrentTotals() {
   stocks.forEach(s => {
     const jsonKey = nameToJsonKeyMap[s.key];
     
-    // 最新日の基準価格
+    // 最新日の基準価格を取得
     let currentPrice = s.purchasePrice;
     if (priceHistory && priceHistory[latestDateStr] && jsonKey && priceHistory[latestDateStr][jsonKey] !== undefined) {
       currentPrice = priceHistory[latestDateStr][jsonKey];
     }
     
-    // 1営業日前の基準価格
+    // 前営業日の基準価格を取得
     let yesterdayPrice = currentPrice;
     if (priceHistory && priceHistory[yesterdayDateStr] && jsonKey && priceHistory[yesterdayDateStr][jsonKey] !== undefined) {
       yesterdayPrice = priceHistory[yesterdayDateStr][jsonKey];
     }
 
-    // ★ 口数にデモ倍率を掛けた「仮想保有口数」を計算に使用
+    // デモ倍率を適用した口数で算出
     const scaledUnits = s.units * scale;
     const realMarketValue = scaledUnits * currentPrice;
     const realPurchaseValue = scaledUnits * s.purchasePrice;
@@ -850,7 +857,7 @@ function calculateCurrentTotals() {
     nisaProfit, 
     tax, 
     afterTaxMarket,
-    totalYesterdayMarket
+    totalYesterdayMarket // 前日比の計算用
   };
 }
 
