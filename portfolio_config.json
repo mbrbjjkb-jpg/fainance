@@ -1,10 +1,11 @@
 {
   "activeSettings": {
     "hifumi": {
-      "units": 67.6,
-      "purchasePrice": 53719,
+      "units": 67.9701,
+      "purchasePrice": 53919,
       "monthlyInvest": 0,
-      "periodText": "2016/06-2026/06"
+      "periodText": "2016/06-2026/06",
+      "lastUpdated": "2026年6月15日"
     },
     "saison": {
       "units": 83.8,
