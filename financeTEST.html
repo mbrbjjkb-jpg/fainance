@@ -1555,7 +1555,7 @@ function renderModalSettingsGrid() {
 }
 
 // ==========================================
-// 特定の投信（キー指定）のみを個別に更新して保存・同期する
+// 特定の投信（キー指定）のみを個別に更新して保存・同期する（2026年6月対応版）
 // ==========================================
 function updateSingleFundSettings(key) {
   const pin = document.getElementById('pinInput').value.trim();
@@ -1577,7 +1577,7 @@ function updateSingleFundSettings(key) {
   if (i && i.value !== "") s.monthlyInvest = parseFloat(i.value); 
   if (pd && pd.value !== "") s.periodText = pd.value.trim();
 
-  // ★ 最終更新日の更新（現在の日付：YYYY年M月D日フォーマットに変換）
+  // 最終更新日の更新（現在の日付：YYYY年M月D日フォーマットに変換）
   const today = new Date();
   s.lastUpdated = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
 
@@ -1598,7 +1598,8 @@ function updateSingleFundSettings(key) {
   const currentIdx = (today.getFullYear() - 2016) * 12 + today.getMonth() - 5;
   const anchorIndex = 120; // 2026年6月
 
-  if (currentIdx > anchorIndex) {
+  // ★修正：判定式を「 >=（以上）」に変更し、今日（120ヶ月目＝2026年6月）も履歴として即時記録可能に修正
+  if (currentIdx >= anchorIndex) {
     if (!portfolioHistory[yearMonth]) portfolioHistory[yearMonth] = {};
     portfolioHistory[yearMonth][key] = { units: s.units, purchasePrice: s.purchasePrice };
     localStorage.setItem('portfolio_history', JSON.stringify(portfolioHistory));
@@ -1663,7 +1664,7 @@ function autoFillFromText() {
 }
 
 // ==========================================
-// モーダルの変更を適用し、最新設定および時系列履歴を保存
+// モーダルの変更を適用し、最新設定および時系列履歴を保存（2026年6月対応版）
 // ==========================================
 function applyModalSettings() {
   const pin = document.getElementById('pinInput').value.trim(); if (pin.length !== 4) { alert("4桁の暗証パスワードを入力してください。"); return; }
@@ -1692,7 +1693,8 @@ function applyModalSettings() {
   const currentIdx = (today.getFullYear() - 2016) * 12 + today.getMonth() - 5;
   const anchorIndex = 120; // 2026年6月
 
-  if (currentIdx > anchorIndex) {
+  // ★修正：判定式を「 >=（以上）」に変更し、今日（120ヶ月目＝2026年6月）も履歴として即時記録可能に修正
+  if (currentIdx >= anchorIndex) {
     if (!portfolioHistory[yearMonth]) portfolioHistory[yearMonth] = {};
     stocks.forEach(s => {
       portfolioHistory[yearMonth][s.key] = { units: s.units, purchasePrice: s.purchasePrice };
