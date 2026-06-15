@@ -431,28 +431,41 @@ function loadUserConfigFromStorage() {
 }
 
 // ==========================================
-// 外部設定ファイル適用（個別更新日の読み込みに対応）
+// 外部設定ファイル適用（ネットワーク遅延による巻き戻し防止ガード付き）
 // ==========================================
 function applyConfigDataToStocks(configData) {
   let activeConfig = configData;
   if (configData && configData.activeSettings) {
     activeConfig = configData.activeSettings;
   }
+  
+  // ① 時系列履歴データ（history）は常に最新マスターであるGitHubから同期・復元
   if (configData && configData.history) {
     portfolioHistory = configData.history;
+    localStorage.setItem('portfolio_history', JSON.stringify(portfolioHistory)); // ローカル側も最新に同期
     writeLog("【成功】GitHubから時系列の口数・単価履歴を適用しました。");
   }
 
-  stocks.forEach(s => {
-    if (activeConfig[s.key]) {
-      const cfg = activeConfig[s.key];
-      if (cfg.units !== undefined) s.units = cfg.units;
-      if (cfg.purchasePrice !== undefined) s.purchasePrice = cfg.purchasePrice;
-      if (cfg.monthlyInvest !== undefined) s.monthlyInvest = cfg.monthlyInvest;
-      if (cfg.periodText !== undefined) s.periodText = cfg.periodText;
-      s.lastUpdated = cfg.lastUpdated || ''; // 更新日をロード
-    }
-  });
+  // ★ 巻き戻り防止ガード：
+  // ブラウザのLocalStorageにすでに設定が保存されている場合は、それを「最優先」の正とします。
+  // これにより、GitHubコミット直後のサーバー反映遅延（キャッシュ）によって、変更前の古いデータが
+  // ダウンロードされてローカル最新設定を上書き（巻き戻し破壊）してしまう現象を完全に防ぎます。
+  const localConfig = JSON.parse(localStorage.getItem('portfolio_config')) || null;
+  const configToApply = localConfig || activeConfig; // ローカルに保存データがあれば最優先、なければGitHubを参照
+
+  if (configToApply) {
+    stocks.forEach(s => {
+      if (configToApply[s.key]) {
+        const cfg = configToApply[s.key];
+        if (cfg.units !== undefined) s.units = cfg.units;
+        if (cfg.purchasePrice !== undefined) s.purchasePrice = cfg.purchasePrice;
+        if (cfg.monthlyInvest !== undefined) s.monthlyInvest = cfg.monthlyInvest;
+        if (cfg.periodText !== undefined) s.periodText = cfg.periodText;
+        s.lastUpdated = cfg.lastUpdated || ''; // 各投信の最終更新日をロード
+      }
+    });
+  }
+  
   initInputFields();
 }
 
