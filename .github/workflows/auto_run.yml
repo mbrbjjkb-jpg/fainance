@@ -50,3 +50,12 @@ jobs:
         else
           echo "本日はすでに処理済み、または変更がないためスキップします。"
         fi
+
+    # 6. エラーが発生した場合のみ、手動再実行（Run workflow）ページへの直通リンクを画面に表示
+    - name: 手動再実行リンクの表示（エラー時のみ）
+      if: failure() # 直前のステップが失敗（エラー）したときのみ実行されます
+      run: |
+        echo "### ⚠️ 自動取得エラーが発生しました" >> $GITHUB_STEP_SUMMARY
+        echo "最新価格の取得に失敗しました。手動で再実行（Run workflow）を行う場合は、以下のリンクを開いてください。" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "[👉 ここをクリックして手動再実行ページを開く](https://github.com/mbrbjjkb-jpg/fainance/actions/workflows/auto_run.yml)" >> $GITHUB_STEP_SUMMARY
