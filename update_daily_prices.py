@@ -107,10 +107,16 @@ def main():
             temp_dates.add(date_str)
             print(f"取得成功: {key} -> {price:,}円 (基準日: {date_str})")
         except Exception as e:
-            # ログを出力して正常終了（sys.exit(0)）させます。
-            # これにより、GitHub Actionsのエラーメール通知を回避しつつ、status_fileが更新されないため15分後に再試行されます。
+            # ★ 修正ポイント：朝の最終確認実行（STRICT_MODE == true）の時のみ異常終了させてメールを送信します
             print(f"【エラー】{key} の取得中にエラーが発生しました: {str(e)}", file=sys.stderr)
-            sys.exit(0)
+            
+            strict_mode = os.environ.get("STRICT_MODE", "false").lower() == "true"
+            if strict_mode:
+                print("【重大なエラー】厳格モードでの実行：データ取得失敗のため異常終了します（メールが送信されます）。", file=sys.stderr)
+                sys.exit(1) # 異常終了（GitHub Actionsに失敗を伝え、メールをトリガーします）
+            else:
+                print("【通知】通常モードでの実行：次回の自動実行に処理を委ねるため、正常終了（スキップ）します。")
+                sys.exit(0) # 正常終了（アラートは出さずに次回以降に再試行）
 
     # 取得した日付がすべて一致しているか確認
     if len(temp_dates) != 1:
