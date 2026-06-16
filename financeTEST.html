@@ -121,8 +121,7 @@
     <div>
       <div class="fund-card-title">【A】ひふみ投信</div>
       <div class="fund-card-price"><span id="price-hifumi">-,--- 円</span><span class="fund-card-price-date" id="date-hifumi"></span></div>
-      <div class="fund-card-profit" id="daychange-price-hifumi" style="font-size:11px; margin-bottom:2px;">-</div>
-      <div class="fund-card-profit" id="profit-hifumi" style="font-size:11px; margin-bottom:5px;">-</div>
+      <div class="fund-card-profit" id="daychange-price-hifumi" style="font-size:11px; margin-bottom:2px;">-</div>      
     </div>
     <div class="mini-chart-container"><canvas id="miniChart-hifumi"></canvas></div>
     <div class="fund-card-details-list">
@@ -140,7 +139,7 @@
       <div class="fund-card-title">【B】セゾン･グローバルバランスF</div>
       <div class="fund-card-price"><span id="price-saison">-,--- 円</span><span class="fund-card-price-date" id="date-saison"></span></div>
       <div class="fund-card-profit" id="daychange-price-saison" style="font-size:11px; margin-bottom:2px;">-</div>
-      <div class="fund-card-profit" id="profit-saison" style="font-size:11px; margin-bottom:5px;">-</div>
+      
     </div>
     <div class="mini-chart-container"><canvas id="miniChart-saison"></canvas></div>
     <div class="fund-card-details-list">
@@ -158,7 +157,7 @@
       <div class="fund-card-title">【C】楽天・全米株式（新NISA）</div>
       <div class="fund-card-price"><span id="price-vti-new">-,--- 円</span><span class="fund-card-price-date" id="date-vti-new"></span></div>
       <div class="fund-card-profit" id="daychange-price-vti-new" style="font-size:11px; margin-bottom:2px;">-</div>
-      <div class="fund-card-profit" id="profit-vti-new" style="font-size:11px; margin-bottom:5px;">-</div>
+      
     </div>
     <div class="mini-chart-container"><canvas id="miniChart-vti-new"></canvas></div>
     <div class="fund-card-details-list">
@@ -176,7 +175,7 @@
       <div class="fund-card-title">【D】iシェアーズ 米国株式(S&P500)</div>
       <div class="fund-card-price"><span id="price-ishares">-,--- 円</span><span class="fund-card-price-date" id="date-ishares"></span></div>
       <div class="fund-card-profit" id="daychange-price-ishares" style="font-size:11px; margin-bottom:2px;">-</div>
-      <div class="fund-card-profit" id="profit-ishares" style="font-size:11px; margin-bottom:5px;">-</div>
+      
     </div>
     <div class="mini-chart-container"><canvas id="miniChart-ishares"></canvas></div>
     <div class="fund-card-details-list">
@@ -194,7 +193,7 @@
       <div class="fund-card-title">【E】楽天・全米株式（旧NISA）</div>
       <div class="fund-card-price"><span id="price-vti-old">-,--- 円</span><span class="fund-card-price-date" id="date-vti-old"></span></div>
       <div class="fund-card-profit" id="daychange-price-vti-old" style="font-size:11px; margin-bottom:2px;">-</div>
-      <div class="fund-card-profit" id="profit-vti-old" style="font-size:11px; margin-bottom:5px;">-</div>
+      
     </div>
     <div class="mini-chart-container"><canvas id="miniChart-vti-old"></canvas></div>
     <div class="fund-card-details-list">
@@ -787,45 +786,187 @@ function renderTable() {
 }
 
 function updateDashboardCards() {
+  // 動的マッピング定義（各プレースホルダー要素のIDを指定）
   const cardMapping = {
-    'hifumi': { priceId: 'price-hifumi', profitId: 'profit-hifumi', dateId: 'date-hifumi', canvasId: 'miniChart-hifumi', key: 'hifumi' },
-    'saison': { priceId: 'price-saison', profitId: 'profit-saison', dateId: 'date-saison', canvasId: 'miniChart-saison', key: 'saison' },
-    'vti_new': { priceId: 'price-vti-new', profitId: 'profit-vti-new', dateId: 'date-vti-new', canvasId: 'miniChart-vti-new', key: 'rakuten_vti' },
-    'ishares': { priceId: 'price-ishares', profitId: 'profit-ishares', dateId: 'date-ishares', canvasId: 'miniChart-ishares', key: 'ishares' },
-    'vti_old': { priceId: 'price-vti-old', profitId: 'profit-vti-old', dateId: 'date-vti-old', canvasId: 'miniChart-vti-old', key: 'rakuten_vti' }
+    'hifumi': { 
+      priceId: 'price-hifumi', 
+      profitId: 'profit-hifumi', 
+      dateId: 'date-hifumi', 
+      canvasId: 'miniChart-hifumi', 
+      key: 'hifumi',
+      daychangePriceId: 'daychange-price-hifumi',
+      purchaseId: 'detail-purchase-hifumi',
+      unitsId: 'detail-units-hifumi',
+      marketId: 'detail-market-hifumi',
+      profitDetailId: 'detail-profit-hifumi',
+      daychangeDetailId: 'detail-daychange-hifumi'
+    },
+    'saison': { 
+      priceId: 'price-saison', 
+      profitId: 'profit-saison', 
+      dateId: 'date-saison', 
+      canvasId: 'miniChart-saison', 
+      key: 'saison',
+      daychangePriceId: 'daychange-price-saison',
+      purchaseId: 'detail-purchase-saison',
+      unitsId: 'detail-units-saison',
+      marketId: 'detail-market-saison',
+      profitDetailId: 'detail-profit-saison',
+      daychangeDetailId: 'detail-daychange-saison'
+    },
+    'vti_new': { 
+      priceId: 'price-vti-new', 
+      profitId: 'profit-vti-new', 
+      dateId: 'date-vti-new', 
+      canvasId: 'miniChart-vti-new', 
+      key: 'rakuten_vti',
+      daychangePriceId: 'daychange-price-vti-new',
+      purchaseId: 'detail-purchase-vti-new',
+      unitsId: 'detail-units-vti-new',
+      marketId: 'detail-market-vti-new',
+      profitDetailId: 'detail-profit-vti-new',
+      daychangeDetailId: 'detail-daychange-vti-new'
+    },
+    'ishares': { 
+      priceId: 'price-ishares', 
+      profitId: 'profit-ishares', 
+      dateId: 'date-ishares', 
+      canvasId: 'miniChart-ishares', 
+      key: 'ishares',
+      daychangePriceId: 'daychange-price-ishares',
+      purchaseId: 'detail-purchase-ishares',
+      unitsId: 'detail-units-ishares',
+      marketId: 'detail-market-ishares',
+      profitDetailId: 'detail-profit-ishares',
+      daychangeDetailId: 'detail-daychange-ishares'
+    },
+    'vti_old': { 
+      priceId: 'price-vti-old', 
+      profitId: 'profit-vti-old', 
+      dateId: 'date-vti-old', 
+      canvasId: 'miniChart-vti-old', 
+      key: 'rakuten_vti',
+      daychangePriceId: 'daychange-price-vti-old',
+      purchaseId: 'detail-purchase-vti-old',
+      unitsId: 'detail-units-vti-old',
+      marketId: 'detail-market-vti-old',
+      profitDetailId: 'detail-profit-vti-old',
+      daychangeDetailId: 'detail-daychange-vti-old'
+    }
   };
+
+  const scale = getDemoScale(); // デモ公開モードのスケール取得
   let latestDateStr = "";
+  let yesterdayDateStr = "";
   let latestDateText = "";
+
+  // データベースから最新日付と前日比用日付を取得
   if (priceHistory && Object.keys(priceHistory).length > 0) {
     const sorted = Object.keys(priceHistory).filter(d => d.length === 10).sort();
     if (sorted.length > 0) {
       latestDateStr = sorted[sorted.length - 1]; 
       latestDateText = `(${parseInt(latestDateStr.substring(5,7))}/${parseInt(latestDateStr.substring(8,10))})`; 
+      if (sorted.length > 1) {
+        yesterdayDateStr = sorted[sorted.length - 2];
+      } else {
+        yesterdayDateStr = latestDateStr;
+      }
     }
   }
+
   stocks.forEach(s => {
     const config = cardMapping[s.key];
     if (config) {
-      // 基準価格の動的取得
-      let currentPricePerTenThousand = s.purchasePrice; 
+      // 1. 基準日(当日)価格の取得
+      let currentPrice = s.purchasePrice; 
       if (priceHistory && priceHistory[latestDateStr] && priceHistory[latestDateStr][config.key] !== undefined) {
-        currentPricePerTenThousand = priceHistory[latestDateStr][config.key];
+        currentPrice = priceHistory[latestDateStr][config.key];
       }
-      const elPrice = document.getElementById(config.priceId); if (elPrice) elPrice.innerText = `${Math.round(currentPricePerTenThousand).toLocaleString()} 円`;
-      const elDate = document.getElementById(config.dateId); if (elDate) elDate.innerText = latestDateText;
       
-      // 損益率の動的計算
-      let profitPercent = '0.00';
-      if (s.purchasePrice > 0) { 
-        profitPercent = (((currentPricePerTenThousand - s.purchasePrice) / s.purchasePrice) * 100).toFixed(2); 
+      // 2. 前日営業日価格の取得
+      let yesterdayPrice = currentPrice;
+      if (priceHistory && priceHistory[yesterdayDateStr] && priceHistory[yesterdayDateStr][config.key] !== undefined) {
+        yesterdayPrice = priceHistory[yesterdayDateStr][config.key];
       }
+
+      // 各種計算の実行（ユーザー指定の小数点第2位表示に完全対応）
+      const scaledUnits = s.units * scale;                                            // 保有数(万口)
+      const marketValue = scaledUnits * currentPrice;                                 // 時価総額
+      const purchaseValue = scaledUnits * s.purchasePrice;                             // 元本購入額
+      const profitValue = marketValue - purchaseValue;                                // 評価損益額
+      const profitPercent = purchaseValue > 0 ? ((profitValue / purchaseValue) * 100).toFixed(2) : '0.00'; // 損益率
+
+      // 基準単価の前日比差
+      const priceDiff = currentPrice - yesterdayPrice;
+      const priceDiffPct = yesterdayPrice > 0 ? ((priceDiff / yesterdayPrice) * 100).toFixed(2) : '0.00';
+
+      // 資産価値の前営業日差額
+      const valueDiff = scaledUnits * priceDiff;
+      const valueDiffPct = priceDiffPct;
+
+      // --- 画面への描画・反映処理 ---
+
+      // 基準単価 (円表示)
+      const elPrice = document.getElementById(config.priceId); 
+      if (elPrice) elPrice.innerText = `${Math.round(currentPrice).toLocaleString()} 円`;
+      
+      // 基準日
+      const elDate = document.getElementById(config.dateId); 
+      if (elDate) elDate.innerText = latestDateText;
+
+      // ① 基準単価ベースの前日比
+      const elDaychangePrice = document.getElementById(config.daychangePriceId);
+      if (elDaychangePrice) {
+        const sign = priceDiff >= 0 ? '+' : '';
+        elDaychangePrice.innerText = `前日比：${sign}${Math.round(priceDiff).toLocaleString()} (${sign}${priceDiffPct}%)`;
+        elDaychangePrice.className = `fund-card-profit ${priceDiff >= 0 ? 'profit-plus' : 'profit-minus'}`;
+      }
+      
+      // ② 現在損益 (基準単価の現在位置に対する変化)
       const profitEl = document.getElementById(config.profitId);
       if (profitEl) {
-        const profitVal = parseFloat(profitPercent);
-        profitEl.innerText = `現在損益: ${profitVal >= 0 ? '+' : ''}${profitPercent}%`;
-        profitEl.className = `fund-card-profit ${profitVal >= 0 ? 'profit-plus' : 'profit-minus'}`;
+        const sign = (currentPrice - s.purchasePrice) >= 0 ? '+' : '';
+        const pct = s.purchasePrice > 0 ? (((currentPrice - s.purchasePrice) / s.purchasePrice) * 100).toFixed(2) : '0.00';
+        profitEl.innerText = `現在損益: ${sign}${pct}%`;
+        profitEl.className = `fund-card-profit ${(currentPrice - s.purchasePrice) >= 0 ? 'profit-plus' : 'profit-minus'}`;
       }
-      if (priceHistory) renderCardMiniChart(config.canvasId, config.key, s.purchasePrice, currentPricePerTenThousand);
+
+      // ③ 詳細欄：購入価格
+      const elDetPurchase = document.getElementById(config.purchaseId);
+      if (elDetPurchase) {
+        elDetPurchase.innerText = `${Math.round(s.purchasePrice).toLocaleString()}円`;
+      }
+
+      // ④ 詳細欄：保有口数 (小数点以下2桁)
+      const elDetUnits = document.getElementById(config.unitsId);
+      if (elDetUnits) {
+        elDetUnits.innerText = `${scaledUnits.toFixed(2)}万口`;
+      }
+
+      // ⑤ 詳細欄：時価評価額 (小数点以下2桁)
+      const elDetMarket = document.getElementById(config.marketId);
+      if (elDetMarket) {
+        elDetMarket.innerText = `${marketValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}円`;
+      }
+
+      // ⑥ 詳細欄：評価損益 (小数点以下2桁)
+      const elDetProfit = document.getElementById(config.profitDetailId);
+      if (elDetProfit) {
+        const sign = profitValue >= 0 ? '+' : '';
+        elDetProfit.innerText = `${sign}${profitValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}円 (${sign}${profitPercent}%)`;
+        elDetProfit.className = profitValue >= 0 ? 'profit-plus' : 'profit-minus';
+      }
+
+      // ⑦ 詳細欄：前日差 (小数点以下2桁)
+      const elDetDaychange = document.getElementById(config.daychangeDetailId);
+      if (elDetDaychange) {
+        const sign = valueDiff >= 0 ? '+' : '';
+        elDetDaychange.innerText = `${sign}${valueDiff.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}円 (${sign}${valueDiffPct}%)`;
+        elDetDaychange.className = valueDiff >= 0 ? 'profit-plus' : 'profit-minus';
+      }
+
+      // チャート描画
+      if (priceHistory) renderCardMiniChart(config.canvasId, config.key, s.purchasePrice, currentPrice);
     }
   });
 }
