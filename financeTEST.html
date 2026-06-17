@@ -13,14 +13,19 @@
   .header-container{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;}
   .fund-cards-container{display:flex;gap:10px;margin-bottom:25px;flex-wrap:nowrap;overflow-x:auto;}
 /* 元の .fund-card から高さを自動伸縮（min-height設定）に変更 */
-/* min-height を 390px から 410px に変更 */
-  .fund-card{flex:1;min-width:180px;background:white;border:1px solid #e1e8ed;border-radius:8px;padding:12px;box-shadow:0 2px 4px rgba(0,0,0,0.02);display:flex;flex-direction:column;justify-content:space-between;height:auto;min-height:410px;box-sizing:border-box;}
+/* 仕切り線や追加情報の増加に伴い、min-height を 410px から 490px に変更 */
+  .fund-card{flex:1;min-width:180px;background:white;border:1px solid #e1e8ed;border-radius:8px;padding:12px;box-shadow:0 2px 4px rgba(0,0,0,0.02);display:flex;flex-direction:column;justify-content:space-between;height:auto;min-height:490px;box-sizing:border-box;}
   
   /* 追加：カード内詳細テキストの一覧用スタイル */
   .fund-card-details-list{font-size:11px;color:#4a5568;line-height:1.6;margin-top:8px;border-top:1px dashed #e1e8ed;padding-top:8px;}
   .fund-card-details-item{display:flex;justify-content:space-between;align-items:baseline;}
   .fund-card-details-item span:first-child{color:#718096;font-weight:bold;}
-  .fund-card-details-item span:last-child{font-family:monospace;font-weight:bold;}
+  /* span:last-child に text-align: right; を追加して、改行されたテキストも右揃えにします */
+  .fund-card-details-item span:last-child{font-family:monospace;font-weight:bold;text-align:right;}
+  .fund-card-details-item:nth-child(3) span:last-child{font-weight:bold;font-size:15px;}
+
+  /* 新規：カード内の点線仕切り線用スタイル */
+  .fund-card-divider{border-top:1px dashed #e1e8ed;margin:6px 0;}
   .fund-card-title{font-size:12px;font-weight:bold;color:#4a5568;line-height:1.4;height:35px;}
   .fund-card-price{font-size:18px;font-weight:bold;color:#1a202c;margin:5px 0 2px 0;display:flex;align-items:baseline;gap:5px;}
   .fund-card-price-date{font-size:11px;font-weight:bold;color:#718096;}
@@ -132,6 +137,12 @@
       <div class="fund-card-details-item"><span>損益:</span><span id="detail-profit-hifumi">-</span></div>
       <div class="fund-card-details-item"><span>前日差:</span><span id="detail-daychange-hifumi">-</span></div>
       <div class="fund-card-details-item"><span>元本:</span><span id="detail-principal-hifumi">-</span></div>
+      <!-- 仕切り線と追加の3項目 -->
+      <div class="fund-card-divider"></div>
+      <div class="fund-card-details-item"><span>毎月投資額:</span><span id="detail-monthly-hifumi">-</span></div>
+
+      <div class="fund-card-details-item"><span>区分:</span><span id="detail-nisa-hifumi">-</span></div>
+      <div class="fund-card-details-item"><span>投資期間:</span><span id="detail-period-hifumi">-</span></div>
     </div>
   </div>
 
@@ -150,6 +161,12 @@
       <div class="fund-card-details-item"><span>損益:</span><span id="detail-profit-saison">-</span></div>
       <div class="fund-card-details-item"><span>前日差:</span><span id="detail-daychange-saison">-</span></div>
       <div class="fund-card-details-item"><span>元本:</span><span id="detail-principal-saison">-</span></div>
+      <!-- 仕切り線と追加の3項目 -->
+      <div class="fund-card-divider"></div>
+      <div class="fund-card-details-item"><span>毎月投資額:</span><span id="detail-monthly-saison">-</span></div>
+
+      <div class="fund-card-details-item"><span>区分:</span><span id="detail-nisa-saison">-</span></div>
+      <div class="fund-card-details-item"><span>投資期間:</span><span id="detail-period-saison">-</span></div>
     </div>
   </div>
 
@@ -168,6 +185,12 @@
       <div class="fund-card-details-item"><span>損益:</span><span id="detail-profit-vti-new">-</span></div>
       <div class="fund-card-details-item"><span>前日差:</span><span id="detail-daychange-vti-new">-</span></div>
       <div class="fund-card-details-item"><span>元本:</span><span id="detail-principal-vti-new">-</span></div>
+      <!-- 仕切り線と追加の3項目 -->
+      <div class="fund-card-divider"></div>
+      <div class="fund-card-details-item"><span>毎月投資額:</span><span id="detail-monthly-vti-new">-</span></div>
+
+      <div class="fund-card-details-item"><span>区分:</span><span id="detail-nisa-vti-new">-</span></div>
+      <div class="fund-card-details-item"><span>投資期間:</span><span id="detail-period-vti-new">-</span></div>
     </div>
   </div>
 
@@ -186,6 +209,12 @@
       <div class="fund-card-details-item"><span>損益:</span><span id="detail-profit-ishares">-</span></div>
       <div class="fund-card-details-item"><span>前日差:</span><span id="detail-daychange-ishares">-</span></div>
       <div class="fund-card-details-item"><span>元本:</span><span id="detail-principal-ishares">-</span></div>
+      <!-- 仕切り線と追加の3項目 -->
+      <div class="fund-card-divider"></div>
+      <div class="fund-card-details-item"><span>毎月投資額:</span><span id="detail-monthly-ishares">-</span></div>
+
+      <div class="fund-card-details-item"><span>区分:</span><span id="detail-nisa-ishares">-</span></div>
+      <div class="fund-card-details-item"><span>投資期間:</span><span id="detail-period-ishares">-</span></div>
     </div>
   </div>
 
@@ -204,6 +233,12 @@
       <div class="fund-card-details-item"><span>損益:</span><span id="detail-profit-vti-old">-</span></div>
       <div class="fund-card-details-item"><span>前日差:</span><span id="detail-daychange-vti-old">-</span></div>
       <div class="fund-card-details-item"><span>元本:</span><span id="detail-principal-vti-old">-</span></div>
+      <!-- 仕切り線と追加の3項目 -->
+      <div class="fund-card-divider"></div>
+      <div class="fund-card-details-item"><span>毎月投資額:</span><span id="detail-monthly-vti-old">-</span></div>
+
+      <div class="fund-card-details-item"><span>区分:</span><span id="detail-nisa-vti-old">-</span></div>
+      <div class="fund-card-details-item"><span>投資期間:</span><span id="detail-period-vti-old">-</span></div>
     </div>
   </div>
 </div>
@@ -788,7 +823,7 @@ function renderTable() {
 }
 
 function updateDashboardCards() {
-  // マッピング定義に principalId を追加
+  // マッピング定義に追加項目を登録
   const cardMapping = {
     'hifumi': { 
       priceId: 'price-hifumi', 
@@ -802,7 +837,10 @@ function updateDashboardCards() {
       marketId: 'detail-market-hifumi',
       profitDetailId: 'detail-profit-hifumi',
       daychangeDetailId: 'detail-daychange-hifumi',
-      principalId: 'detail-principal-hifumi'
+      principalId: 'detail-principal-hifumi',
+      nisaId: 'detail-nisa-hifumi',
+      periodId: 'detail-period-hifumi',
+      monthlyId: 'detail-monthly-hifumi'
     },
     'saison': { 
       priceId: 'price-saison', 
@@ -816,7 +854,10 @@ function updateDashboardCards() {
       marketId: 'detail-market-saison',
       profitDetailId: 'detail-profit-saison',
       daychangeDetailId: 'detail-daychange-saison',
-      principalId: 'detail-principal-saison'
+      principalId: 'detail-principal-saison',
+      nisaId: 'detail-nisa-saison',
+      periodId: 'detail-period-saison',
+      monthlyId: 'detail-monthly-saison'
     },
     'vti_new': { 
       priceId: 'price-vti-new', 
@@ -830,7 +871,10 @@ function updateDashboardCards() {
       marketId: 'detail-market-vti-new',
       profitDetailId: 'detail-profit-vti-new',
       daychangeDetailId: 'detail-daychange-vti-new',
-      principalId: 'detail-principal-vti-new'
+      principalId: 'detail-principal-vti-new',
+      nisaId: 'detail-nisa-vti-new',
+      periodId: 'detail-period-vti-new',
+      monthlyId: 'detail-monthly-vti-new'
     },
     'ishares': { 
       priceId: 'price-ishares', 
@@ -844,7 +888,10 @@ function updateDashboardCards() {
       marketId: 'detail-market-ishares',
       profitDetailId: 'detail-profit-ishares',
       daychangeDetailId: 'detail-daychange-ishares',
-      principalId: 'detail-principal-ishares'
+      principalId: 'detail-principal-ishares',
+      nisaId: 'detail-nisa-ishares',
+      periodId: 'detail-period-ishares',
+      monthlyId: 'detail-monthly-ishares'
     },
     'vti_old': { 
       priceId: 'price-vti-old', 
@@ -858,7 +905,10 @@ function updateDashboardCards() {
       marketId: 'detail-market-vti-old',
       profitDetailId: 'detail-profit-vti-old',
       daychangeDetailId: 'detail-daychange-vti-old',
-      principalId: 'detail-principal-vti-old'
+      principalId: 'detail-principal-vti-old',
+      nisaId: 'detail-nisa-vti-old',
+      periodId: 'detail-period-vti-old',
+      monthlyId: 'detail-monthly-vti-old'
     }
   };
 
@@ -963,10 +1013,31 @@ function updateDashboardCards() {
         elDetDaychange.className = valueDiff >= 0 ? 'profit-plus' : 'profit-minus';
       }
 
-      // ★ 追加：元本 (総購入額) の表示処理 (小数点以下2桁)
+      // 元本 (総購入額) の表示処理 (小数点以下2桁)
       const elDetPrincipal = document.getElementById(config.principalId);
       if (elDetPrincipal) {
         elDetPrincipal.innerText = `${purchaseValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}円`;
+      }
+
+      // ★ 新規追加：区分 (NISA / 課税) の表示処理
+      const elDetNisa = document.getElementById(config.nisaId);
+      if (elDetNisa) {
+        elDetNisa.innerText = s.isNISA ? 'NISA' : '課税';
+      }
+
+      // ★ 新規追加：投資期間の表示処理 (全角カッコの手前で改行して2行表示にする)
+      const elDetPeriod = document.getElementById(config.periodId);
+      if (elDetPeriod) {
+        const rawPeriodText = calculatePeriodText(s.periodText);
+        // 全角カッコ「（」の手前に改行タグ「<br>」を挿入して、HTMLとして割り当てます
+        elDetPeriod.innerHTML = rawPeriodText.replace('（', '<br>（');
+      }
+
+      // ★ 新規追加：毎月の積立額の表示処理 (設定値にスケール倍率を適用して算出)
+      const elDetMonthly = document.getElementById(config.monthlyId);
+      if (elDetMonthly) {
+        const scaledMonthly = s.monthlyInvest * scale;
+        elDetMonthly.innerText = scaledMonthly > 0 ? `${Math.round(scaledMonthly).toLocaleString()}円` : 'なし';
       }
 
       if (priceHistory) renderCardMiniChart(config.canvasId, config.key, s.purchasePrice, currentPrice);
