@@ -1116,7 +1116,7 @@ function updateBarCharts(totals) {
 
   // ① 額面時価総額バーの更新（左から：元本 -> 課税利益(税額含む) -> NISA利益）
   setBarSegment('bar-past-purchase', purchasePct, '元本', displayPurchaseVal);
-  setBarSegment('bar-past-taxable', taxableNetPct + taxPct, '課税利益\n(課税金額含む)', taxable);
+  setBarSegment('bar-past-taxable', taxableNetPct + taxPct, '課税利益 (課税金額含む)', taxable);
   setBarSegment('bar-past-nisa', nisaPct, 'NISA利益', nisa);
 
   // ② 税引後実質手残りバーの更新（左から：元本 -> 税引後利益 -> NISA利益 -> 想定税額控除分(最後尾)）
