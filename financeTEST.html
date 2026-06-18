@@ -245,11 +245,55 @@
 
 
 
-<div class="flex-container">
+<!-- 1. 資産構成の視覚化（手残り分析）とサマリーの並列表示 -->
+<div class="flex-container" style="display: flex; gap: 20px; align-items: stretch; margin-bottom: 20px;">
+  
+  <!-- 左側：積み上げ棒グラフによる視覚化カード (幅1.5) -->
+  <div class="flex-child" style="flex: 1.5; min-width: 400px;">
+    <div class="card" style="height: 100%; box-sizing: border-box; margin-bottom: 0; display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <h3 style="margin-top: 0;">1. 資産構成 of 視覚化（手残り分析）</h3>
+        <p class="label-desc" style="margin-bottom: 20px;">※額面総資産に対する、元本・税金・実質手残り利益の比率を視覚化しています。</p>
+      </div>
+      
+      <!-- ① 額面時価総額（税引前）のスタックバー -->
+      <div style="margin-bottom: 25px;">
+        <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 6px; font-weight: bold; color: #4a5568;">
+          <span>① 額面時価総額: <span id="bar-total-market-label" style="font-size: 13px; color: #1a202c;">0円</span></span>
+          <span style="color: #718096; font-weight: normal;">額面（税引前）</span>
+        </div>
+        <div style="display: flex; height: 38px; border-radius: 6px; overflow: hidden; background: #e2e8f0; font-size: 10px; color: white; font-weight: bold; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);">
+          <!-- 左：元本 -->
+          <div id="bar-past-purchase" style="background: #718096; display: flex; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden;">元本</div>
+          <!-- 中：課税利益（マージ済） -->
+          <div id="bar-past-taxable" style="background: #3182ce; display: flex; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden;">課税利益（課税金額含む）</div>
+          <!-- 右：NISA利益 -->
+          <div id="bar-past-nisa" style="background: #2f855a; display: flex; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden;">NISA利益</div>
+        </div>
+      </div>
 
-  <div class="flex-child" style="flex: 1;">
-    <div class="card">
-      <h3>3現在の資産状況</h3>
+      <!-- ② 税引後評価額（実質手残り）のスタックバー -->
+      <div>
+        <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 6px; font-weight: bold; color: #4a5568;">
+          <span>② 税引後評価額（実質手残り）: <span id="bar-after-tax-label" style="font-size: 13px; color: #2f855a;">0円</span></span>
+          <span style="color: #c53030; font-weight: normal;">手取りベース（控除税額: <span id="bar-tax-amount-label">0円</span>）</span>
+        </div>
+        <div style="display: flex; height: 38px; border-radius: 6px; overflow: hidden; background: #e2e8f0; font-size: 10px; color: white; font-weight: bold; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);">
+          <!-- 左から：元本 -> 税引後利益 -> NISA利益 -> 想定税額控除分 (ストライプ状のゴーストブロック) -->
+          <div id="bar-after-purchase" style="background: #718096; display: flex; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden;">元本</div>
+          <div id="bar-after-taxable-net" style="background: #319795; display: flex; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden;">税引後利益</div>
+          <div id="bar-after-nisa" style="background: #2f855a; display: flex; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden;">NISA利益</div>
+          <div id="bar-after-tax-ghost" style="background: repeating-linear-gradient(45deg, #f7fafc, #f7fafc 6px, #cbd5e0 6px, #cbd5e0 12px); color: #718096; display: flex; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden; font-weight: normal;">(税控除)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右側：現在の資産状況（サマリーテキスト） -->
+  <div class="flex-child" style="flex: 1; min-width: 300px;">
+    <div class="card" style="height: 100%; box-sizing: border-box; margin-bottom: 0;">
+      <h3>2. 現在の資産状況</h3>
+      <p class="label-desc" style="margin-bottom: 12px;">※確定データに基づく税金計算等のサマリー情報です。</p>
       <div id="summary">データ読み込み中...</div>
     </div>
   </div>
@@ -578,11 +622,12 @@ function updateFundSettings(key) {
 }
 
 function initBaseSystem() {
-  renderTable();
+  // renderTable(); // 不要になった銘柄テーブルの描画を無効化
   const totals = calculateCurrentTotals();
   renderSummary(totals);
   updateDashboardCards();
-  updateHeaderSummary(); // ← これを追加
+  updateHeaderSummary();
+  updateBarCharts(totals); // 新規追加：資産内訳スタックバーを最新化
 }
 
 function loadPriceHistoryAndRenderChart() {
@@ -1029,6 +1074,83 @@ function updateDashboardCards() {
     }
   });
 }
+
+
+// 比率を再算出・並び順（2本目最後尾に税額控除）を変更して2つのスタックバーを更新する関数
+function updateBarCharts(totals) {
+  const market = totals.totalMarket;
+  const purchase = totals.totalPurchase;
+  const tax = totals.tax;
+  const nisa = totals.nisaProfit;
+  const taxable = totals.taxableProfit;
+
+  let nisaPct = 0;
+  let taxableNetPct = 0;
+  let taxPct = 0;
+  let purchasePct = 100;
+
+  if (market > 0) {
+    if (totals.totalProfit > 0) {
+      nisaPct = (Math.max(0, nisa) / market) * 100;
+      taxPct = (Math.max(0, tax) / market) * 100;
+      taxableNetPct = (Math.max(0, taxable - tax) / market) * 100;
+      purchasePct = (purchase / market) * 100;
+    } else {
+      // 評価損（元本割れ）の時は、利益などのセグメントを非表示にして元本100%のみにします
+      purchasePct = 100;
+    }
+  }
+
+  // バー上部のテキストラベルの更新
+  const elMarketLabel = document.getElementById('bar-total-market-label');
+  if (elMarketLabel) elMarketLabel.innerText = Math.round(market).toLocaleString() + ' 円';
+
+  const elAfterLabel = document.getElementById('bar-after-tax-label');
+  if (elAfterLabel) elAfterLabel.innerText = Math.round(totals.afterTaxMarket).toLocaleString() + ' 円';
+
+  const elTaxLabel = document.getElementById('bar-tax-amount-label');
+  if (elTaxLabel) elTaxLabel.innerText = Math.round(tax).toLocaleString() + ' 円';
+
+  // 元本割れの時は、表示する元本額を時価（現在の残価値）に制限します
+  const displayPurchaseVal = totals.totalProfit > 0 ? purchase : market;
+
+  // ① 額面時価総額バーの更新（左から：元本 -> 課税利益(税額含む) -> NISA利益）
+  setBarSegment('bar-past-purchase', purchasePct, '元本', displayPurchaseVal);
+  setBarSegment('bar-past-taxable', taxableNetPct + taxPct, '課税利益\n(課税金額含む)', taxable);
+  setBarSegment('bar-past-nisa', nisaPct, 'NISA利益', nisa);
+
+  // ② 税引後実質手残りバーの更新（左から：元本 -> 税引後利益 -> NISA利益 -> 想定税額控除分(最後尾)）
+  setBarSegment('bar-after-purchase', purchasePct, '元本', displayPurchaseVal);
+  setBarSegment('bar-after-taxable-net', taxableNetPct, '税引後利益', taxable - tax);
+  setBarSegment('bar-after-nisa', nisaPct, 'NISA利益', nisa);
+  setBarSegment('bar-after-tax-ghost', taxPct, '(税額控除)', tax);
+}
+
+// 各セグメントの比率に応じた幅とテキスト表示の自動判定ヘルパー関数
+function setBarSegment(id, pct, labelName, valueYen) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  
+  el.style.width = pct + '%';
+  
+  // セグメントの幅に応じて表示テキストを自動制御（はみ出し防止）
+  if (pct > 15) {
+    el.innerText = `${labelName}\n${Math.round(valueYen / 10000).toLocaleString()}万円`;
+    el.style.display = 'flex';
+    el.style.padding = '0 4px';
+  } else if (pct > 6) {
+    el.innerText = labelName;
+    el.style.display = 'flex';
+    el.style.padding = '0 4px';
+  } else if (pct > 0) {
+    el.innerText = '';
+    el.style.display = 'flex';
+    el.style.padding = '0';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
 
 // ==========================================
 // 1. 最新時点の合計値・評価額を動的に算出する関数（前営業日比自動判定版）
