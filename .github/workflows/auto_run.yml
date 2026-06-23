@@ -43,7 +43,7 @@ jobs:
         git config --global user.name "github-actions[bot]"
         git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
         # 記録データ(json)と確認完了フラグ(txt)の両方を監視対象にする
-        git add prices_daily.json last_checked.txt
+        git add prices_daily.json
         if ! git diff-index --quiet HEAD --; then
           git commit -m "【自動記録】本日の巡回・記録処理が完了しました"
           git push
