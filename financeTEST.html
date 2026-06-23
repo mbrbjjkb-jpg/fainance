@@ -257,18 +257,33 @@
       </div>
       
       <!-- ① 額面時価総額（税引前）のスタックバー -->
-      <div style="margin-bottom: 25px;">
+      <div style="margin-bottom: 20px;">
         <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 6px; font-weight: bold; color: #4a5568;">
           <span>① 額面時価総額: <span id="bar-total-market-label" style="font-size: 13px; color: #1a202c;">0円</span></span>
           <span style="color: #718096; font-weight: normal;">額面（税引前）</span>
         </div>
-        <div style="display: flex; height: 38px; border-radius: 6px; overflow: hidden; background: #e2e8f0; font-size: 10px; color: white; font-weight: bold; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);">
+        <!-- 棒グラフ本体 -->
+        <div style="display: flex; height: 38px; border-top-left-radius: 6px; border-top-right-radius: 6px; overflow: hidden; background: #e2e8f0; font-size: 10px; color: white; font-weight: bold; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 0;">
           <!-- 左：元本 -->
           <div id="bar-past-purchase" style="background: #718096; display: flex; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden;">元本</div>
           <!-- 中：課税利益（マージ済） -->
           <div id="bar-past-taxable" style="background: #3182ce; display: flex; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden;">課税利益（課税金額含む）</div>
           <!-- 右：NISA利益 -->
           <div id="bar-past-nisa" style="background: #2f855a; display: flex; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden;">NISA利益</div>
+        </div>
+        
+        <!-- ①用U字型ガイドライン（棒グラフと2pxの隙間を保持） -->
+        <div style="display: flex; width: 100%; height: 6px; margin-top: 2px; margin-bottom: 2px; overflow: hidden;">
+          <div id="bar-guide-spacer" style="width: 70%; transition: width 0.3s;"></div>
+          <div id="bar-guide-bracket" style="width: 30%; border-left: 2px solid #3182ce; border-right: 2px solid #2f855a; border-bottom: 2px solid #4a5568; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; height: 6px; box-sizing: border-box; transition: width 0.3s;"></div>
+        </div>
+        
+        <!-- ①用金額表記（U字型ブラケットの真下中央に追従スライドしてセンタリング） -->
+        <div style="display: flex; width: 100%; font-size: 11px; font-weight: bold; color: #2d3748; padding-top: 2px; overflow: hidden;">
+          <div id="bar-text-spacer" style="width: 70%; transition: width 0.3s;"></div>
+          <div id="bar-text-container" style="width: 30%; text-align: center; transition: width 0.3s; white-space: nowrap; display: flex; justify-content: center;">
+            <span id="bar-total-profit-label" style="font-size: 10px; color: #2f855a; border-bottom: 2px double #2f855a; padding-bottom: 1px; font-family: monospace;">利益合計: -- 円</span>
+          </div>
         </div>
       </div>
 
@@ -278,12 +293,29 @@
           <span>② 税引後評価額（実質手残り）: <span id="bar-after-tax-label" style="font-size: 13px; color: #2f855a;">0円</span></span>
           <span style="color: #c53030; font-weight: normal;">手取りベース（控除税額: <span id="bar-tax-amount-label">0円</span>）</span>
         </div>
-        <div style="display: flex; height: 38px; border-radius: 6px; overflow: hidden; background: #e2e8f0; font-size: 10px; color: white; font-weight: bold; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);">
-          <!-- 左から：元本 -> 税引後利益 -> NISA利益 -> 想定税額控除分 (ストライプ状のゴーストブロック) -->
+        <!-- 棒グラフ本体 -->
+        <div style="display: flex; height: 38px; border-top-left-radius: 6px; border-top-right-radius: 6px; overflow: hidden; background: #e2e8f0; font-size: 10px; color: white; font-weight: bold; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 0;">
+          <!-- 左から：元本 -> 税引後利益 -> NISA利益 -> 想定税額控除分 -->
           <div id="bar-after-purchase" style="background: #718096; display: flex; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden;">元本</div>
           <div id="bar-after-taxable-net" style="background: #319795; display: flex; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden;">税引後利益</div>
           <div id="bar-after-nisa" style="background: #2f855a; display: flex; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden;">NISA利益</div>
           <div id="bar-after-tax-ghost" style="background: repeating-linear-gradient(45deg, #f7fafc, #f7fafc 6px, #cbd5e0 6px, #cbd5e0 12px); color: #718096; display: flex; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden; font-weight: normal;">(税控除)</div>
+        </div>
+
+        <!-- ②用U字型ガイドライン（棒グラフと2pxの隙間を保持、税控除分を避けて吸着） -->
+        <div style="display: flex; width: 100%; height: 6px; margin-top: 2px; margin-bottom: 2px; overflow: hidden;">
+          <div id="bar-guide-spacer2-left" style="width: 60%; transition: width 0.3s;"></div>
+          <div id="bar-guide-bracket2" style="width: 30%; border-left: 2px solid #319795; border-right: 2px solid #2f855a; border-bottom: 2px solid #4a5568; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; height: 6px; box-sizing: border-box; transition: width 0.3s; position: relative; left: -2px;"></div>
+          <div id="bar-guide-spacer2-right" style="width: 10%; transition: width 0.3s;"></div>
+        </div>
+
+        <!-- ②用金額表記（U字型ブラケットの真下中央に追従スライドしてセンタリング） -->
+        <div style="display: flex; width: 100%; font-size: 11px; font-weight: bold; color: #2d3748; padding-top: 2px; overflow: hidden;">
+          <div id="bar-text-spacer2-left" style="width: 60%; transition: width 0.3s;"></div>
+          <div id="bar-text-container2" style="width: 30%; text-align: center; transition: width 0.3s; white-space: nowrap; display: flex; justify-content: center; position: relative; left: -2px;">
+            <span id="bar-total-profit-label2" style="font-size: 10px; color: #2f855a; border-bottom: 2px double #2f855a; padding-bottom: 1px; font-family: monospace;">実質利益合計: -- 円</span>
+          </div>
+          <div id="bar-text-spacer2-right" style="width: 10%; transition: width 0.3s;"></div>
         </div>
       </div>
     </div>
@@ -716,58 +748,7 @@ function generateMockPrices() {
 
 function parseNumber(text) { return parseFloat(text.replace(/[,円+%\s]/g, '')); }
 
-function parseAllStocks() {
-  const text = document.getElementById('inputText').value.trim(); if (!text) return;
-  const lines = text.split('\n');
-  let hasUpdated = false;
 
-  lines.forEach(line => {
-    if (!line.trim()) return;
-    if (line.includes('ひふみ投信') || line.includes('セゾン') || line.includes('楽天・全米') || line.includes('iシェアーズ')) {
-      const parts = line.split('\t');
-      // 名称・取得単価・保有口数の3要素を対象にパース
-      if (parts.length >= 3) {
-        const name = parts[0].trim(); 
-        const purchasePrice = parseNumber(parts[1]); 
-        const units = parseNumber(parts[2]);
-
-        let key = '';
-        if (name.includes('ひふみ')) key = 'hifumi';
-        if (name.includes('セゾン')) key = 'saison';
-        if (name.includes('新NISA')) key = 'vti_new';
-        if (name.includes('iシェアーズ')) key = 'ishares';
-        if (name.includes('旧NISA')) key = 'vti_old';
-
-        if (key) {
-          const s = stocks.find(item => item.key === key);
-          if (s) {
-            s.units = units;
-            s.purchasePrice = purchasePrice;
-            hasUpdated = true;
-          }
-        }
-      }
-    }
-  });
-
-  if (hasUpdated) {
-    // 変更された「現在の設定値」をローカルストレージへ即時反映
-    const savedSettings = {};
-    stocks.forEach(s => {
-      savedSettings[s.key] = { units: s.units, purchasePrice: s.purchasePrice, monthlyInvest: s.monthlyInvest, periodText: s.periodText };
-    });
-    localStorage.setItem('portfolio_config', JSON.stringify(savedSettings));
-
-    // 各画面コンポーネントを最新の3要素に基づいて再計算・再描画
-    initInputFields(); 
-    initBaseSystem(); 
-    loadPriceHistoryAndRenderChart();
-    document.getElementById('inputText').value = '';
-    writeLog("【成功】コピペデータから最新の口数と取得単価を同期しました。");
-  } else {
-    alert("解析できませんでした。フォーマット（名称・取得単価・保有数の順）を確認してください。");
-  }
-}
 
 function calculatePeriodText(periodText) {
   if (!periodText || !periodText.includes('-')) return "不明";
@@ -793,64 +774,6 @@ function calculatePeriodText(periodText) {
   return isOngoing ? `${startPart}〜継続中（${ageText}）` : `${startPart}〜${endPart}（${ageText}）`;
 }
 
-function renderTable() {
-  const tbody = document.querySelector('#stockTable tbody'); if (!tbody) return; tbody.innerHTML = '';
-  
-  let latestDateStr = "";
-  if (priceHistory && Object.keys(priceHistory).length > 0) {
-    const sorted = Object.keys(priceHistory).filter(d => d.length === 10).sort();
-    if (sorted.length > 0) latestDateStr = sorted[sorted.length - 1];
-  }
-
-  const nameToJsonKeyMap = { 
-    'hifumi': 'hifumi', 
-    'saison': 'saison', 
-    'vti_new': 'rakuten_vti', 
-    'ishares': 'ishares', 
-    'vti_old': 'rakuten_vti' 
-  };
-
-  stocks.forEach(s => {
-    let keyMark = '';
-    if (s.name.includes('ひふみ')) keyMark = '【A】';
-    else if (s.name.includes('セゾン')) keyMark = '【B】';
-    else if (s.name.includes('新NISA')) keyMark = '【C】';
-    else if (s.name.includes('iシェアーズ')) keyMark = '【D】';
-    else if (s.name.includes('旧NISA')) keyMark = '【E】';
-
-    const dynamicPeriodText = calculatePeriodText(s.periodText);
-    const jsonKey = nameToJsonKeyMap[s.key];
-
-    // 最新の基準価格を取得
-    let currentPrice = s.purchasePrice;
-    if (priceHistory && priceHistory[latestDateStr] && jsonKey && priceHistory[latestDateStr][jsonKey] !== undefined) {
-      currentPrice = priceHistory[latestDateStr][jsonKey];
-    }
-    
-    // 3要素（口数・基準価格・取得単価）から時価および個別損益を計算
-    const marketValue = s.units * currentPrice;
-    const purchaseValue = s.units * s.purchasePrice;
-    const profit = marketValue - purchaseValue;
-    const profitPercent = purchaseValue > 0 ? ((profit / purchaseValue) * 100).toFixed(2) : '0.00';
-
-    // ★ 最終更新日の表示を追加（値がある場合のみ改行を挟んで表示）
-    const updateLabel = s.lastUpdated ? `<br><span style="font-size:10px; color:#718096; font-weight:normal;">(${s.lastUpdated}更新)</span>` : '';
-
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td style="text-align:left; font-weight:bold;">${keyMark}${s.name}${updateLabel}</td>
-      <td>${Math.round(s.purchasePrice).toLocaleString()}円</td>
-      <td>${s.units}</td>
-      <td>${Math.round(marketValue).toLocaleString()}円</td>
-      <td style="color:${profit >= 0 ? 'green' : 'red'}">
-        ${Math.round(profit).toLocaleString()}円<br>
-        (${profit >= 0 ? '+' : ''}${profitPercent}%)
-      </td>
-      <td>${s.isNISA ? 'NISA' : '課税'}</td>
-      <td style="font-size:11px; color:#555;">${dynamicPeriodText}</td>`;
-    tbody.appendChild(tr);
-  });
-}
 
 function updateDashboardCards() {
   // マッピング定義に追加項目を登録
@@ -1119,11 +1042,95 @@ function updateBarCharts(totals) {
   setBarSegment('bar-past-taxable', taxableNetPct + taxPct, '課税利益 (課税金額含む)', taxable);
   setBarSegment('bar-past-nisa', nisaPct, 'NISA利益', nisa);
 
-  // ② 税引後実質手残りバーの更新（左から：元本 -> 税引後利益 -> NISA利益 -> 想定税額控除分(最後尾)）
+  // ② 税引後実質手残りバーの更新（左から：元本 -> 税引後利益 -> NISA利益 -> 想定税額控除分 (最後尾)）
   setBarSegment('bar-after-purchase', purchasePct, '元本', displayPurchaseVal);
   setBarSegment('bar-after-taxable-net', taxableNetPct, '税引後利益', taxable - tax);
   setBarSegment('bar-after-nisa', nisaPct, 'NISA利益', nisa);
   setBarSegment('bar-after-tax-ghost', taxPct, '(税額控除)', tax);
+
+  // ===================================================
+  // ① 額面時価総額用のブラケットおよびテキストの同期処理（センタリング対応）
+  // ===================================================
+  const elGuideSpacer = document.getElementById('bar-guide-spacer');
+  const elGuideBracket = document.getElementById('bar-guide-bracket');
+  const elTextSpacer = document.getElementById('bar-text-spacer');
+  const elTextContainer = document.getElementById('bar-text-container');
+  const elTotalProfitLabel = document.getElementById('bar-total-profit-label');
+
+  if (totals.totalProfit > 0) {
+    const profitPct = 100 - purchasePct; // 利益全体（課税＋NISA）の合計割合
+    
+    // ガイドライン（U字型）の同期
+    if (elGuideSpacer) elGuideSpacer.style.width = purchasePct + '%';
+    if (elGuideBracket) {
+      elGuideBracket.style.width = profitPct + '%';
+      elGuideBracket.style.display = 'block';
+    }
+    
+    // テキストスライダー（水平移動）の同期
+    if (elTextSpacer) elTextSpacer.style.width = purchasePct + '%';
+    if (elTextContainer) {
+      elTextContainer.style.width = profitPct + '%';
+      elTextContainer.style.display = 'flex';
+    }
+    if (elTotalProfitLabel) {
+      elTotalProfitLabel.innerText = '利益合計: ' + Math.round(totals.totalProfit).toLocaleString() + ' 円';
+    }
+  } else {
+    if (elGuideSpacer) elGuideSpacer.style.width = '100%';
+    if (elGuideBracket) elGuideBracket.style.display = 'none';
+    if (elTextSpacer) elTextSpacer.style.width = '100%';
+    if (elTextContainer) elTextContainer.style.display = 'none';
+    if (elTotalProfitLabel) elTotalProfitLabel.innerText = '利益合計: 0 円';
+  }
+
+  // ===================================================
+  // ② 税引後手残り用のブラケットおよびテキストの同期処理（センタリング対応）
+  // ===================================================
+  const elSpacer2Left = document.getElementById('bar-guide-spacer2-left');
+  const elBracket2 = document.getElementById('bar-guide-bracket2');
+  const elSpacer2Right = document.getElementById('bar-guide-spacer2-right');
+  
+  const elTextSpacer2Left = document.getElementById('bar-text-spacer2-left');
+  const elTextContainer2 = document.getElementById('bar-text-container2');
+  const elTextSpacer2Right = document.getElementById('bar-text-spacer2-right');
+  const elTotalProfitLabel2 = document.getElementById('bar-total-profit-label2');
+
+  const netProfit = (taxable - tax) + nisa; // 税引後利益 ＋ NISA利益
+
+  if (netProfit > 0) {
+    const netProfitPct = taxableNetPct + nisaPct; // 税引後利益とNISA利益の合計割合
+    
+    // ガイドライン（U字型）の同期
+    if (elSpacer2Left) elSpacer2Left.style.width = purchasePct + '%';
+    if (elBracket2) {
+      elBracket2.style.width = netProfitPct + '%';
+      elBracket2.style.display = 'block';
+    }
+    if (elSpacer2Right) elSpacer2Right.style.width = taxPct + '%';
+    
+    // テキストスライダー（水平移動）の同期
+    if (elTextSpacer2Left) elTextSpacer2Left.style.width = purchasePct + '%';
+    if (elTextContainer2) {
+      elTextContainer2.style.width = netProfitPct + '%';
+      elTextContainer2.style.display = 'flex';
+    }
+    if (elTextSpacer2Right) elTextSpacer2Right.style.width = taxPct + '%';
+    
+    if (elTotalProfitLabel2) {
+      elTotalProfitLabel2.innerText = '実質利益合計: ' + Math.round(netProfit).toLocaleString() + ' 円';
+    }
+  } else {
+    if (elSpacer2Left) elSpacer2Left.style.width = '100%';
+    if (elBracket2) elBracket2.style.display = 'none';
+    if (elSpacer2Right) elSpacer2Right.style.width = '0%';
+    
+    if (elTextSpacer2Left) elTextSpacer2Left.style.width = '100%';
+    if (elTextContainer2) elTextContainer2.style.display = 'none';
+    if (elTextSpacer2Right) elTextSpacer2Right.style.width = '0%';
+    
+    if (elTotalProfitLabel2) elTotalProfitLabel2.innerText = '実質利益合計: 0 円';
+  }
 }
 
 // 各セグメントの比率に応じた幅とテキスト表示の自動判定ヘルパー関数
@@ -1133,15 +1140,19 @@ function setBarSegment(id, pct, labelName, valueYen) {
   
   el.style.width = pct + '%';
   
-  // セグメントの幅に応じて表示テキストを自動制御（はみ出し防止）
-  if (pct > 15) {
+  // 判定条件の数値を引き下げ、狭い領域でもフォントを自動縮小して金額を表示させます（はみ出しガード付き）
+  if (pct > 7) {
     el.innerText = `${labelName}\n${Math.round(valueYen / 10000).toLocaleString()}万円`;
     el.style.display = 'flex';
-    el.style.padding = '0 4px';
-  } else if (pct > 6) {
+    el.style.padding = '0 2px';
+    el.style.fontSize = pct < 12 ? '8.5px' : '10px'; // 領域が狭いときは文字を小さく
+    el.style.whiteSpace = 'pre-wrap';
+  } else if (pct > 4) {
     el.innerText = labelName;
     el.style.display = 'flex';
-    el.style.padding = '0 4px';
+    el.style.padding = '0 2px';
+    el.style.fontSize = '8.5px';
+    el.style.whiteSpace = 'nowrap';
   } else if (pct > 0) {
     el.innerText = '';
     el.style.display = 'flex';
