@@ -13,12 +13,40 @@
   .header-container{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;}
   .fund-cards-container{display:flex;gap:10px;margin-bottom:25px;flex-wrap:nowrap;overflow-x:auto;}
 /* 元の .fund-card から高さを自動伸縮（min-height設定）に変更 */
-/* 仕切り線や追加情報の増加に伴い、min-height を 410px から 490px に変更 */
+/* パディングなし（0）のため、min-height は元の 490px に戻してあります */
   .fund-card{flex:1;min-width:180px;background:white;border:1px solid #e1e8ed;border-radius:8px;padding:12px;box-shadow:0 2px 4px rgba(0,0,0,0.02);display:flex;flex-direction:column;justify-content:space-between;height:auto;min-height:490px;box-sizing:border-box;}
   
-  /* 追加：カード内詳細テキストの一覧用スタイル */
+  /* カード内詳細テキストの一覧用スタイル */
   .fund-card-details-list{font-size:11px;color:#4a5568;line-height:1.6;margin-top:8px;border-top:1px dashed #e1e8ed;padding-top:8px;}
-  .fund-card-details-item{display:flex;justify-content:space-between;align-items:baseline;}
+  
+  /* 詳細行の基本デザイン（パディング（内側の余白）を設けない設定です） */
+  .fund-card-details-item{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    padding: 0; /* 余白をなしにします */
+    box-sizing: border-box;
+  }
+
+  /* 
+    交互の背景色設定（点線の仕切り線をまたいでも、完全に灰色と白が交互に繰り返されるよう
+    仕切り線タグをスキップしたインデックスを指定しています）
+  */
+  .fund-card-details-item:nth-child(1),  /* 購入価格 */
+  .fund-card-details-item:nth-child(3),  /* 時価 */
+  .fund-card-details-item:nth-child(5),  /* 前日差 */
+  .fund-card-details-item:nth-child(8),  /* 毎月投資額 */
+  .fund-card-details-item:nth-child(10)  /* 投資期間 */ {
+    background-color: #f7fafc; /* 薄い灰色（Tailwind cssの gray-50 相当） */
+  }
+
+  .fund-card-details-item:nth-child(2),  /* 保有数 */
+  .fund-card-details-item:nth-child(4),  /* 損益 */
+  .fund-card-details-item:nth-child(6),  /* 元本 */
+  .fund-card-details-item:nth-child(9)   /* 区分 */ {
+    background-color: #ffffff; /* 白 */
+  }
+
   .fund-card-details-item span:first-child{color:#718096;font-weight:bold;}
   /* span:last-child に text-align: right; を追加して、改行されたテキストも右揃えにします */
   .fund-card-details-item span:last-child{font-family:monospace;font-weight:bold;text-align:right;}
@@ -305,14 +333,14 @@
         <!-- ②用U字型ガイドライン（棒グラフと2pxの隙間を保持、税控除分を避けて吸着） -->
         <div style="display: flex; width: 100%; height: 6px; margin-top: 2px; margin-bottom: 2px; overflow: hidden;">
           <div id="bar-guide-spacer2-left" style="width: 60%; transition: width 0.3s;"></div>
-          <div id="bar-guide-bracket2" style="width: 30%; border-left: 2px solid #319795; border-right: 2px solid #2f855a; border-bottom: 2px solid #4a5568; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; height: 6px; box-sizing: border-box; transition: width 0.3s; position: relative; left: -2px;"></div>
+          <div id="bar-guide-bracket2" style="width: 30%; border-left: 2px solid #319795; border-right: 2px solid #2f855a; border-bottom: 2px solid #4a5568; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; height: 6px; box-sizing: border-box; transition: width 0.3s; position: relative; left: -3px;"></div>
           <div id="bar-guide-spacer2-right" style="width: 10%; transition: width 0.3s;"></div>
         </div>
 
         <!-- ②用金額表記（U字型ブラケットの真下中央に追従スライドしてセンタリング） -->
         <div style="display: flex; width: 100%; font-size: 11px; font-weight: bold; color: #2d3748; padding-top: 2px; overflow: hidden;">
           <div id="bar-text-spacer2-left" style="width: 60%; transition: width 0.3s;"></div>
-          <div id="bar-text-container2" style="width: 30%; text-align: center; transition: width 0.3s; white-space: nowrap; display: flex; justify-content: center; position: relative; left: -2px;">
+          <div id="bar-text-container2" style="width: 30%; text-align: center; transition: width 0.3s; white-space: nowrap; display: flex; justify-content: center; position: relative; left: -3px;">
             <span id="bar-total-profit-label2" style="font-size: 10px; color: #2f855a; border-bottom: 2px double #2f855a; padding-bottom: 1px; font-family: monospace;">実質利益合計: -- 円</span>
           </div>
           <div id="bar-text-spacer2-right" style="width: 10%; transition: width 0.3s;"></div>
