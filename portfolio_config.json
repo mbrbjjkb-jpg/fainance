@@ -9,8 +9,9 @@
     "saison": {
       "units": 83.8,
       "purchasePrice": 16707,
-      "monthlyInvest": 10000,
-      "periodText": "2017/05-"
+      "monthlyInvest": 0,
+      "periodText": "2017/05-",
+      "lastUpdated": "2026年6月24日"
     },
     "vti_new": {
       "units": 29.2,
