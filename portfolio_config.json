@@ -7,11 +7,11 @@
       "periodText": "2016/06-2026/06"
     },
     "saison": {
-      "units": 83.8,
-      "purchasePrice": 16707,
+      "units": 84.1,
+      "purchasePrice": 16766,
       "monthlyInvest": 10000,
       "periodText": "2017/05-",
-      "lastUpdated": "2026年6月24日"
+      "lastUpdated": "2026年6月26日"
     },
     "vti_new": {
       "units": 29.2,
@@ -40,8 +40,8 @@
         "purchasePrice": 53919
       },
       "saison": {
-        "units": 83.8,
-        "purchasePrice": 16707
+        "units": 84.1,
+        "purchasePrice": 16766
       },
       "vti_new": {
         "units": 29.2,
