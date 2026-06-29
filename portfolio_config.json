@@ -33,7 +33,9 @@
   },
   "history": {},
   "otherAssets": {
-    "cash": 350000,
+    "cash": {
+      "amount": 3500000
+    },
     "usd": {
       "amount": 9923,
       "rate": 161
