@@ -551,12 +551,14 @@ let stocks = defaultStocks.map(s => ({
 // 形式例： { "2026-07": { "hifumi": { units: 68.0, purchasePrice: 53800 }, "saison": { ... } }, "2026-08": { ... } }
 let portfolioHistory = {};
 
-// ★新規追加：他資産（現金、米ドル、仮想通貨）の初期データ構造
+// ★修正：現金（cash）も仮想通貨と同様に配列構造に変更
 let otherAssets = {
-  cash: { amount: 0 },
+  cash: [
+    { name: "普通預金", amount: 0 }
+  ],
   usd: { amount: 0, rate: 150 },
   crypto: [
-    { name: "BTC", amount: 0, rate: 10000000 } // フェーズ1では暫定的に1件のみ固定配置
+    { name: "BTC", amount: 0, rate: 10000000 }
   ]
 };
 
@@ -653,20 +655,27 @@ function loadUserConfigFromStorage() {
     writeLog("【ロード】ブラウザ内から前回の保有・積立設定を読み込みました。");
   }
 
-  // ★修正：プロパティの欠落があってもクラッシュしないよう、安全に初期値で補完・復元します
+  // ★修正：現金（cash）の動的複数行対応に伴い、古い単一データも自動で配列に救済移行します
   const savedOtherAssets = JSON.parse(localStorage.getItem('portfolio_other_assets')) || null;
   if (savedOtherAssets) {
+    let parsedCash = [];
+    if (Array.isArray(savedOtherAssets.cash)) {
+      parsedCash = savedOtherAssets.cash;
+    } else if (savedOtherAssets.cash && savedOtherAssets.cash.amount !== undefined) {
+      parsedCash = [{ name: "普通預金", amount: savedOtherAssets.cash.amount }];
+    } else {
+      parsedCash = [{ name: "普通預金", amount: 0 }];
+    }
+
     otherAssets = {
-      cash: { 
-        amount: (savedOtherAssets.cash && savedOtherAssets.cash.amount !== undefined) ? savedOtherAssets.cash.amount : 0 
-      },
+      cash: parsedCash,
       usd: { 
         amount: (savedOtherAssets.usd && savedOtherAssets.usd.amount !== undefined) ? savedOtherAssets.usd.amount : 0, 
         rate: (savedOtherAssets.usd && savedOtherAssets.usd.rate !== undefined) ? savedOtherAssets.usd.rate : 150 
       },
       crypto: Array.isArray(savedOtherAssets.crypto) ? savedOtherAssets.crypto : []
     };
-    writeLog("【ロード】ブラウザ内から現金・外貨・仮想通貨の設定を復元しました。");
+    writeLog("【ロード】ブラウザ内から現金（動的リスト対応版）・外貨・仮想通貨の設定を復元しました。");
   }
 
   const savedHistory = JSON.parse(localStorage.getItem('portfolio_history')) || null;
@@ -690,26 +699,40 @@ function applyConfigDataToStocks(configData) {
     writeLog("【成功】GitHubから時系列の口数・単価履歴を適用しました。");
   }
 
-  // ★修正：ローカルおよびGitHubのデータに欠落したプロパティがあっても、安全なデフォルト値で補完マージします
+  // ★修正：GitHubからの復元時にも、現金の複数項目（配列）形式への救済マージを実行します
   const localOtherAssets = JSON.parse(localStorage.getItem('portfolio_other_assets')) || null;
   if (localOtherAssets) {
+    let parsedCash = [];
+    if (Array.isArray(localOtherAssets.cash)) {
+      parsedCash = localOtherAssets.cash;
+    } else if (localOtherAssets.cash && localOtherAssets.cash.amount !== undefined) {
+      parsedCash = [{ name: "普通預金", amount: localOtherAssets.cash.amount }];
+    } else {
+      parsedCash = [{ name: "普通預金", amount: 0 }];
+    }
+
     otherAssets = {
-      cash: { 
-        amount: (localOtherAssets.cash && localOtherAssets.cash.amount !== undefined) ? localOtherAssets.cash.amount : 0 
-      },
+      cash: parsedCash,
       usd: { 
         amount: (localOtherAssets.usd && localOtherAssets.usd.amount !== undefined) ? localOtherAssets.usd.amount : 0, 
         rate: (localOtherAssets.usd && localOtherAssets.usd.rate !== undefined) ? localOtherAssets.usd.rate : 150 
       },
       crypto: Array.isArray(localOtherAssets.crypto) ? localOtherAssets.crypto : []
     };
-    writeLog("【ガード】ブラウザ内の最新の他資産（現金等）データを安全に復元・適用しました。");
+    writeLog("【ガード】ブラウザ内の最新の他資産データを安全に複数行形式で復元・維持しました。");
   } else if (configData && configData.otherAssets) {
     const gOther = configData.otherAssets;
+    let parsedCash = [];
+    if (Array.isArray(gOther.cash)) {
+      parsedCash = gOther.cash;
+    } else if (gOther.cash && gOther.cash.amount !== undefined) {
+      parsedCash = [{ name: "普通預金", amount: gOther.cash.amount }];
+    } else {
+      parsedCash = [{ name: "普通預金", amount: 0 }];
+    }
+
     otherAssets = {
-      cash: { 
-        amount: (gOther.cash && gOther.cash.amount !== undefined) ? gOther.cash.amount : 0 
-      },
+      cash: parsedCash,
       usd: { 
         amount: (gOther.usd && gOther.usd.amount !== undefined) ? gOther.usd.amount : 0, 
         rate: (gOther.usd && gOther.usd.rate !== undefined) ? gOther.usd.rate : 150 
@@ -717,7 +740,7 @@ function applyConfigDataToStocks(configData) {
       crypto: Array.isArray(gOther.crypto) ? gOther.crypto : []
     };
     localStorage.setItem('portfolio_other_assets', JSON.stringify(otherAssets));
-    writeLog("【成功】GitHubから他資産の設定を安全に復元・適用しました。");
+    writeLog("【成功】GitHubから他資産（現金動的リスト対応）の設定を安全に復元・適用しました。");
   }
 
   const localConfig = JSON.parse(localStorage.getItem('portfolio_config')) || null;
@@ -738,6 +761,7 @@ function applyConfigDataToStocks(configData) {
   
   initInputFields();
 }
+
 function initInputFields() {
   stocks.forEach(s => {
     const elUnits = document.getElementById(`units-${s.key}`);
@@ -2089,17 +2113,20 @@ function renderModalSettingsGrid() {
     </div>
   `;
 
-  // 3. 現金の入力ブロック
+  // 3. ★修正：現金の入力ブロック（動的複数行対応版）
+  // 複数行を格納する id="m-cash-rows-container" を設置します
   html += `
     <div class="setting-group" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 180px;">
       <div>
-        <div class="setting-group-title">💵 現金（日本円）</div>
-        <div class="setting-item" style="margin-top: 15px;">
-          <span>日本円残高 (円):</span>
-          <input type="number" id="m-other-cash" value="${otherAssets.cash.amount}">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 8px;">
+          <span style="font-size: 12px; font-weight: bold; color: #2d3748;">💵 現金（口座別・用途別）</span>
+          <button class="action-btn btn-green" onclick="addCashInputRow('', 0)" style="padding: 2px 6px; font-size: 10px; margin: 0;">＋ 追加</button>
+        </div>
+        <div id="m-cash-rows-container" style="max-height: 120px; overflow-y: auto; padding-right: 2px; margin-bottom: 8px;">
+          <!-- ここに動的に現金の入力行が生成・挿入されます -->
         </div>
       </div>
-      <button class="action-btn btn-blue" onclick="updateOtherAssetSettings('cash')" style="width:100%; margin-top:15px; padding: 4px; font-size:10px;">現金のみ更新して保存</button>
+      <button class="action-btn btn-blue" onclick="updateOtherAssetSettings('cash')" style="width:100%; margin-top:5px; padding: 4px; font-size:10px;">現金のみ更新して保存</button>
     </div>
   `;
 
@@ -2121,8 +2148,7 @@ function renderModalSettingsGrid() {
     </div>
   `;
 
-  // 5. ★仮想通貨の入力ブロック（フェーズ2動的対応版）
-  // 複数行を束ねる親コンテナ（id="m-crypto-rows-container"）を中に設置します
+  // 5. 仮想通貨の入力ブロック（動的複数行）
   html += `
     <div class="setting-group" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 180px; grid-column: span 1;">
       <div>
@@ -2140,16 +2166,25 @@ function renderModalSettingsGrid() {
 
   gridEl.innerHTML = html;
 
-  // 保存されている初期データを動的行コンテナに展開して配置
+  // ★新規：現金の保存データをモーダル内の動的行として展開・再現
+  if (Array.isArray(otherAssets.cash) && otherAssets.cash.length > 0) {
+    otherAssets.cash.forEach(c => {
+      addCashInputRow(c.name, c.amount);
+    });
+  } else {
+    addCashInputRow('普通預金', 0);
+  }
+
+  // 仮想通貨の保存データをモーダル内の動的行として展開・再現
   if (otherAssets.crypto && otherAssets.crypto.length > 0) {
     otherAssets.crypto.forEach(c => {
       addCryptoInputRow(c.name, c.amount, c.rate);
     });
   } else {
-    // 1件もデータがない場合は空の1行を初期表示
     addCryptoInputRow('', 0, 10000000);
   }
 }
+
 // ==========================================
 // 特定の投信（キー指定）のみを個別に更新して保存・同期する（2026年6月対応版）
 // ==========================================
@@ -2285,14 +2320,32 @@ function applyModalSettings() {
   
   localStorage.setItem('portfolio_config', JSON.stringify(savedSettings));
 
-  // ★修正：モーダルが開いており、かつ他資産の入力フォームが存在する場合のみ画面からデータを回収して保存します
-  const elCash = document.getElementById('m-other-cash');
+  // ★ 2. 修正：現金の複数行入力DOMが画面に存在する場合のみ、データを漏れなく回収します
+  const cashContainer = document.getElementById('m-cash-rows-container');
+  if (cashContainer) {
+    const rows = document.querySelectorAll('.cash-input-row');
+    const tempCashList = [];
+
+    rows.forEach(row => {
+      const elName = row.querySelector('.m-cash-name');
+      const elAmount = row.querySelector('.m-cash-amount');
+
+      const nameVal = elName ? elName.value.trim() : '';
+      const amountVal = elAmount ? parseFloat(elAmount.value) || 0 : 0;
+
+      if (nameVal !== '') {
+        tempCashList.push({
+          name: nameVal,
+          amount: amountVal
+        });
+      }
+    });
+    otherAssets.cash = tempCashList;
+  }
+
+  // 他資産（米ドル）データの回収（既存部分）
   const elUsdAmount = document.getElementById('m-other-usd-amount');
   const elUsdRate = document.getElementById('m-other-usd-rate');
-
-  if (elCash) {
-    otherAssets.cash.amount = parseFloat(elCash.value) || 0;
-  }
   if (elUsdAmount) {
     otherAssets.usd.amount = parseFloat(elUsdAmount.value) || 0;
   }
@@ -2363,7 +2416,7 @@ function applyModalSettings() {
   closeSettingsModal(); 
   initBaseSystem();
   
-  // ★一括適用されたデータをダッシュボード（一覧表）に即時反映させます
+  // 一括適用されたデータをダッシュボード（一覧表）に即時反映させます
   const dashboard = document.getElementById('allAssetsDashboard');
   if (dashboard && dashboard.style.display !== 'none') {
     renderAllAssetsData();
@@ -2380,10 +2433,26 @@ function applyModalSettings() {
 function updateOtherAssetSettings(assetType) {
   // 1. 各アセットタイプから最新の入力値を読み取り、変数に格納
   if (assetType === 'cash') {
-    const elCash = document.getElementById('m-other-cash');
-    if (elCash) {
-      otherAssets.cash.amount = parseFloat(elCash.value) || 0;
-    }
+    // ★修正：現金の複数動的行データの回収処理
+    const rows = document.querySelectorAll('.cash-input-row');
+    const tempCashList = [];
+
+    rows.forEach(row => {
+      const elName = row.querySelector('.m-cash-name');
+      const elAmount = row.querySelector('.m-cash-amount');
+
+      const nameVal = elName ? elName.value.trim() : '';
+      const amountVal = elAmount ? parseFloat(elAmount.value) || 0 : 0;
+
+      if (nameVal !== '') {
+        tempCashList.push({
+          name: nameVal,
+          amount: amountVal
+        });
+      }
+    });
+    otherAssets.cash = tempCashList;
+
   } else if (assetType === 'usd') {
     const elUsdAmount = document.getElementById('m-other-usd-amount');
     const elUsdRate = document.getElementById('m-other-usd-rate');
@@ -2414,18 +2483,18 @@ function updateOtherAssetSettings(assetType) {
     otherAssets.crypto = tempCryptoList;
   }
 
-  // 2. ★最優先：ブラウザのローカルストレージへ確実に保存
+  // 2. ブラウザのローカルストレージへ確実に保存
   localStorage.setItem('portfolio_other_assets', JSON.stringify(otherAssets));
   writeLog(`【ローカル保存成功】他資産「${assetType}」をブラウザに書き込みました。`);
 
-  // 3. ★最優先：メイン画面の集計・ダッシュボードへ即時反映（再レンダリング）
+  // 3. メイン画面の集計・ダッシュボードへ即時反映（再レンダリング）
   initBaseSystem();
   const dashboard = document.getElementById('allAssetsDashboard');
   if (dashboard && dashboard.style.display !== 'none') {
     renderAllAssetsData();
   }
 
-  // 4. 【独立処理】GitHub同期を別の安全なブロックで試行（失敗してもローカルデータは死にません）
+  // 4. 【独立処理】GitHub同期を別の安全なブロックで試行
   const pin = document.getElementById('pinInput').value.trim();
   if (CONFIG_ENCRYPTED_TOKEN && CONFIG_GITHUB_USER && CONFIG_GITHUB_REPO) {
     if (pin.length === 4) {
@@ -2438,7 +2507,6 @@ function updateOtherAssetSettings(assetType) {
             history: portfolioHistory,
             otherAssets: otherAssets 
           };
-          // 非同期でGitHubを更新
           githubDirectCommit(decryptedToken, 'portfolio_config.json', JSON.stringify(outputConfig, null, 2));
         } else {
           writeLog("【警告】暗証パスワードの解読に失敗したため、GitHub同期をスキップしました（ローカルには保存済）。");
@@ -2529,9 +2597,23 @@ function removeCryptoInputRow(btn) {
   }
 }
 
-// ★新規追加：他資産（現金、ドル、仮想通貨）の円換算合計値を算出する計算用ヘルパー
+// ★修正：現金（cash）が配列構造になったため、合計値を求めるループ計算に変更
 function calculateOtherAssetsTotals() {
-  const cashTotal = otherAssets.cash.amount || 0;
+  let cashTotal = 0;
+  const cashDetails = [];
+  
+  if (Array.isArray(otherAssets.cash)) {
+    otherAssets.cash.forEach(c => {
+      const val = c.amount || 0;
+      cashTotal += val;
+      cashDetails.push({ name: c.name, val: val });
+    });
+  } else if (otherAssets.cash && otherAssets.cash.amount !== undefined) {
+    // 万が一のための古い形式データの救済計算
+    cashTotal = otherAssets.cash.amount || 0;
+    cashDetails.push({ name: "現金", val: cashTotal });
+  }
+
   const usdTotal = (otherAssets.usd.amount || 0) * (otherAssets.usd.rate || 0);
   
   let cryptoTotal = 0;
@@ -2546,6 +2628,7 @@ function calculateOtherAssetsTotals() {
 
   return {
     cash: cashTotal,
+    cashDetails: cashDetails, // 現金の内訳情報
     usd: usdTotal,
     crypto: cryptoTotal,
     cryptoDetails: cryptoDetails,
@@ -2580,31 +2663,43 @@ function toggleAllAssetsDashboard() {
   }
 }
 
-// ★フェーズ4：全アセットデータから「字下げ対応テーブル」を動的に生成して描画する関数
+// ★修正：全アセット一覧表にて、現金の内訳行も動的に「字下げ」で追加レンダリングします
 function renderAllAssetsData() {
   writeLog("【ダッシュボード集計】全資産の再計算と一覧表の構築を開始...");
   
   const otherTotals = calculateOtherAssetsTotals();
   const totals = calculateCurrentTotals(); // 既存の投資信託合計（デモ倍率適用済み）
 
+  // ★税引き後の投資信託評価額を総アセット合計のベースに使用します
   const grandTotal = totals.afterTaxMarket + otherTotals.grandTotal;
 
   // 1. 各アセットの表示用行オブジェクトの作成
   const assetRows = [];
 
-  // ① 投資信託（全体を1つに集約）
+  // ① 投資信託（税引き後）
   assetRows.push({
-    name: "投資信託（税引き後）", // 分かりやすく「（税引き後）」を明示します
+    name: "投資信託（税引き後）",
     val: totals.afterTaxMarket,
     isSubRow: false
   });
 
-  // ② 現金 (日本円)
+  // ② 現金 (合計)
   assetRows.push({
-    name: "現金 (日本円)",
+    name: "現金 (合計)",
     val: otherTotals.cash,
     isSubRow: false
   });
+
+  // ★追加：現金の口座・用途別個別内訳を「字下げ」で差し込み
+  if (otherTotals.cashDetails && otherTotals.cashDetails.length > 0) {
+    otherTotals.cashDetails.forEach(c => {
+      assetRows.push({
+        name: `└ ${c.name}`,
+        val: c.val,
+        isSubRow: true // 字下げ判別フラグ
+      });
+    });
+  }
 
   // ③ 米ドル資産 (円換算)
   assetRows.push({
@@ -2623,11 +2718,10 @@ function renderAllAssetsData() {
   // ⑤ 仮想通貨の動的内訳（個別コイン）を「字下げ」で追加
   if (otherAssets.crypto && otherAssets.crypto.length > 0) {
     otherTotals.cryptoDetails.forEach(c => {
-      // 登録されている各コインについて内訳行を作成
       assetRows.push({
         name: `└ ${c.name}`,
         val: c.val,
-        isSubRow: true // 字下げ判別用のフラグ
+        isSubRow: true 
       });
     });
   }
@@ -2647,10 +2741,8 @@ function renderAllAssetsData() {
 
   // 3. 各行をループ処理してテーブル内に流し込み
   assetRows.forEach(row => {
-    // 総合計に対する構成比（％）を算出
     const pct = grandTotal > 0 ? ((row.val / grandTotal) * 100).toFixed(1) : "0.0";
     
-    // メイン行（大分類）とサブ行（字下げ行）で文字サイズや配置をCSSで個別コントロール
     const nameStyle = row.isSubRow 
       ? "padding-left: 28px; text-align: left; color: #718096; font-size: 12px; font-family: monospace; border: 1px solid #e2e8f0; padding: 8px 10px 8px 28px;" 
       : "padding-left: 15px; text-align: left; font-weight: bold; color: #2d3748; border: 1px solid #e2e8f0; padding: 10px 15px;";
@@ -2663,7 +2755,6 @@ function renderAllAssetsData() {
       ? "color: #a0aec0; font-size: 11px; font-family: monospace; border: 1px solid #e2e8f0; padding: 8px; text-align: center;"
       : "font-weight: bold; color: #4a5568; font-family: monospace; border: 1px solid #e2e8f0; padding: 10px; text-align: center;";
 
-    // 内訳行は背景色をわずかに変えてサブ項目であることを視覚的に示します
     const rowBg = row.isSubRow ? 'background-color: #fafbfc;' : 'background-color: #ffffff;';
 
     tableHtml += `
@@ -2686,13 +2777,12 @@ function renderAllAssetsData() {
     </table>
   `;
 
-  // 構築した表HTMLを画面領域へ一挙挿入
   const tableArea = document.getElementById('allAssetsTableArea');
   if (tableArea) {
     tableArea.innerHTML = tableHtml;
   }
 
-  // ★フェーズ5でグラフ機能が追加された際の、グラフ側へのレンダリング引き渡し
+  // グラフ側（フェーズ5）への最新データの引き渡し
   if (typeof renderAllAssetsCharts === 'function') {
     renderAllAssetsCharts(totals, otherTotals, grandTotal);
   }
@@ -2828,5 +2918,37 @@ function renderAllAssetsCharts(totals, otherTotals, grandTotal) {
 
   writeLog("【ダッシュボードグラフ】2つのグラフの描画更新が完了しました。");
 }
+
+// ★新規追加：現金の入力行を動的に追加する関数
+function addCashInputRow(name = '', amount = 0) {
+  const container = document.getElementById('m-cash-rows-container');
+  if (!container) return;
+
+  const row = document.createElement('div');
+  row.className = 'cash-input-row';
+  row.style.display = 'flex';
+  row.style.gap = '4px';
+  row.style.alignItems = 'center';
+  row.style.marginBottom = '6px';
+  row.style.paddingBottom = '6px';
+  row.style.borderBottom = '1px dashed #edf2f7';
+
+  row.innerHTML = `
+    <input type="text" class="m-cash-name" value="${name}" placeholder="管理名・口座" style="width: 40%; font-size: 10px; padding: 2px; border: 1px solid #cbd5e0; border-radius: 4px; font-family: monospace;">
+    <input type="number" class="m-cash-amount" value="${amount}" placeholder="金額" style="width: 50%; font-size: 10px; padding: 2px; border: 1px solid #cbd5e0; border-radius: 4px; text-align: right; font-family: monospace;">
+    <button class="action-btn" onclick="removeCashInputRow(this)" style="width: 10%; padding: 2px 0; font-size: 10px; background-color: #e53e3e; color: white; border: none; border-radius: 4px; cursor: pointer;">-</button>
+  `;
+
+  container.appendChild(row);
+}
+
+// ★新規追加：現金の入力行を削除する関数
+function removeCashInputRow(btn) {
+  const row = btn.closest('.cash-input-row');
+  if (row) {
+    row.remove();
+  }
+}
+
 
 </script>
