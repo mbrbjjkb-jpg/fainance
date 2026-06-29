@@ -31,6 +31,7 @@
       "periodText": "2021/05-2023/12"
     }
   },
+  "history": {},
   "otherAssets": {
     "cash": 350000,
     "usd": {
@@ -44,11 +45,10 @@
         "rate": 89018
       },
       {
-        "name": "BNB",
+        "name": "BLZ",
         "amount": 150272,
         "rate": 1.23
       }
     ]
-  },
-  "history": {}
+  }
 }
