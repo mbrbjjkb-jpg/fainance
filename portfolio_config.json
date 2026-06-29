@@ -34,14 +34,14 @@
   "otherAssets": {
     "cash": 350000,
     "usd": {
-      "amount": 0,
-      "rate": 150
+      "amount": 9923,
+      "rate": 161
     },
     "crypto": [
       {
-        "name": "BTC",
-        "amount": 0,
-        "rate": 10000000
+        "name": "BNB",
+        "amount": 21.18,
+        "rate": 89018
       }
     ]
   },
