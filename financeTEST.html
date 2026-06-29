@@ -367,7 +367,7 @@
         <div style="flex:1; position:relative;"><canvas id="shortChart"></canvas></div>
       </div>
       <div class="card" style="flex:1; margin:0; padding:15px; display:flex; flex-direction:column;">
-        <h4 style="margin:0 0 10px 0; font-size:13px; color:#2c3e50;">【中期】1年分 (直近1年間の日別資産推移)</h4>
+        <h4 style="margin:0 0 10px 0; font-size:13px; color:#2c3e50;">【中期】1年分 (直近1年間の月別資産推移)</h4>
         <div style="flex:1; position:relative;"><canvas id="mediumChart"></canvas></div>
       </div>
     </div>
@@ -391,6 +391,41 @@
     </div>
   </div>
 </div>
+<!-- ★フェーズ3：全資産集計額一覧ボタンと表示エリア -->
+<div style="text-align: center; margin: 30px 0 20px 0;">
+  <button id="toggleAllAssetsBtn" class="action-btn btn-blue" onclick="toggleAllAssetsDashboard()" style="font-size: 14px; padding: 12px 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s;">
+    📊 全資産集計額一覧を表示
+  </button>
+</div>
+
+<div id="allAssetsDashboard" class="card" style="display: none; flex-wrap: wrap; gap: 20px; align-items: stretch; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px;">
+  <!-- 左側：アセット一覧表（幅1.2） -->
+  <div style="flex: 1.2; min-width: 320px;">
+    <h3 style="margin-top: 0; font-size: 16px; color: #2c3e50; border-bottom: 2px solid #3182ce; padding-bottom: 8px;">📊 総合アセット一覧（円換算）</h3>
+    <div id="allAssetsTableArea" style="margin-top: 15px;">
+      <!-- フェーズ4で動的に生成された表がここに挿入されます -->
+      <p style="color: #718096; font-size: 13px; text-align: center; padding: 20px 0;">データを集計中...</p>
+    </div>
+  </div>
+
+  <!-- 中央：総資産比率（円グラフ） -->
+  <div style="flex: 1; min-width: 280px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; border-left: 1px dashed #cbd5e0; border-right: 1px dashed #cbd5e0; padding: 0 15px; box-sizing: border-box;">
+    <h3 style="margin-top: 0; font-size: 15px; color: #2c3e50; text-align: center; width: 100%;">ドーナツ 総資産アセット比率（％）</h3>
+    <div style="position: relative; width: 100%; height: 220px; display: flex; align-items: center; justify-content: center; margin: 15px 0;">
+      <canvas id="allAssetsPieChart"></canvas>
+    </div>
+    <div id="allAssetsPieTotal" style="font-weight: bold; font-size: 14px; color: #2d3748; text-align: center; border-top: 1px dashed #cbd5e0; width: 100%; padding-top: 10px;">総資産合計: -- 円</div>
+  </div>
+
+  <!-- 右側：資産額比較（横棒グラフ） -->
+  <div style="flex: 1.2; min-width: 300px; display: flex; flex-direction: column;">
+    <h3 style="margin-top: 0; font-size: 15px; color: #2c3e50; border-bottom: 2px solid #a0aec0; padding-bottom: 8px;">各アセットの資産額比較</h3>
+    <div style="position: relative; width: 100%; height: 240px; margin-top: 15px;">
+      <canvas id="allAssetsBarChart"></canvas>
+    </div>
+  </div>
+</div>
+
 <div class="card">
   <h3>5. システムデバッグログ</h3>
   <div class="debug-log" id="debugLog">[システムログ起動]</div>
@@ -515,9 +550,23 @@ let stocks = defaultStocks.map(s => ({
 // 2026年6月以降の、各年月における実際の「口数」と「購入単価」の変化を記録する履歴オブジェクト。
 // 形式例： { "2026-07": { "hifumi": { units: 68.0, purchasePrice: 53800 }, "saison": { ... } }, "2026-08": { ... } }
 let portfolioHistory = {};
+
+// ★新規追加：他資産（現金、米ドル、仮想通貨）の初期データ構造
+let otherAssets = {
+  cash: { amount: 0 },
+  usd: { amount: 0, rate: 150 },
+  crypto: [
+    { name: "BTC", amount: 0, rate: 10000000 } // フェーズ1では暫定的に1件のみ固定配置
+  ]
+};
+
 // ★修正: 変数名とIDの衝突を回避するためオブジェクト名を変更
 let chartLongObj = null; let chartShortObj = null; let chartMediumObj = null; let chartPieObj = null;
 let priceHistory = null; let miniCharts = {}; let activeGraphTab = 'past';
+// ★新規追加：全資産用の円グラフと棒グラフの管理オブジェクト
+let chartAllAssetsPie = null;
+let chartAllAssetsBar = null;
+
 
 // ==========================================
 // ★新規追加：デモ倍率算出関数（500万円スライド用）
@@ -598,10 +647,26 @@ function loadUserConfigFromStorage() {
         s.purchasePrice = savedSettings[s.key].purchasePrice !== undefined ? savedSettings[s.key].purchasePrice : s.purchasePrice;
         s.monthlyInvest = savedSettings[s.key].monthlyInvest !== undefined ? savedSettings[s.key].monthlyInvest : s.monthlyInvest;
         s.periodText = savedSettings[s.key].periodText || s.periodText;
-        s.lastUpdated = savedSettings[s.key].lastUpdated || ''; // 更新日をロード
+        s.lastUpdated = savedSettings[s.key].lastUpdated || '';
       }
     });
     writeLog("【ロード】ブラウザ内から前回の保有・積立設定を読み込みました。");
+  }
+
+  // ★修正：プロパティの欠落があってもクラッシュしないよう、安全に初期値で補完・復元します
+  const savedOtherAssets = JSON.parse(localStorage.getItem('portfolio_other_assets')) || null;
+  if (savedOtherAssets) {
+    otherAssets = {
+      cash: { 
+        amount: (savedOtherAssets.cash && savedOtherAssets.cash.amount !== undefined) ? savedOtherAssets.cash.amount : 0 
+      },
+      usd: { 
+        amount: (savedOtherAssets.usd && savedOtherAssets.usd.amount !== undefined) ? savedOtherAssets.usd.amount : 0, 
+        rate: (savedOtherAssets.usd && savedOtherAssets.usd.rate !== undefined) ? savedOtherAssets.usd.rate : 150 
+      },
+      crypto: Array.isArray(savedOtherAssets.crypto) ? savedOtherAssets.crypto : []
+    };
+    writeLog("【ロード】ブラウザ内から現金・外貨・仮想通貨の設定を復元しました。");
   }
 
   const savedHistory = JSON.parse(localStorage.getItem('portfolio_history')) || null;
@@ -610,7 +675,6 @@ function loadUserConfigFromStorage() {
     writeLog("【ロード】ブラウザ内から時系列の口数・単価履歴を読み込みました。");
   }
 }
-
 // ==========================================
 // 外部設定ファイル適用（ネットワーク遅延による巻き戻し防止ガード付き）
 // ==========================================
@@ -620,19 +684,44 @@ function applyConfigDataToStocks(configData) {
     activeConfig = configData.activeSettings;
   }
   
-  // ① 時系列履歴データ（history）は常に最新マスターであるGitHubから同期・復元
   if (configData && configData.history) {
     portfolioHistory = configData.history;
-    localStorage.setItem('portfolio_history', JSON.stringify(portfolioHistory)); // ローカル側も最新に同期
+    localStorage.setItem('portfolio_history', JSON.stringify(portfolioHistory));
     writeLog("【成功】GitHubから時系列の口数・単価履歴を適用しました。");
   }
 
-  // ★ 巻き戻り防止ガード：
-  // ブラウザのLocalStorageにすでに設定が保存されている場合は、それを「最優先」の正とします。
-  // これにより、GitHubコミット直後のサーバー反映遅延（キャッシュ）によって、変更前の古いデータが
-  // ダウンロードされてローカル最新設定を上書き（巻き戻し破壊）してしまう現象を完全に防ぎます。
+  // ★修正：ローカルおよびGitHubのデータに欠落したプロパティがあっても、安全なデフォルト値で補完マージします
+  const localOtherAssets = JSON.parse(localStorage.getItem('portfolio_other_assets')) || null;
+  if (localOtherAssets) {
+    otherAssets = {
+      cash: { 
+        amount: (localOtherAssets.cash && localOtherAssets.cash.amount !== undefined) ? localOtherAssets.cash.amount : 0 
+      },
+      usd: { 
+        amount: (localOtherAssets.usd && localOtherAssets.usd.amount !== undefined) ? localOtherAssets.usd.amount : 0, 
+        rate: (localOtherAssets.usd && localOtherAssets.usd.rate !== undefined) ? localOtherAssets.usd.rate : 150 
+      },
+      crypto: Array.isArray(localOtherAssets.crypto) ? localOtherAssets.crypto : []
+    };
+    writeLog("【ガード】ブラウザ内の最新の他資産（現金等）データを安全に復元・適用しました。");
+  } else if (configData && configData.otherAssets) {
+    const gOther = configData.otherAssets;
+    otherAssets = {
+      cash: { 
+        amount: (gOther.cash && gOther.cash.amount !== undefined) ? gOther.cash.amount : 0 
+      },
+      usd: { 
+        amount: (gOther.usd && gOther.usd.amount !== undefined) ? gOther.usd.amount : 0, 
+        rate: (gOther.usd && gOther.usd.rate !== undefined) ? gOther.usd.rate : 150 
+      },
+      crypto: Array.isArray(gOther.crypto) ? gOther.crypto : []
+    };
+    localStorage.setItem('portfolio_other_assets', JSON.stringify(otherAssets));
+    writeLog("【成功】GitHubから他資産の設定を安全に復元・適用しました。");
+  }
+
   const localConfig = JSON.parse(localStorage.getItem('portfolio_config')) || null;
-  const configToApply = localConfig || activeConfig; // ローカルに保存データがあれば最優先、なければGitHubを参照
+  const configToApply = localConfig || activeConfig;
 
   if (configToApply) {
     stocks.forEach(s => {
@@ -642,14 +731,13 @@ function applyConfigDataToStocks(configData) {
         if (cfg.purchasePrice !== undefined) s.purchasePrice = cfg.purchasePrice;
         if (cfg.monthlyInvest !== undefined) s.monthlyInvest = cfg.monthlyInvest;
         if (cfg.periodText !== undefined) s.periodText = cfg.periodText;
-        s.lastUpdated = cfg.lastUpdated || ''; // 各投信の最終更新日をロード
+        s.lastUpdated = cfg.lastUpdated || '';
       }
     });
   }
   
   initInputFields();
 }
-
 function initInputFields() {
   stocks.forEach(s => {
     const elUnits = document.getElementById(`units-${s.key}`);
@@ -1967,7 +2055,12 @@ function closeSettingsModal() { document.getElementById('settingsModal').style.d
 // モーダル設定グリッド（個別更新ボタンを追加）
 // ==========================================
 function renderModalSettingsGrid() {
-  const gridEl = document.getElementById('modalSettingsGrid'); if (!gridEl) return; let html = '';
+  const gridEl = document.getElementById('modalSettingsGrid'); 
+  if (!gridEl) return; 
+  
+  let html = '';
+  
+  // 1. 投資信託の入力フォーム生成（既存部分）
   stocks.forEach(s => {
     let mark = 'A'; 
     if (s.key === 'saison') mark = 'B'; 
@@ -1975,7 +2068,6 @@ function renderModalSettingsGrid() {
     if (s.key === 'ishares') mark = 'D'; 
     if (s.key === 'vti_old') mark = 'E';
     
-    // 各投信設定の下に「この投信のみ更新」用の個別更新ボタンを設けました。
     html += `
       <div class="setting-group" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 200px;">
         <div>
@@ -1988,9 +2080,76 @@ function renderModalSettingsGrid() {
         <button class="action-btn btn-blue" onclick="updateSingleFundSettings('${s.key}')" style="width:100%; margin-top:10px; padding: 4px; font-size:10px;">この投信のみ更新して保存</button>
       </div>`;
   });
-  gridEl.innerHTML = html;
-}
 
+  // 2. 改行、セパレーター、および他資産セクションの見出し
+  html += `
+    <div style="grid-column: 1 / -1; margin: 20px 0 10px 0; border-top: 2px solid #cbd5e0; padding-top: 15px;">
+      <h3 style="margin: 0 0 5px 0; font-size: 14px; color: #2c3e50;">■ 他資産の設定（手動入力・自動取得なし）</h3>
+      <p style="font-size: 11px; color: #718096; margin: 0;">※ 投資信託以外の個人アセット情報を個別に設定します。レートは日本円換算用です。</p>
+    </div>
+  `;
+
+  // 3. 現金の入力ブロック
+  html += `
+    <div class="setting-group" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 180px;">
+      <div>
+        <div class="setting-group-title">💵 現金（日本円）</div>
+        <div class="setting-item" style="margin-top: 15px;">
+          <span>日本円残高 (円):</span>
+          <input type="number" id="m-other-cash" value="${otherAssets.cash.amount}">
+        </div>
+      </div>
+      <button class="action-btn btn-blue" onclick="updateOtherAssetSettings('cash')" style="width:100%; margin-top:15px; padding: 4px; font-size:10px;">現金のみ更新して保存</button>
+    </div>
+  `;
+
+  // 4. 米ドルの入力ブロック
+  html += `
+    <div class="setting-group" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 180px;">
+      <div>
+        <div class="setting-group-title">💵 米ドル資産（外貨）</div>
+        <div class="setting-item">
+          <span>保有数量 (USD):</span>
+          <input type="number" step="0.01" id="m-other-usd-amount" value="${otherAssets.usd.amount}">
+        </div>
+        <div class="setting-item">
+          <span>手動レート (円/USD):</span>
+          <input type="number" step="0.1" id="m-other-usd-rate" value="${otherAssets.usd.rate}">
+        </div>
+      </div>
+      <button class="action-btn btn-blue" onclick="updateOtherAssetSettings('usd')" style="width:100%; margin-top:15px; padding: 4px; font-size:10px;">米ドルのみ更新して保存</button>
+    </div>
+  `;
+
+  // 5. ★仮想通貨の入力ブロック（フェーズ2動的対応版）
+  // 複数行を束ねる親コンテナ（id="m-crypto-rows-container"）を中に設置します
+  html += `
+    <div class="setting-group" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 180px; grid-column: span 1;">
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 8px;">
+          <span style="font-size: 12px; font-weight: bold; color: #2d3748;">🪙 仮想通貨（個別管理）</span>
+          <button class="action-btn btn-green" onclick="addCryptoInputRow('', 0, 10000000)" style="padding: 2px 6px; font-size: 10px; margin: 0;">＋ 追加</button>
+        </div>
+        <div id="m-crypto-rows-container" style="max-height: 120px; overflow-y: auto; padding-right: 2px; margin-bottom: 8px;">
+          <!-- ここに動的に仮想通貨の入力行が生成・挿入されます -->
+        </div>
+      </div>
+      <button class="action-btn btn-blue" onclick="updateOtherAssetSettings('crypto')" style="width:100%; margin-top:5px; padding: 4px; font-size:10px;">仮想通貨のみ更新して保存</button>
+    </div>
+  `;
+
+  gridEl.innerHTML = html;
+
+  // 保存されている初期データを動的行コンテナに展開して配置
+  if (otherAssets.crypto && otherAssets.crypto.length > 0) {
+    otherAssets.crypto.forEach(c => {
+      addCryptoInputRow(c.name, c.amount, c.rate);
+    });
+  } else {
+    // 1件もデータがない場合は空の1行を初期表示
+    addCryptoInputRow('', 0, 10000000);
+  }
+}
 // ==========================================
 // 特定の投信（キー指定）のみを個別に更新して保存・同期する（2026年6月対応版）
 // ==========================================
@@ -2104,9 +2263,12 @@ function autoFillFromText() {
 // モーダルの変更を適用し、最新設定および時系列履歴を保存（2026年6月対応版）
 // ==========================================
 function applyModalSettings() {
-  const pin = document.getElementById('pinInput').value.trim(); if (pin.length !== 4) { alert("4桁の暗証パスワードを入力してください。"); return; }
+  const pin = document.getElementById('pinInput').value.trim(); 
+  if (pin.length !== 4) { alert("4桁の暗証パスワードを入力してください。"); return; }
+  
   const savedSettings = {};
   
+  // 1. 投資信託データの回収（既存部分）
   stocks.forEach(s => {
     const u = document.getElementById(`m-units-${s.key}`);
     const p = document.getElementById(`m-purchase-${s.key}`);
@@ -2121,16 +2283,58 @@ function applyModalSettings() {
     savedSettings[s.key] = { units: s.units, purchasePrice: s.purchasePrice, monthlyInvest: s.monthlyInvest, periodText: s.periodText };
   });
   
-  // ① 最新のアクティブ設定を保存
   localStorage.setItem('portfolio_config', JSON.stringify(savedSettings));
+
+  // ★修正：モーダルが開いており、かつ他資産の入力フォームが存在する場合のみ画面からデータを回収して保存します
+  const elCash = document.getElementById('m-other-cash');
+  const elUsdAmount = document.getElementById('m-other-usd-amount');
+  const elUsdRate = document.getElementById('m-other-usd-rate');
+
+  if (elCash) {
+    otherAssets.cash.amount = parseFloat(elCash.value) || 0;
+  }
+  if (elUsdAmount) {
+    otherAssets.usd.amount = parseFloat(elUsdAmount.value) || 0;
+  }
+  if (elUsdRate) {
+    otherAssets.usd.rate = parseFloat(elUsdRate.value) || 0;
+  }
+
+  // 仮想通貨の入力コンテナ（DOM）が実際に存在する場合のみ、複数行のデータを回収します
+  const cryptoContainer = document.getElementById('m-crypto-rows-container');
+  if (cryptoContainer) {
+    const rows = document.querySelectorAll('.crypto-input-row');
+    const tempCryptoList = [];
+
+    rows.forEach(row => {
+      const elName = row.querySelector('.m-crypto-name');
+      const elAmount = row.querySelector('.m-crypto-amount');
+      const elRate = row.querySelector('.m-crypto-rate');
+
+      const nameVal = elName ? elName.value.trim().toUpperCase() : '';
+      const amountVal = elAmount ? parseFloat(elAmount.value) || 0 : 0;
+      const rateVal = elRate ? parseFloat(elRate.value) || 0 : 0;
+
+      if (nameVal !== '') {
+        tempCryptoList.push({
+          name: nameVal,
+          amount: amountVal,
+          rate: rateVal
+        });
+      }
+    });
+    otherAssets.crypto = tempCryptoList;
+  }
+
+  // 最新の他資産データをLocalStorageに確実に書き込み
+  localStorage.setItem('portfolio_other_assets', JSON.stringify(otherAssets));
   
-  // ② 現在の年月を基準に、2026年6月以降の実績期間であれば「時系列履歴データ（portfolioHistory）」にも変更を記録
+  // 4. 時系列履歴データ（portfolioHistory）へ同期
   const today = new Date();
   const yearMonth = `${today.getFullYear()}-${('0' + (today.getMonth() + 1)).slice(-2)}`;
   const currentIdx = (today.getFullYear() - 2016) * 12 + today.getMonth() - 5;
   const anchorIndex = 120; // 2026年6月
 
-  // ★修正：判定式を「 >=（以上）」に変更し、今日（120ヶ月目＝2026年6月）も履歴として即時記録可能に修正
   if (currentIdx >= anchorIndex) {
     if (!portfolioHistory[yearMonth]) portfolioHistory[yearMonth] = {};
     stocks.forEach(s => {
@@ -2139,30 +2343,115 @@ function applyModalSettings() {
     localStorage.setItem('portfolio_history', JSON.stringify(portfolioHistory));
   }
 
-  // ③ GitHub（自動コミット）へのデータ同期処理
+  // 5. GitHub一括同期処理の実行
   if (CONFIG_ENCRYPTED_TOKEN && CONFIG_GITHUB_USER && CONFIG_GITHUB_REPO) {
     try {
       const decryptedToken = CryptoJS.AES.decrypt(CONFIG_ENCRYPTED_TOKEN, pin).toString(CryptoJS.enc.Utf8);
       if (!decryptedToken || !decryptedToken.startsWith('github_pat_')) throw new Error("認証暗号エラー");
       
-      // 送出データに現在アクティブな最新設定と履歴の両方を統合
       const outputConfig = {
         activeSettings: savedSettings,
-        history: portfolioHistory
+        history: portfolioHistory,
+        otherAssets: otherAssets 
       };
       githubDirectCommit(decryptedToken, 'portfolio_config.json', JSON.stringify(outputConfig, null, 2));
     } catch (err) { 
-      alert("暗証番号が違います。認証失敗。"); 
+      writeLog("【警告】暗証番号不一致のため、GitHub一括同期はスキップされました（ローカルには適用済）。");
     }
   }
   
   closeSettingsModal(); 
   initBaseSystem();
+  
+  // ★一括適用されたデータをダッシュボード（一覧表）に即時反映させます
+  const dashboard = document.getElementById('allAssetsDashboard');
+  if (dashboard && dashboard.style.display !== 'none') {
+    renderAllAssetsData();
+  }
+
   if (priceHistory) { 
     const totals = calculateCurrentTotals(); 
     generateAndRenderChart(totals); 
     initPieChart(totals); 
   }
+}
+
+// ★新規追加：特定の他資産（cash, usd, crypto）のみを個別に保存する関数
+function updateOtherAssetSettings(assetType) {
+  // 1. 各アセットタイプから最新の入力値を読み取り、変数に格納
+  if (assetType === 'cash') {
+    const elCash = document.getElementById('m-other-cash');
+    if (elCash) {
+      otherAssets.cash.amount = parseFloat(elCash.value) || 0;
+    }
+  } else if (assetType === 'usd') {
+    const elUsdAmount = document.getElementById('m-other-usd-amount');
+    const elUsdRate = document.getElementById('m-other-usd-rate');
+    if (elUsdAmount) otherAssets.usd.amount = parseFloat(elUsdAmount.value) || 0;
+    if (elUsdRate) otherAssets.usd.rate = parseFloat(elUsdRate.value) || 0;
+  } else if (assetType === 'crypto') {
+    const rows = document.querySelectorAll('.crypto-input-row');
+    const tempCryptoList = [];
+
+    rows.forEach(row => {
+      const elName = row.querySelector('.m-crypto-name');
+      const elAmount = row.querySelector('.m-crypto-amount');
+      const elRate = row.querySelector('.m-crypto-rate');
+
+      const nameVal = elName ? elName.value.trim().toUpperCase() : '';
+      const amountVal = elAmount ? parseFloat(elAmount.value) || 0 : 0;
+      const rateVal = elRate ? parseFloat(elRate.value) || 0 : 0;
+
+      if (nameVal !== '') {
+        tempCryptoList.push({
+          name: nameVal,
+          amount: amountVal,
+          rate: rateVal
+        });
+      }
+    });
+
+    otherAssets.crypto = tempCryptoList;
+  }
+
+  // 2. ★最優先：ブラウザのローカルストレージへ確実に保存
+  localStorage.setItem('portfolio_other_assets', JSON.stringify(otherAssets));
+  writeLog(`【ローカル保存成功】他資産「${assetType}」をブラウザに書き込みました。`);
+
+  // 3. ★最優先：メイン画面の集計・ダッシュボードへ即時反映（再レンダリング）
+  initBaseSystem();
+  const dashboard = document.getElementById('allAssetsDashboard');
+  if (dashboard && dashboard.style.display !== 'none') {
+    renderAllAssetsData();
+  }
+
+  // 4. 【独立処理】GitHub同期を別の安全なブロックで試行（失敗してもローカルデータは死にません）
+  const pin = document.getElementById('pinInput').value.trim();
+  if (CONFIG_ENCRYPTED_TOKEN && CONFIG_GITHUB_USER && CONFIG_GITHUB_REPO) {
+    if (pin.length === 4) {
+      try {
+        const decryptedToken = CryptoJS.AES.decrypt(CONFIG_ENCRYPTED_TOKEN, pin).toString(CryptoJS.enc.Utf8);
+        if (decryptedToken && decryptedToken.startsWith('github_pat_')) {
+          const activeSettings = JSON.parse(localStorage.getItem('portfolio_config')) || {};
+          const outputConfig = {
+            activeSettings: activeSettings,
+            history: portfolioHistory,
+            otherAssets: otherAssets 
+          };
+          // 非同期でGitHubを更新
+          githubDirectCommit(decryptedToken, 'portfolio_config.json', JSON.stringify(outputConfig, null, 2));
+        } else {
+          writeLog("【警告】暗証パスワードの解読に失敗したため、GitHub同期をスキップしました（ローカルには保存済）。");
+        }
+      } catch (err) {
+        writeLog("【警告】復号処理エラーのため、GitHub同期は保留されました（ローカルには保存済）。");
+      }
+    } else {
+      writeLog("【案内】4桁のパスワードが未入力のため、ローカル保存のみ完了しました（GitHub同期なし）。");
+    }
+  }
+
+  alert(`他資産「${assetType}」をブラウザに保存し、画面に反映しました。`);
 }
 
 function githubDirectCommit(token, fileName, contentString) {
@@ -2206,6 +2495,338 @@ function getYesterdayDate(dateStr) {
   return d.toISOString().split('T')[0];
 }
 
+// ★新規追加：仮想通貨の入力行を動的に追加する関数
+function addCryptoInputRow(name = '', amount = 0, rate = 10000000) {
+  const container = document.getElementById('m-crypto-rows-container');
+  if (!container) return;
 
+  // 1行分の要素（div）を作成
+  const row = document.createElement('div');
+  row.className = 'crypto-input-row';
+  row.style.display = 'flex';
+  row.style.gap = '4px';
+  row.style.alignItems = 'center';
+  row.style.marginBottom = '6px';
+  row.style.paddingBottom = '6px';
+  row.style.borderBottom = '1px dashed #edf2f7';
+
+  row.innerHTML = `
+    <input type="text" class="m-crypto-name" value="${name}" placeholder="銘柄名" style="width: 28%; font-size: 10px; padding: 2px; border: 1px solid #cbd5e0; border-radius: 4px; font-family: monospace;">
+    <input type="number" step="0.00000001" class="m-crypto-amount" value="${amount}" placeholder="保有量" style="width: 32%; font-size: 10px; padding: 2px; border: 1px solid #cbd5e0; border-radius: 4px; text-align: right; font-family: monospace;">
+    <input type="number" class="m-crypto-rate" value="${rate}" placeholder="レート" style="width: 30%; font-size: 10px; padding: 2px; border: 1px solid #cbd5e0; border-radius: 4px; text-align: right; font-family: monospace;">
+    <button class="action-btn" onclick="removeCryptoInputRow(this)" style="width: 10%; padding: 2px 0; font-size: 10px; background-color: #e53e3e; color: white; border: none; border-radius: 4px; cursor: pointer;">-</button>
+  `;
+
+  container.appendChild(row);
+}
+
+// ★新規追加：仮想通貨の入力行を削除する関数
+function removeCryptoInputRow(btn) {
+  // 削除ボタンの親要素（row）を取得してDOMから削除
+  const row = btn.closest('.crypto-input-row');
+  if (row) {
+    row.remove();
+  }
+}
+
+// ★新規追加：他資産（現金、ドル、仮想通貨）の円換算合計値を算出する計算用ヘルパー
+function calculateOtherAssetsTotals() {
+  const cashTotal = otherAssets.cash.amount || 0;
+  const usdTotal = (otherAssets.usd.amount || 0) * (otherAssets.usd.rate || 0);
+  
+  let cryptoTotal = 0;
+  const cryptoDetails = [];
+  if (otherAssets.crypto && otherAssets.crypto.length > 0) {
+    otherAssets.crypto.forEach(c => {
+      const val = (c.amount || 0) * (c.rate || 0);
+      cryptoTotal += val;
+      cryptoDetails.push({ name: c.name, val: val });
+    });
+  }
+
+  return {
+    cash: cashTotal,
+    usd: usdTotal,
+    crypto: cryptoTotal,
+    cryptoDetails: cryptoDetails,
+    grandTotal: cashTotal + usdTotal + cryptoTotal
+  };
+}
+
+// ★新規追加：フェーズ3：全資産集計エリアの開閉（トグル）制御関数
+function toggleAllAssetsDashboard() {
+  const dashboard = document.getElementById('allAssetsDashboard');
+  const btn = document.getElementById('toggleAllAssetsBtn');
+  if (!dashboard || !btn) return;
+
+  if (dashboard.style.display === 'none') {
+    // 表示状態に切り替え
+    dashboard.style.display = 'flex';
+    btn.innerText = '❌ 全資産集計額一覧を閉じる';
+    btn.className = 'action-btn btn-gray';
+    
+    // 開いた瞬間に、新しく出現したエリアが画面中央に収まるように自動スクロール
+    setTimeout(() => {
+      dashboard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+
+    // 描画処理の呼び出し（フェーズ4, 5で実装する描画更新関数）
+    renderAllAssetsData(); 
+  } else {
+    // 非表示に切り替え
+    dashboard.style.display = 'none';
+    btn.innerText = '📊 全資産集計額一覧を表示';
+    btn.className = 'action-btn btn-blue';
+  }
+}
+
+// ★フェーズ4：全アセットデータから「字下げ対応テーブル」を動的に生成して描画する関数
+function renderAllAssetsData() {
+  writeLog("【ダッシュボード集計】全資産の再計算と一覧表の構築を開始...");
+  
+  const otherTotals = calculateOtherAssetsTotals();
+  const totals = calculateCurrentTotals(); // 既存の投資信託合計（デモ倍率適用済み）
+
+  const grandTotal = totals.afterTaxMarket + otherTotals.grandTotal;
+
+  // 1. 各アセットの表示用行オブジェクトの作成
+  const assetRows = [];
+
+  // ① 投資信託（全体を1つに集約）
+  assetRows.push({
+    name: "投資信託（税引き後）", // 分かりやすく「（税引き後）」を明示します
+    val: totals.afterTaxMarket,
+    isSubRow: false
+  });
+
+  // ② 現金 (日本円)
+  assetRows.push({
+    name: "現金 (日本円)",
+    val: otherTotals.cash,
+    isSubRow: false
+  });
+
+  // ③ 米ドル資産 (円換算)
+  assetRows.push({
+    name: "米ドル資産 (外貨)",
+    val: otherTotals.usd,
+    isSubRow: false
+  });
+
+  // ④ 仮想通貨（合計）
+  assetRows.push({
+    name: "仮想通貨 (合計)",
+    val: otherTotals.crypto,
+    isSubRow: false
+  });
+
+  // ⑤ 仮想通貨の動的内訳（個別コイン）を「字下げ」で追加
+  if (otherAssets.crypto && otherAssets.crypto.length > 0) {
+    otherTotals.cryptoDetails.forEach(c => {
+      // 登録されている各コインについて内訳行を作成
+      assetRows.push({
+        name: `└ ${c.name}`,
+        val: c.val,
+        isSubRow: true // 字下げ判別用のフラグ
+      });
+    });
+  }
+
+  // 2. 一覧表（HTML）の動的組み立て
+  let tableHtml = `
+    <table style="width: 100%; border-collapse: collapse; background: white; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden;">
+      <thead>
+        <tr style="background: #edf2f7; color: #4a5568;">
+          <th style="border: 1px solid #e2e8f0; padding: 10px; text-align: left; font-size: 12px; font-weight: bold; padding-left: 15px;">アセット名</th>
+          <th style="border: 1px solid #e2e8f0; padding: 10px; text-align: right; font-size: 12px; font-weight: bold; padding-right: 15px;">評価額（円換算）</th>
+          <th style="border: 1px solid #e2e8f0; padding: 10px; text-align: center; font-size: 12px; font-weight: bold; width: 70px;">構成比</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  // 3. 各行をループ処理してテーブル内に流し込み
+  assetRows.forEach(row => {
+    // 総合計に対する構成比（％）を算出
+    const pct = grandTotal > 0 ? ((row.val / grandTotal) * 100).toFixed(1) : "0.0";
+    
+    // メイン行（大分類）とサブ行（字下げ行）で文字サイズや配置をCSSで個別コントロール
+    const nameStyle = row.isSubRow 
+      ? "padding-left: 28px; text-align: left; color: #718096; font-size: 12px; font-family: monospace; border: 1px solid #e2e8f0; padding: 8px 10px 8px 28px;" 
+      : "padding-left: 15px; text-align: left; font-weight: bold; color: #2d3748; border: 1px solid #e2e8f0; padding: 10px 15px;";
+      
+    const valStyle = row.isSubRow
+      ? "padding-right: 15px; text-align: right; color: #718096; font-size: 12px; font-family: monospace; border: 1px solid #e2e8f0; padding: 8px 15px;"
+      : "padding-right: 15px; text-align: right; font-weight: bold; color: #1a202c; font-family: monospace; border: 1px solid #e2e8f0; padding: 10px 15px;";
+      
+    const pctStyle = row.isSubRow
+      ? "color: #a0aec0; font-size: 11px; font-family: monospace; border: 1px solid #e2e8f0; padding: 8px; text-align: center;"
+      : "font-weight: bold; color: #4a5568; font-family: monospace; border: 1px solid #e2e8f0; padding: 10px; text-align: center;";
+
+    // 内訳行は背景色をわずかに変えてサブ項目であることを視覚的に示します
+    const rowBg = row.isSubRow ? 'background-color: #fafbfc;' : 'background-color: #ffffff;';
+
+    tableHtml += `
+      <tr style="${rowBg}">
+        <td style="${nameStyle}">${row.name}</td>
+        <td style="${valStyle}">${Math.round(row.val).toLocaleString()} 円</td>
+        <td style="${pctStyle}">${row.isSubRow ? '-' : pct + '%'}</td>
+      </tr>
+    `;
+  });
+
+  // 4. テーブルの最後尾に総合計行を合算表示
+  tableHtml += `
+        <tr style="background-color: #edf2f7; border-top: 2px solid #cbd5e0;">
+          <td style="padding-left: 15px; text-align: left; font-weight: bold; color: #2d3748; border: 1px solid #e2e8f0; padding: 12px 15px;">総合計（総資産額）</td>
+          <td style="padding-right: 15px; text-align: right; font-weight: bold; color: #2d3748; font-size: 14px; font-family: monospace; border: 1px solid #e2e8f0; padding: 12px 15px;">${Math.round(grandTotal).toLocaleString()} 円</td>
+          <td style="font-weight: bold; color: #2d3748; font-family: monospace; border: 1px solid #e2e8f0; padding: 12px; text-align: center;">100.0%</td>
+        </tr>
+      </tbody>
+    </table>
+  `;
+
+  // 構築した表HTMLを画面領域へ一挙挿入
+  const tableArea = document.getElementById('allAssetsTableArea');
+  if (tableArea) {
+    tableArea.innerHTML = tableHtml;
+  }
+
+  // ★フェーズ5でグラフ機能が追加された際の、グラフ側へのレンダリング引き渡し
+  if (typeof renderAllAssetsCharts === 'function') {
+    renderAllAssetsCharts(totals, otherTotals, grandTotal);
+  }
+}
+// ★フェーズ5：総資産比率円グラフと資産額比較横棒グラフをChart.jsで描画する関数
+function renderAllAssetsCharts(totals, otherTotals, grandTotal) {
+  writeLog("【ダッシュボードグラフ】円グラフと横棒グラフの生成を開始します...");
+
+  const canvasPie = document.getElementById('allAssetsPieChart');
+  const canvasBar = document.getElementById('allAssetsBarChart');
+  if (!canvasPie || !canvasBar) return;
+
+  // 1. 円グラフ（構成比）用のデータ整理（金額が0件のアセットは除外して描画を綺麗にします）
+  const pieRawStructure = [
+    { label: '投資信託（税引き後）', val: totals.afterTaxMarket, color: '#3182ce', mark: '信' },
+    { label: '現金（日本円）', val: otherTotals.cash, color: '#2f855a', mark: '現' },
+    { label: '米ドル資産（外貨）', val: otherTotals.usd, color: '#dd6b20', mark: '米' },
+    { label: '仮想通貨（合計）', val: otherTotals.crypto, color: '#805ad5', mark: '暗' }
+  ].filter(item => item.val > 0).sort((a, b) => b.val - a.val);
+
+  // 2. 棒グラフ（資産額比較）用のデータ整理
+  // 横棒グラフ（降順）として、最も金額の大きいアセットから順に表示します
+  const barRawStructure = [
+    { label: '投資信託(税引後)', val: totals.afterTaxMarket, color: '#3182ce' },
+    { label: '現金', val: otherTotals.cash, color: '#2f855a' },
+    { label: '米ドル(外貨)', val: otherTotals.usd, color: '#dd6b20' },
+    { label: '仮想通貨', val: otherTotals.crypto, color: '#805ad5' }
+  ].sort((a, b) => b.val - a.val);
+
+  // ==========================================
+  // ① ドーナツ円グラフの描画制御
+  // ==========================================
+  // 古いグラフインスタンスが残っている場合は完全に破棄して二重描画バグを防ぎます
+  if (chartAllAssetsPie) {
+    chartAllAssetsPie.destroy();
+    chartAllAssetsPie = null;
+  }
+
+  // 中央下の「総資産合計」テキストを最新値に書き換え
+  const elPieTotal = document.getElementById('allAssetsPieTotal');
+  if (elPieTotal) {
+    elPieTotal.innerText = `総資産合計: ${Math.round(grandTotal).toLocaleString()} 円`;
+  }
+
+  chartAllAssetsPie = new Chart(canvasPie, {
+    type: 'doughnut',
+    data: {
+      labels: pieRawStructure.map(x => x.label),
+      datasets: [{
+        data: pieRawStructure.map(x => x.val),
+        backgroundColor: pieRawStructure.map(x => x.color),
+        borderWidth: 1.5,
+        borderColor: '#ffffff'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '65%', // ドーナツの穴のサイズ
+      plugins: {
+        legend: { display: false }, // 凡例は非表示（アセット一覧表と連動しているため）
+        datalabels: {
+          formatter: (value, context) => (value > 0 ? pieRawStructure[context.dataIndex].mark : ''),
+          color: '#ffffff',
+          font: { weight: 'bold', size: 10 }
+        },
+        tooltip: {
+          callbacks: {
+            label: (context) => {
+              const sObj = pieRawStructure[context.dataIndex];
+              const pct = grandTotal > 0 ? ((sObj.val / grandTotal) * 100).toFixed(1) : 0;
+              return `${sObj.label}: ${Math.round(sObj.val).toLocaleString()}円 (${pct}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // ==========================================
+  // ② 横棒グラフ（金額比較）の描画制御
+  // ==========================================
+  if (chartAllAssetsBar) {
+    chartAllAssetsBar.destroy();
+    chartAllAssetsBar = null;
+  }
+
+  chartAllAssetsBar = new Chart(canvasBar, {
+    type: 'bar',
+    data: {
+      labels: barRawStructure.map(x => x.label),
+      datasets: [{
+        data: barRawStructure.map(x => x.val),
+        backgroundColor: barRawStructure.map(x => x.color),
+        borderRadius: 4,
+        barThickness: 16 // 棒の太さ
+      }]
+    },
+    options: {
+      indexAxis: 'y', // ★ここを 'y' にすることで綺麗な「横棒グラフ」になります
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          grid: { color: 'rgba(0, 0, 0, 0.03)' },
+          ticks: {
+            font: { size: 9 },
+            callback: v => (v >= 10000) ? (v / 10000).toLocaleString() + '万円' : v.toLocaleString() + '円'
+          }
+        },
+        y: {
+          grid: { display: false },
+          ticks: {
+            font: { size: 10, weight: 'bold' },
+            color: '#4a5568'
+          }
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        datalabels: { display: false }, // 棒グラフ上の直接ラベルは非表示
+        tooltip: {
+          callbacks: {
+            label: (context) => {
+              const val = context.parsed.x;
+              return ` 評価額: ${Math.round(val).toLocaleString()} 円`;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  writeLog("【ダッシュボードグラフ】2つのグラフの描画更新が完了しました。");
+}
 
 </script>
