@@ -1,14 +1,14 @@
 {
   "activeSettings": {
     "hifumi": {
-      "units": 67.6,
-      "purchasePrice": 53719,
+      "units": 67.97,
+      "purchasePrice": 53919,
       "monthlyInvest": 0,
       "periodText": "2016/06-2026/06"
     },
     "saison": {
-      "units": 83.8,
-      "purchasePrice": 16707,
+      "units": 84.1,
+      "purchasePrice": 16766,
       "monthlyInvest": 10000,
       "periodText": "2017/05-"
     },
@@ -31,7 +31,30 @@
       "periodText": "2021/05-2023/12"
     }
   },
-  "history": {},
+  "history": {
+    "2026-06": {
+      "hifumi": {
+        "units": 67.97,
+        "purchasePrice": 53919
+      },
+      "saison": {
+        "units": 84.1,
+        "purchasePrice": 16766
+      },
+      "vti_new": {
+        "units": 29.2,
+        "purchasePrice": 32700
+      },
+      "ishares": {
+        "units": 70.3,
+        "purchasePrice": 20478
+      },
+      "vti_old": {
+        "units": 53.2,
+        "purchasePrice": 19834
+      }
+    }
+  },
   "otherAssets": {
     "cash": {
       "amount": 3500000
