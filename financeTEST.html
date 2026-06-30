@@ -1738,6 +1738,17 @@ function generateAndRenderChart(totals) {
   const startDate = new Date('2016-06-01'); const today = new Date();
   const generateDateLabels = (start, end) => { const list = []; let cur = new Date(start); while (cur <= end) { list.push(`${cur.getFullYear()}-${('0' + (cur.getMonth() + 1)).slice(-2)}`); cur.setMonth(cur.getMonth() + 1); } return list; };
   
+  // ★通信ロードの遅延に影響されないよう、関数内で最新の時価総額を即時再計算
+  const latestTotals = calculateCurrentTotals();
+
+  // ★【バグ修正】：スコープエラーを防ぐため、最新日と判定変数を関数の先頭で一括定義
+  let latestDateStr = "";
+  if (priceHistory && Object.keys(priceHistory).length > 0) {
+    const sorted = Object.keys(priceHistory).filter(d => d.length === 10).sort();
+    if (sorted.length > 0) latestDateStr = sorted[sorted.length - 1]; 
+  }
+  const isLatestDateAfterFirst = (latestDateStr && latestDateStr.substring(8, 10) !== "01");
+
   // ① 短期
   const shortLabels = []; const shortData = []; const rawShortData = [];
   for (let i = 29; i >= 0; i--) {
@@ -1759,7 +1770,7 @@ function generateAndRenderChart(totals) {
       let leftIdx = -1; let leftVal = null; for (let l = i - 1; l >= 0; l--) { if (rawShortData[l] !== null) { leftIdx = l; leftVal = rawShortData[l]; break; } }
       let rightIdx = -1; let rightVal = null; for (let r = i + 1; r < rawShortData.length; r++) { if (rawShortData[r] !== null) { rightIdx = r; rightVal = rawShortData[r]; break; } }
       if (leftIdx !== -1 && rightIdx !== -1) { shortData.push(Math.round(leftVal + (rightVal - leftVal) * ((i - leftIdx) / (rightIdx - leftIdx)))); } 
-      else if (leftIdx !== -1) { shortData.push(leftVal); } else if (rightIdx !== -1) { shortData.push(rightVal); } else { shortData.push(Math.round(totals.totalMarket)); }
+      else if (leftIdx !== -1) { shortData.push(leftVal); } else if (rightIdx !== -1) { shortData.push(rightVal); } else { shortData.push(Math.round(latestTotals.totalMarket)); }
     }
   }
 
@@ -1770,35 +1781,34 @@ function generateAndRenderChart(totals) {
     chartShortObj = new Chart(canvasShort, { type: 'line', data: { labels: shortLabels, datasets: [{ label: '時価評価額 (円)', data: shortData, borderColor: 'rgba(54, 162, 235, 1)', backgroundColor: 'rgba(54, 162, 235, 0.05)', borderWidth: 2, fill: true, pointRadius: 1, tension: 0.15 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { font: { size: 9 } } }, y: { ticks: { callback: v => (v / 10000).toLocaleString() + '万円' } } }, plugins: { legend: { display: false }, datalabels: { display: false } } } });
   }
 
-  // ② 中期
+  // ② 中期 (長期の計算ロジック calculateMonthlyDetails を流用して完全に同期化)
   const mediumLabels = []; const mediumData = [];
+  
+  // ★重要：2月スキップバグ防止のため、基準日を1日に固定します
+  const baseDate = new Date();
+  baseDate.setDate(1); 
+
   for (let i = 11; i >= 0; i--) {
-    const temp = new Date(); temp.setMonth(today.getMonth() - i); const yyyymm = `${temp.getFullYear()}-${('0' + (temp.getMonth() + 1)).slice(-2)}`;
-    mediumLabels.push(yyyymm); let monthlyTotal = 0;
-    stocks.forEach(s => {
-      let units = s.units * scale; // ★デモ倍率の適用
-      const pEnd = new Date(s.periodEnd);
-      if (temp < pEnd && s.periodEnd !== '2026-06-01') {
-        const pStart = new Date(s.periodStart); const totalM = (pEnd.getFullYear() - pStart.getFullYear()) * 12 + (pEnd.getMonth() - pStart.getMonth()); const elapsedM = (temp.getFullYear() - pStart.getFullYear()) * 12 + (temp.getMonth() - pStart.getMonth()); units = Math.max(0, (((s.units * scale)) / (totalM || 1)) * elapsedM);
-      }
-      let price = s.purchasePrice; let foundPrice = null; const keyMap = { hifumi:'hifumi', saison:'saison', vti_new:'rakuten_vti', ishares:'ishares', vti_old:'rakuten_vti' };
-      if (priceHistory) {
-        const availableDates = Object.keys(priceHistory).filter(d => d.startsWith(yyyymm)).sort();
-        if (availableDates.length > 0) { const latestDateOfThisMonth = availableDates[availableDates.length - 1]; if (priceHistory[latestDateOfThisMonth] && priceHistory[latestDateOfThisMonth][keyMap[s.key]] !== undefined) foundPrice = priceHistory[latestDateOfThisMonth][keyMap[s.key]]; }
-      }
-      if (foundPrice !== null) { price = foundPrice; } else {
-        const anchorPrice = s.anchorPurchasePrice;
-        let latestPrice = s.anchorPurchasePrice;
-        if (priceHistory && latestDateStr && priceHistory[latestDateStr] && priceHistory[latestDateStr][map.key] !== undefined) {
-          latestPrice = priceHistory[latestDateStr][map.key];
-        }
-        const pStart = new Date(s.periodStart);
-        const now = new Date('2026-06-01'); const fullHistoryMonths = (now.getFullYear() - pStart.getFullYear()) * 12 + (now.getMonth() - pStart.getMonth()); const elapsedFromStart = (temp.getFullYear() - pStart.getFullYear()) * 12 + (temp.getMonth() - pStart.getMonth());
-        if (fullHistoryMonths > 0) price = anchorPrice + ((latestPrice - anchorPrice) / fullHistoryMonths) * elapsedFromStart;
-      }
-      monthlyTotal += units * price;
-    });
-    mediumData.push(Math.round(monthlyTotal));
+    const temp = new Date(baseDate); 
+    temp.setMonth(baseDate.getMonth() - i); 
+    const yyyymm = `${temp.getFullYear()}-${('0' + (temp.getMonth() + 1)).slice(-2)}`;
+    
+    // ラベルは常に一貫した「YYYY-MM」形式で各月「ついたち」として追加
+    mediumLabels.push(yyyymm);
+
+    // 2016年6月を「0」とした経過月数（インデックス）
+    const elapsedMonths = (temp.getFullYear() - 2016) * 12 + temp.getMonth() - 5;
+    
+    // 過去12ヶ月（当月を含む）はすべて各月1日（ついたち）時点の履歴データを描写
+    const details = calculateMonthlyDetails(elapsedMonths, false);
+    mediumData.push(details.totalMarket);
+  }
+
+  // ★ 解決策：外側の共通判定を利用して、最新営業日データを安全に最後尾に追加
+  if (latestDateStr && isLatestDateAfterFirst) {
+    const latestLabel = latestDateStr.substring(5).replace('-', '/'); // "06/30"
+    mediumLabels.push(latestLabel);
+    mediumData.push(Math.round(latestTotals.totalMarket)); // 最新の正確な再計算時価
   }
 
   const canvasMedium = document.getElementById('mediumChart');
@@ -1821,13 +1831,6 @@ function generateAndRenderChart(totals) {
     if (isFutureMode) { future7Data.push(null); future8Data.push(null); future9Data.push(null); futurePurchaseData.push(null); }
   }
 
-  let latestDateStr = "";
-  if (priceHistory && Object.keys(priceHistory).length > 0) {
-    const sorted = Object.keys(priceHistory).filter(d => d.length === 10).sort();
-    if (sorted.length > 0) latestDateStr = sorted[sorted.length - 1]; 
-  }
-  const isLatestDateAfterFirst = (latestDateStr && latestDateStr.substring(8, 10) !== "01");
-  
   if (isLatestDateAfterFirst) {
     longLabels[monthsPast] = `${longLabels[monthsPast]}-01`; 
     longLabels.splice(monthsPast + 1, 0, latestDateStr.substring(5)); 
@@ -1846,16 +1849,16 @@ function generateAndRenderChart(totals) {
   }
 
   if (isFutureMode && monthsFuture > 0) {
-    const currentTotalMarket = totals.totalMarket; const currentTotalPurchase = totals.totalPurchase;
+    const currentTotalMarket = latestTotals.totalMarket; const currentTotalPurchase = latestTotals.totalPurchase;
     const connectionIdx = isLatestDateAfterFirst ? monthsPast + 1 : monthsPast;
     
-    // 最新日の税引き後評価額（totals.afterTaxMarket）から予測線の起点を正しく接続
-    future7Data[connectionIdx] = Math.round(totals.afterTaxMarket) || 0; 
-    future8Data[connectionIdx] = Math.round(totals.afterTaxMarket) || 0; 
-    future9Data[connectionIdx] = Math.round(totals.afterTaxMarket) || 0; 
+    // 最新日の税引き後評価額（latestTotals.afterTaxMarket）から予測線の起点を接続
+    future7Data[connectionIdx] = Math.round(latestTotals.afterTaxMarket) || 0; 
+    future8Data[connectionIdx] = Math.round(latestTotals.afterTaxMarket) || 0; 
+    future9Data[connectionIdx] = Math.round(latestTotals.afterTaxMarket) || 0; 
     futurePurchaseData[connectionIdx] = Math.round(currentTotalPurchase) || 0;
     
-    const taxableRatio = currentTotalMarket > 0 ? (currentTotalMarket - totals.nisaProfit) / currentTotalMarket : 0.5;
+    const taxableRatio = currentTotalMarket > 0 ? (currentTotalMarket - latestTotals.nisaProfit) / currentTotalMarket : 0.5;
     let totalMonthlyInvest = 0; stocks.forEach(s => { totalMonthlyInvest += (s.monthlyInvest * scale) || 0; }); // ★デモ倍率の適用
 
     for (let j = 1; j <= monthsFuture; j++) {
