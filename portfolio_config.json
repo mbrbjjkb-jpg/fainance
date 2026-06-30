@@ -1,14 +1,14 @@
 {
   "activeSettings": {
     "hifumi": {
-      "units": 67.6,
-      "purchasePrice": 53719,
+      "units": 67.97,
+      "purchasePrice": 53919,
       "monthlyInvest": 0,
       "periodText": "2016/06-2026/06"
     },
     "saison": {
-      "units": 83.8,
-      "purchasePrice": 16707,
+      "units": 84.1,
+      "purchasePrice": 16766,
       "monthlyInvest": 10000,
       "periodText": "2017/05-"
     },
@@ -45,18 +45,18 @@
     ],
     "usd": {
       "amount": 9923,
-      "rate": 161
+      "rate": 162.2
     },
     "crypto": [
       {
         "name": "BNB",
         "amount": 21.18,
-        "rate": 89018
+        "rate": 89638
       },
       {
         "name": "BLZ",
         "amount": 150272,
-        "rate": 1.23
+        "rate": 1.22
       }
     ]
   }
