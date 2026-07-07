@@ -568,7 +568,8 @@ let priceHistory = null; let miniCharts = {}; let activeGraphTab = 'past';
 // ★新規追加：全資産用の円グラフと棒グラフの管理オブジェクト
 let chartAllAssetsPie = null;
 let chartAllAssetsBar = null;
-
+// ==========================================
+let liveUsdRate = null; // リアルタイムのドル円レート保持用
 
 // ==========================================
 // ★新規追加：デモ倍率算出関数（500万円スライド用）
@@ -625,6 +626,31 @@ function writeLog(message) {
   }
 }
 
+// ★新規追加：リアルタイム為替レート取得関数
+async function fetchRealTimeUsdRate() {
+  try {
+    const res = await fetch('https://open.er-api.com/v6/latest/USD');
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.rates && data.rates.JPY) {
+        liveUsdRate = data.rates.JPY;
+        writeLog(`【為替取得】現在のリアルタイムドル円レートを取得しました: 1USD = ${liveUsdRate.toFixed(2)}円`);
+        
+        // レートが更新されたため、システム全体の計算とダッシュボード表示を再構成する
+        initBaseSystem();
+        const dashboard = document.getElementById('allAssetsDashboard');
+        if (dashboard && dashboard.style.display !== 'none') {
+          renderAllAssetsData();
+        }
+      }
+    }
+  } catch (e) {
+    writeLog(`【為替取得エラー】リアルタイムレートの取得に失敗しました。手動設定値を使用します。: ${e.message}`);
+  }
+}
+
+
+
 window.onload = function() {
   loadUserConfigFromStorage();
   initInputFields();
@@ -634,6 +660,12 @@ window.onload = function() {
   } catch (e) {
     writeLog(`【エラー】基本画面の描画中にエラーが発生しました: ${e.message}`);
   }
+  
+  // ==========================================
+  // ★ここに以下の1行を追加します
+  // ==========================================
+  fetchRealTimeUsdRate(); // 起動時にリアルタイム為替レートを取得
+  
   loadPriceHistoryAndRenderChart();
 };
 
@@ -2617,7 +2649,8 @@ function calculateOtherAssetsTotals() {
     cashDetails.push({ name: "現金", val: cashTotal });
   }
 
-  const usdTotal = (otherAssets.usd.amount || 0) * (otherAssets.usd.rate || 0);
+  const currentRate = liveUsdRate || (otherAssets.usd.rate || 0);
+  const usdTotal = (otherAssets.usd.amount || 0) * currentRate;
   
   let cryptoTotal = 0;
   const cryptoDetails = [];
@@ -2705,8 +2738,12 @@ function renderAllAssetsData() {
   }
 
   // ③ 米ドル資産 (円換算)
+  const usdRateText = liveUsdRate 
+    ? `（自動取得：${liveUsdRate.toFixed(1)}円）`  // 自動取得に成功した場合
+    : `（手動設定：${otherAssets.usd.rate}円）`;  // 自動取得に失敗し、設定値が使われている場合
+  
   assetRows.push({
-    name: "米ドル資産 (外貨)",
+    name: "米ドル資産 (外貨) " + usdRateText,
     val: otherTotals.usd,
     isSubRow: false
   });
