@@ -558,7 +558,9 @@ let otherAssets = {
   ],
   usd: { amount: 0, rate: 150 },
   crypto: [
-    { name: "BTC", amount: 0, rate: 10000000 }
+    { name: "BTC", amount: 0, rate: 10000000 },
+    { name: "BNB", amount: 0, rate: 80000 },  // ★初期枠としてBNBを追加（仮レート）
+    { name: "BLZ", amount: 0, rate: 50 }      // ★初期枠としてBLZを追加（仮レート）
   ]
 };
 
@@ -570,6 +572,11 @@ let chartAllAssetsPie = null;
 let chartAllAssetsBar = null;
 // ==========================================
 let liveUsdRate = null; // リアルタイムのドル円レート保持用
+// ==========================================
+// ★追加：仮想通貨の自動取得レート保持用
+// ==========================================
+let liveBnbRate = null; 
+let liveBlzRate = null;
 
 // ==========================================
 // ★新規追加：デモ倍率算出関数（500万円スライド用）
@@ -626,26 +633,69 @@ function writeLog(message) {
   }
 }
 
-// ★新規追加：リアルタイム為替レート取得関数
+// リアルタイム為替（USDT）および暗号資産（BNB/BLZ）価格の一括取得関数（自己修復機能付き）
 async function fetchRealTimeUsdRate() {
   try {
-    const res = await fetch('https://open.er-api.com/v6/latest/USD');
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.rates && data.rates.JPY) {
-        liveUsdRate = data.rates.JPY;
-        writeLog(`【為替取得】現在のリアルタイムドル円レートを取得しました: 1USD = ${liveUsdRate.toFixed(2)}円`);
-        
-        // レートが更新されたため、システム全体の計算とダッシュボード表示を再構成する
-        initBaseSystem();
-        const dashboard = document.getElementById('allAssetsDashboard');
-        if (dashboard && dashboard.style.display !== 'none') {
-          renderAllAssetsData();
-        }
+    // 1. 確実に 'BNB' と 'BLZ' をリストに存在させる（LocalStorage上書きに対する自己修復）
+    if (Array.isArray(otherAssets.crypto)) {
+      const hasBnb = otherAssets.crypto.some(c => c.name.trim().toUpperCase() === 'BNB');
+      if (!hasBnb) {
+        otherAssets.crypto.push({ name: 'BNB', amount: 0, rate: 0 });
+        writeLog("【自己修復】不足していたBNBのデータ枠をリストに自動生成しました。");
+      }
+      const hasBlz = otherAssets.crypto.some(c => c.name.trim().toUpperCase() === 'BLZ');
+      if (!hasBlz) {
+        otherAssets.crypto.push({ name: 'BLZ', amount: 0, rate: 0 });
+        writeLog("【自己修復】不足していたBLZのデータ枠をリストに自動生成しました。");
       }
     }
+
+    // 2. CoinGecko APIから一括取得
+    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=tether,binancecoin,bluzelle&vs_currencies=jpy');
+    if (res.ok) {
+      const data = await res.json();
+      
+      // 2-a. 米ドル（USDT）の更新
+      if (data && data.tether && data.tether.jpy) {
+        liveUsdRate = data.tether.jpy;
+        writeLog(`【リアルタイム為替取得】現在の最新ドル円換算レートを取得しました: 1USD ≒ ${liveUsdRate.toFixed(2)}円`);
+      }
+
+      // 2-b. 仮想通貨リスト（otherAssets.crypto）内の BNB と BLZ レートの自動検索と更新
+      if (data && Array.isArray(otherAssets.crypto)) {
+        let isRateUpdated = false;
+        
+        otherAssets.crypto.forEach(c => {
+          const cryptoName = c.name.trim().toUpperCase();
+          
+          // BNB の価格更新
+          if (cryptoName === 'BNB' && data.binancecoin && data.binancecoin.jpy !== undefined) {
+            liveBnbRate = data.binancecoin.jpy; // 自動取得レート変数に保存
+            c.rate = data.binancecoin.jpy;
+            isRateUpdated = true;
+            writeLog(`【暗号資産自動取得】BNBの最新価格を反映しました: 1BNB = ${c.rate.toLocaleString()}円`);
+          }
+          
+          // BLZ の価格更新
+          if (cryptoName === 'BLZ' && data.bluzelle && data.bluzelle.jpy !== undefined) {
+            liveBlzRate = data.bluzelle.jpy; // 自動取得レート変数に保存
+            c.rate = data.bluzelle.jpy;
+            isRateUpdated = true;
+            writeLog(`【暗号資産自動取得】BLZの最新価格を反映しました: 1BLZ = ${c.rate.toLocaleString()}円`);
+          }
+        });
+
+        // 最新単価を保存
+        if (isRateUpdated) {
+          localStorage.setItem('portfolio_other_assets', JSON.stringify(otherAssets));
+        }
+      }
+
+      // 3. 全体の集計システムを再実行
+      initBaseSystem();
+    }
   } catch (e) {
-    writeLog(`【為替取得エラー】リアルタイムレートの取得に失敗しました。手動設定値を使用します。: ${e.message}`);
+    writeLog(`【為替・暗号資産取得エラー】リアルタイム取得に失敗しました。手動設定値を使用します。: ${e.message}`);
   }
 }
 
@@ -661,10 +711,7 @@ window.onload = function() {
     writeLog(`【エラー】基本画面の描画中にエラーが発生しました: ${e.message}`);
   }
   
-  // ==========================================
-  // ★ここに以下の1行を追加します
-  // ==========================================
-  fetchRealTimeUsdRate(); // 起動時にリアルタイム為替レートを取得
+
   
   loadPriceHistoryAndRenderChart();
 };
@@ -2672,24 +2719,35 @@ function calculateOtherAssetsTotals() {
   };
 }
 
-// ★新規追加：フェーズ3：全資産集計エリアの開閉（トグル）制御関数
-function toggleAllAssetsDashboard() {
+// ★関数名の前に「async」を追加して非同期処理化します
+async function toggleAllAssetsDashboard() {
   const dashboard = document.getElementById('allAssetsDashboard');
   const btn = document.getElementById('toggleAllAssetsBtn');
   if (!dashboard || !btn) return;
 
   if (dashboard.style.display === 'none') {
+    // ==========================================
+    // ★ここから：ボタンが押された瞬間のAPI取得処理
+    // ==========================================
+    btn.innerText = '⏳ 最新の為替レートを取得中...';
+    btn.style.opacity = '0.7';
+    
+    // 最新為替データをその場で取得（API通信が終わるまで一時待機）
+    await fetchRealTimeUsdRate();
+    // ==========================================
+
     // 表示状態に切り替え
     dashboard.style.display = 'flex';
     btn.innerText = '❌ 全資産集計額一覧を閉じる';
     btn.className = 'action-btn btn-gray';
+    btn.style.opacity = '1.0';
     
     // 開いた瞬間に、新しく出現したエリアが画面中央に収まるように自動スクロール
     setTimeout(() => {
       dashboard.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
 
-    // 描画処理の呼び出し（フェーズ4, 5で実装する描画更新関数）
+    // 取得した最新のドル円レートを反映してレンダリング
     renderAllAssetsData(); 
   } else {
     // 非表示に切り替え
@@ -2748,24 +2806,41 @@ function renderAllAssetsData() {
     isSubRow: false
   });
 
-  // ④ 仮想通貨（合計）
+// ④ 仮想通貨（合計）
   assetRows.push({
     name: "仮想通貨 (合計)",
     val: otherTotals.crypto,
     isSubRow: false
   });
 
-  // ⑤ 仮想通貨の動的内訳（個別コイン）を「字下げ」で追加
-  if (otherAssets.crypto && otherAssets.crypto.length > 0) {
-    otherTotals.cryptoDetails.forEach(c => {
+  // ⑤ 仮想通貨の動的内訳（個別コイン）を、単価ステータス（自動/手動）および保有枚数付きで追加
+  if (Array.isArray(otherAssets.crypto)) {
+    otherAssets.crypto.forEach(c => {
+      const cryptoName = c.name.trim().toUpperCase();
+      let statusText = "";
+      
+      // 通貨ごとの自動・手動取得状況に応じたステータステキストの生成
+      if (cryptoName === 'BNB') {
+        statusText = liveBnbRate 
+          ? `（自動取得：${Math.round(liveBnbRate).toLocaleString()}円）` 
+          : `（手動設定：${Math.round(c.rate).toLocaleString()}円）`;
+      } else if (cryptoName === 'BLZ') {
+        statusText = liveBlzRate 
+          ? `（自動取得：${liveBlzRate.toFixed(1)}円）` 
+          : `（手動設定：${c.rate.toFixed(1)}円）`;
+      } else {
+        statusText = `（手動設定：${Math.round(c.rate).toLocaleString()}円）`;
+      }
+
+      const totalVal = (c.amount || 0) * (c.rate || 0);
+
       assetRows.push({
-        name: `└ ${c.name}`,
-        val: c.val,
+        name: `└ ${c.name} ${statusText} × ${(c.amount || 0).toLocaleString()}枚`,
+        val: totalVal,
         isSubRow: true 
       });
     });
   }
-
   // 2. 一覧表（HTML）の動的組み立て
   let tableHtml = `
     <table style="width: 100%; border-collapse: collapse; background: white; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden;">
