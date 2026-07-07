@@ -2835,7 +2835,8 @@ function renderAllAssetsData() {
       const totalVal = (c.amount || 0) * (c.rate || 0);
 
       assetRows.push({
-        name: `└ ${c.name} ${statusText} × ${(c.amount || 0).toLocaleString()}枚`,
+        // └ BNB 21.18枚 × （自動取得：93,865円）
+        name: `└ ${c.name} ${(c.amount || 0).toLocaleString()}枚 × ${statusText}`,
         val: totalVal,
         isSubRow: true 
       });
