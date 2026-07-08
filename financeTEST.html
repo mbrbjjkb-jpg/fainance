@@ -1604,7 +1604,7 @@ function calculateMonthlyDetails(index, forceLatest = false) {
     } else {
       // 未来予測（シミュレーション）
       const elapsedFutureMonths = index - latestIdx;
-      const rate = 0.08 / 12;
+      const rate = 0.07 / 12;
       
       const latestDetails = calculateMonthlyDetails(latestIdx, true);
       const startingValue = latestDetails.fundValues[map.idx] || 0;
@@ -1901,13 +1901,13 @@ function generateAndRenderChart(totals) {
   const isFutureMode = (activeGraphTab === 'future'); const latestIdx = getLatestDatabaseIndex();
   const longEndDate = isFutureMode ? new Date('2032-06-01') : new Date('2026-06-01'); const longLabels = generateDateLabels(startDate, longEndDate);
   const pastData = []; const pastPurchaseData = []; const pastProfitData = [];
-  const future7Data = []; const future8Data = []; const future9Data = []; const futurePurchaseData = [];
+  const future3Data = []; const future7Data = []; const future9Data = []; const futurePurchaseData = [];
   const monthsPast = latestIdx; const monthsFuture = isFutureMode ? Math.max(0, 192 - latestIdx) : 0; 
 
   for (let i = 0; i <= monthsPast; i++) {
     const details = calculateMonthlyDetails(i, false); 
     pastData.push(details.totalMarket); pastPurchaseData.push(details.totalPurchase); pastProfitData.push(details.totalMarket - details.totalPurchase);
-    if (isFutureMode) { future7Data.push(null); future8Data.push(null); future9Data.push(null); futurePurchaseData.push(null); }
+    if (isFutureMode) { future3Data.push(null); future7Data.push(null); future9Data.push(null); futurePurchaseData.push(null); }
   }
 
   if (isLatestDateAfterFirst) {
@@ -1924,17 +1924,17 @@ function generateAndRenderChart(totals) {
       latestTotalPurchase += (s.units * scale) * s.purchasePrice; // ★デモ倍率の適用
     });
     pastData.push(Math.round(latestTotalMarket) || 0); pastPurchaseData.push(Math.round(latestTotalPurchase) || 0); pastProfitData.push(Math.round(latestTotalMarket - latestTotalPurchase) || 0);
-    if (isFutureMode) { future7Data.splice(monthsPast + 1, 0, null); future8Data.splice(monthsPast + 1, 0, null); future9Data.splice(monthsPast + 1, 0, null); futurePurchaseData.splice(monthsPast + 1, 0, null); }
+    if (isFutureMode) { future3Data.splice(monthsPast + 1, 0, null); future7Data.splice(monthsPast + 1, 0, null); future9Data.splice(monthsPast + 1, 0, null); futurePurchaseData.splice(monthsPast + 1, 0, null); }
   }
 
   if (isFutureMode && monthsFuture > 0) {
     const currentTotalMarket = latestTotals.totalMarket; const currentTotalPurchase = latestTotals.totalPurchase;
     const connectionIdx = isLatestDateAfterFirst ? monthsPast + 1 : monthsPast;
     
-    // 最新日の税引き後評価額（latestTotals.afterTaxMarket）から予測線の起点を接続
+// 最新日の税引き後評価額（latestTotals.afterTaxMarket）から予測線の起点を接続
+    future3Data[connectionIdx] = Math.round(latestTotals.afterTaxMarket) || 0; 
     future7Data[connectionIdx] = Math.round(latestTotals.afterTaxMarket) || 0; 
-    future8Data[connectionIdx] = Math.round(latestTotals.afterTaxMarket) || 0; 
-    future9Data[connectionIdx] = Math.round(latestTotals.afterTaxMarket) || 0; 
+    future9Data[connectionIdx] = Math.round(latestTotals.afterTaxMarket) || 0;
     futurePurchaseData[connectionIdx] = Math.round(currentTotalPurchase) || 0;
     
     const taxableRatio = currentTotalMarket > 0 ? (currentTotalMarket - latestTotals.nisaProfit) / currentTotalMarket : 0.5;
@@ -1995,7 +1995,7 @@ function generateAndRenderChart(totals) {
         return Math.round(grossTotal - estimatedTaxOnOriginal) || 0;
       };
       pastData.push(null); pastPurchaseData.push(null); pastProfitData.push(null);
-      future7Data.push(simulateForRate(0.07)); future8Data.push(simulateForRate(0.08)); future9Data.push(simulateForRate(0.09));
+      future3Data.push(simulateForRate(0.03)); future7Data.push(simulateForRate(0.07)); future9Data.push(simulateForRate(0.09));
       futurePurchaseData.push(Math.round(currentTotalPurchase + (totalMonthlyInvest * j)) || 0);
     }
   }
@@ -2007,8 +2007,8 @@ function generateAndRenderChart(totals) {
   ];
   if (isFutureMode) {
     datasets.push(
-      { label: '予測(年利7%)', data: future7Data, borderColor: '#cbd5e0', borderWidth: 1, borderDash: [3, 3], fill: false, pointRadius: 0 },
-      { label: '予測(年利8%)', data: future8Data, borderColor: '#ed8936', backgroundColor: 'rgba(237, 137, 54, 0.1)', borderWidth: 2, fill: true, pointRadius: 0 },
+      { label: '予測(年利3%)', data: future3Data, borderColor: '#cbd5e0', borderWidth: 1, borderDash: [3, 3], fill: false, pointRadius: 0 },
+      { label: '予測(年利7%)', data: future7Data, borderColor: '#ed8936', backgroundColor: 'rgba(237, 137, 54, 0.1)', borderWidth: 2, fill: true, pointRadius: 0 },
       { label: '予測(年利9%)', data: future9Data, borderColor: '#fbd38d', borderWidth: 1, borderDash: [3, 3], fill: false, pointRadius: 0 },
       { label: '予定投資額', data: futurePurchaseData, borderColor: '#a0aec0', borderDash: [5, 5], borderWidth: 1.5, fill: false, pointRadius: 0 }
     );
