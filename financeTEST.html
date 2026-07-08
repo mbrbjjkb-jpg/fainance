@@ -391,10 +391,14 @@
     </div>
   </div>
 </div>
-<!-- ★フェーズ3：全資産集計額一覧ボタンと表示エリア -->
-<div style="text-align: center; margin: 30px 0 20px 0;">
+<!-- ★フェーズ3：全資産集計額一覧ボタンと表示エリア（横並び2ボタン化） -->
+<div style="text-align: center; margin: 30px 0 20px 0; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
   <button id="toggleAllAssetsBtn" class="action-btn btn-blue" onclick="toggleAllAssetsDashboard()" style="font-size: 14px; padding: 12px 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s;">
     📊 全資産集計額一覧を表示
+  </button>
+  <!-- ★新設：取り崩しシミュレーション起動ボタン -->
+  <button id="toggleDecumulationBtn" class="action-btn btn-blue" onclick="toggleDecumulationDashboard()" style="font-size: 14px; padding: 12px 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s;">
+    💰 取り崩しシミュレーション
   </button>
 </div>
 
@@ -425,6 +429,37 @@
     </div>
   </div>
 </div>
+
+
+<!-- ★新設：取り崩しシミュレーション用ダッシュボードエリア -->
+<div id="decumulationDashboard" class="card" style="display: none; flex-direction: column; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; box-sizing: border-box;">
+  <h3 style="margin-top: 0; font-size: 16px; color: #2c3e50; border-bottom: 2px solid #ed8936; padding-bottom: 8px;">💰 老後出口戦略・資産取り崩しシミュレーター（60歳〜85歳）</h3>
+  <p class="label-desc" style="margin-bottom: 15px;">※積立シミュレーション終了時点（2032年6月）の各シナリオ予測額を元手とし、60歳引退と仮定して85歳までの25年間の推移をシミュレートします。</p>
+
+  <!-- 操作コントロールパネル -->
+  <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center; background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <span style="font-size: 11px; font-weight: bold; color: #4a5568;">① 開始時の初期資金（2032年時点の想定額）</span>
+      <select id="dec-start-fund" style="padding: 6px 12px; font-size: 12px; border-radius: 4px; border: 1px solid #cbd5e0; font-weight: bold; background: white;" onchange="calculateDecumulationTable()"></select>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <span style="font-size: 11px; font-weight: bold; color: #4a5568;">② 毎月の希望取り崩し額</span>
+      <select id="dec-monthly-withdraw" style="padding: 6px 12px; font-size: 12px; border-radius: 4px; border: 1px solid #cbd5e0; font-weight: bold; background: white;" onchange="calculateDecumulationTable()"></select>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <span style="font-size: 11px; font-weight: bold; color: #4a5568;">③ インフレ考慮（年率2%生活費増加）</span>
+      <button id="dec-inflation-btn" class="action-btn btn-gray" onclick="toggleDecumulationInflation()" style="padding: 6px 16px; font-size: 12px; border-radius: 4px; margin: 0; min-width: 80px; font-weight: bold;">OFF</button>
+    </div>
+  </div>
+
+  <!-- 動的シミュレーションテーブル出力枠 -->
+  <div id="decumulationTableArea" style="overflow-x: auto;">
+    <p style="color: #718096; font-size: 13px; text-align: center; padding: 10px 0;">計算データを構築中...</p>
+  </div>
+</div>
+
+
+
 
 <div class="card">
   <h3>5. システムデバッグログ</h3>
@@ -577,6 +612,8 @@ let liveUsdRate = null; // リアルタイムのドル円レート保持用
 // ==========================================
 let liveBnbRate = null; 
 let liveBlzRate = null;
+let decumulationInflationActive = false; // 取り崩しインフレ考慮フラグ（デフォルトOFF）
+
 
 // ==========================================
 // ★新規追加：デモ倍率算出関数（500万円スライド用）
@@ -3066,5 +3103,234 @@ function removeCashInputRow(btn) {
   }
 }
 
+// ==========================================
+// ★新設：取り崩しシミュレーター制御ロジック
+// ==========================================
 
+// 1. ダッシュボード開閉トグル
+function toggleDecumulationDashboard() {
+  const dashboard = document.getElementById('decumulationDashboard');
+  const btn = document.getElementById('toggleDecumulationBtn');
+  if (!dashboard || !btn) return;
+
+  if (dashboard.style.display === 'none') {
+    dashboard.style.display = 'flex';
+    btn.innerText = '❌ 取り崩しプランを閉じる';
+    btn.className = 'action-btn btn-gray';
+    
+    // 開いたタイミングでコントロール項目の初期設定と計算を実行
+    initDecumulationControls();
+    calculateDecumulationTable();
+
+    setTimeout(() => {
+      dashboard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  } else {
+    dashboard.style.display = 'none';
+    btn.innerText = '💰 取り崩しシミュレーション';
+    btn.className = 'action-btn btn-blue';
+  }
+}
+
+// 2. プルダウンコントロールの動的生成
+function initDecumulationControls() {
+  const startSelect = document.getElementById('dec-start-fund');
+  const withdrawSelect = document.getElementById('dec-monthly-withdraw');
+  if (!startSelect || !withdrawSelect) return;
+
+  // すでに生成済みの場合はスキップ
+  if (startSelect.options.length > 0) return;
+
+  // 16年計画（2032年6月、インデックス192）時点の3%, 7%, 9%の将来資産額を動的逆算
+  const val3 = getPeakValueForRate(0.03);
+  const val7 = getPeakValueForRate(0.07);
+  const val9 = getPeakValueForRate(0.09);
+
+  // 開始時資金の選択肢
+  startSelect.innerHTML = `
+    <option value="${val3}">堅実ルート(3%運用結果)：約 ${(Math.round(val3 / 10000) * 10000).toLocaleString()} 円</option>
+    <option value="${val7}" selected>期待ルート(7%運用結果)：約 ${(Math.round(val7 / 10000) * 10000).toLocaleString()} 円</option>
+    <option value="${val9}">積極ルート(9%運用結果)：約 ${(Math.round(val9 / 10000) * 10000).toLocaleString()} 円</option>
+  `;
+
+  // 毎月取り崩し額の選択肢（5万円から30万円まで1万円刻み）
+  let withdrawOptions = '';
+  for (let w = 50000; w <= 300000; w += 10000) {
+    const selected = (w === 150000) ? 'selected' : ''; // デフォルト15万
+    withdrawOptions += `<option value="${w}" ${selected}>毎月 ${(w / 10000)} 万円</option>`;
+  }
+  withdrawSelect.innerHTML = withdrawOptions;
+}
+
+// 積立期終点における特定の利率に対するシミュレーション最終予測総額の計算ヘルパー
+function getPeakValueForRate(annualRate) {
+  const scale = getDemoScale();
+  const latestIdx = getLatestDatabaseIndex();
+  const targetIndex = 192; // 2032年6月（計画終点）
+  const elapsedFutureMonths = Math.max(0, targetIndex - latestIdx);
+  
+  let totalPeak = 0;
+  const latestDetails = calculateMonthlyDetails(latestIdx, true);
+
+  const nameToJsonKeyMap = { 'hifumi': 0, 'saison': 1, 'vti_new': 2, 'ishares': 3, 'vti_old': 4 };
+  stocks.forEach(s => {
+    const idx = nameToJsonKeyMap[s.key];
+    const startingValue = latestDetails.fundValues[idx] || 0;
+    
+    // 現在の時価を複利成長
+    let futureVal = startingValue * Math.pow(1 + annualRate, elapsedFutureMonths / 12);
+    
+    // 今後の積立分を複利計算
+    const mInvestSafe = s.monthlyInvest !== undefined ? parseFloat(s.monthlyInvest) : 0;
+    if (mInvestSafe > 0) {
+      const scaledInvest = mInvestSafe * scale;
+      const monthlyRate = annualRate / 12;
+      const accum = scaledInvest * ((Math.pow(1 + monthlyRate, elapsedFutureMonths) - 1) / monthlyRate);
+      futureVal += accum;
+    }
+    totalPeak += futureVal;
+  });
+
+  // 課税枠の簡易20%税金控除をシミュレートして実質手残り額に調整
+  const taxableProfit = Math.max(0, totalPeak - latestDetails.totalPurchase);
+  const estimatedTax = taxableProfit * 0.1; // 簡易課税調整(全体の1割と仮定)
+  return Math.round(totalPeak - estimatedTax);
+}
+
+// 3. インフレ考慮スイッチのトグル動作
+function toggleDecumulationInflation() {
+  const btn = document.getElementById('dec-inflation-btn');
+  if (!btn) return;
+
+  decumulationInflationActive = !decumulationInflationActive;
+
+  if (decumulationInflationActive) {
+    btn.innerText = 'ON';
+    btn.className = 'action-btn btn-green';
+    writeLog("【シミュレーター】インフレ考慮（年率2%生活費増加）を有効にしました。");
+  } else {
+    btn.innerText = 'OFF';
+    btn.className = 'action-btn btn-gray';
+    writeLog("【シミュレーター】インフレ考慮を無効（額面維持）にしました。");
+  }
+
+  // テーブルの再計算
+  calculateDecumulationTable();
+}
+
+// 4. 精密な取り崩し複利計算とテーブルのレンダリング
+function calculateDecumulationTable() {
+  const startFund = parseFloat(document.getElementById('dec-start-fund').value) || 0;
+  const monthlyWithdraw = parseInt(document.getElementById('dec-monthly-withdraw').value) || 0;
+  const tableArea = document.getElementById('decumulationTableArea');
+  if (!tableArea) return;
+
+  const annualRates = [0.03, 0.07, 0.09];
+  let balances = [startFund, startFund, startFund];
+  let depletionMonths = [null, null, null]; // 資金が尽きた月を記録
+  let cumulativeWithdrawn = 0;
+  
+  // 開始時（60歳）の初期スナップショット
+  const snapshots = [{
+    year: 0,
+    age: 60,
+    cumulativeWithdrawn: 0,
+    balances: [...balances],
+    depletionMonths: [...depletionMonths]
+  }];
+
+  // 25年間 = 300ヶ月分のループシミュレーション
+  for (let m = 1; m <= 300; m++) {
+    const elapsedYears = Math.floor((m - 1) / 12);
+    // インフレONの時は毎年取り崩し額が2%ずつ複利で増加
+    const currentWithdraw = decumulationInflationActive
+      ? monthlyWithdraw * Math.pow(1.02, elapsedYears)
+      : monthlyWithdraw;
+
+    cumulativeWithdrawn += currentWithdraw;
+
+    // 3%, 7%, 9%それぞれの残高推移を月次で複利計算
+    for (let i = 0; i < 3; i++) {
+      if (balances[i] > 0) {
+        balances[i] = balances[i] * (1 + annualRates[i] / 12) - currentWithdraw;
+        if (balances[i] <= 0) {
+          balances[i] = 0;
+          depletionMonths[i] = m; // 枯渇月をマーク
+        }
+      }
+    }
+
+    // 2年刻みマーク（24ヶ月ごと）または最終年（300ヶ月＝25年目＝85歳）
+    if ((m % 24 === 0 && m < 300) || m === 300) {
+      snapshots.push({
+        year: Math.round(m / 12),
+        age: 60 + Math.round(m / 12),
+        cumulativeWithdrawn: cumulativeWithdrawn,
+        balances: [...balances],
+        depletionMonths: [...depletionMonths]
+      });
+    }
+  }
+
+// HTML対比表の動的生成 (幅を自動に抑え、セル内の改行を禁止して隙間のない表へ)
+  let html = `
+    <table style="width: auto; margin: 0 auto; border-collapse: collapse; background: white; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; font-size: 12.5px;">
+      <thead>
+        <tr style="background: #f7fafc; color: #4a5568;">
+          <th style="border: 1px solid #e2e8f0; padding: 8px 16px; text-align: center; font-weight: bold; white-space: nowrap;">経過年数 (年齢)</th>
+          <th style="border: 1px solid #e2e8f0; padding: 8px 16px; text-align: right; font-weight: bold; white-space: nowrap;">累計生活費の取り崩し額</th>
+          <th style="border: 1px solid #e2e8f0; padding: 8px 16px; text-align: right; font-weight: bold; white-space: nowrap;">【堅実：年利３％】残高</th>
+          <th style="border: 1px solid #e2e8f0; padding: 8px 16px; text-align: right; font-weight: bold; white-space: nowrap;">【期待：年利７％】残高</th>
+          <th style="border: 1px solid #e2e8f0; padding: 8px 16px; text-align: right; font-weight: bold; white-space: nowrap;">【積極：年利９％】残高</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  snapshots.forEach((snap, idx) => {
+    const isFinalRow = snap.age === 85;
+    const rowBg = idx === 0 ? "background: #edf2f7; font-weight: bold;" : (idx % 2 === 0 ? "background: #fafbfc;" : "background: #ffffff;");
+    const labelText = idx === 0 ? "開始時 (60歳)" : (isFinalRow ? "最終年 (85歳)" : `${snap.year}年目 (${snap.age}歳)`);
+
+    html += `<tr style="${rowBg}">`;
+    html += `<td style="border: 1px solid #e2e8f0; padding: 6px 16px; text-align: center; font-weight: bold; color: #2d3748; white-space: nowrap;">${labelText}</td>`;
+    html += `<td style="border: 1px solid #e2e8f0; padding: 6px 16px; text-align: right; font-family: monospace; font-weight: bold; color: #4a5568; white-space: nowrap;">${Math.round(snap.cumulativeWithdrawn).toLocaleString()} 円</td>`;
+
+    for (let i = 0; i < 3; i++) {
+      const bal = snap.balances[i];
+      const depM = snap.depletionMonths[i];
+      
+      let cellText = "";
+      let cellStyle = "border: 1px solid #e2e8f0; padding: 6px 16px; text-align: right; font-family: monospace; white-space: nowrap;";
+
+      if (bal <= 0 && depM !== null) {
+        // 資金枯渇時のビジュアル警告
+        const depY = Math.floor(depM / 12);
+        const depMRemainder = depM % 12;
+        const depAge = 60 + depY;
+        const monthText = depMRemainder > 0 ? `${depMRemainder}ヶ月` : '';
+        cellText = `<span style="color: #e53e3e; font-weight: bold;">🚨 ${depY}年${monthText}で枯渇 (${depAge}歳)</span>`;
+        cellStyle += " background-color: #fff5f5;"; // 薄い赤背景
+      } else {
+        // 資産が元手以上を維持している（永久機関化）している場合は「太緑」表示
+        const isGrowing = bal >= startFund;
+        const colorStyle = isGrowing ? "color: #2f855a; font-weight: bold;" : "color: #1a202c; font-weight: bold;";
+        const bgStyle = isGrowing ? " background-color: #f0fff4;" : ""; // 薄い緑背景
+        cellText = `<span style="${colorStyle}">${Math.round(bal).toLocaleString()} 円</span>`;
+        cellStyle += bgStyle;
+      }
+
+      html += `<td style="${cellStyle}">${cellText}</td>`;
+    }
+
+    html += `</tr>`;
+  });
+
+  html += `
+      </tbody>
+    </table>
+  `;
+
+  tableArea.innerHTML = html;
+}
 </script>
