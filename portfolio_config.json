@@ -1,22 +1,23 @@
 {
   "activeSettings": {
     "hifumi": {
-      "units": 67.6,
-      "purchasePrice": 53719,
+      "units": 67.97,
+      "purchasePrice": 53919,
       "monthlyInvest": 0,
       "periodText": "2016/06-2026/06"
     },
     "saison": {
-      "units": 83.8,
-      "purchasePrice": 16707,
+      "units": 84.1,
+      "purchasePrice": 16766,
       "monthlyInvest": 10000,
       "periodText": "2017/05-"
     },
     "vti_new": {
-      "units": 29.2,
-      "purchasePrice": 32700,
+      "units": 31.1,
+      "purchasePrice": 33439,
       "monthlyInvest": 83000,
-      "periodText": "2024/01-"
+      "periodText": "2024/01-",
+      "lastUpdated": "2026年7月11日"
     },
     "ishares": {
       "units": 70.3,
@@ -42,8 +43,8 @@
         "purchasePrice": 16707
       },
       "vti_new": {
-        "units": 29.2,
-        "purchasePrice": 32700
+        "units": 31.1,
+        "purchasePrice": 33439
       },
       "ishares": {
         "units": 70.3,
@@ -54,33 +55,5 @@
         "purchasePrice": 19834
       }
     }
-  },
-  "otherAssets": {
-    "cash": [
-      {
-        "name": "普通預金",
-        "amount": 2855000
-      },
-      {
-        "name": "封筒",
-        "amount": 1280000
-      }
-    ],
-    "usd": {
-      "amount": 9923,
-      "rate": 161
-    },
-    "crypto": [
-      {
-        "name": "BNB",
-        "amount": 21.18,
-        "rate": 91332
-      },
-      {
-        "name": "BLZ",
-        "amount": 150272,
-        "rate": 1.17
-      }
-    ]
   }
 }
