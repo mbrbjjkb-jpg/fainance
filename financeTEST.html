@@ -2863,8 +2863,8 @@ function renderAllAssetsData() {
           : `（手動設定：${Math.round(c.rate).toLocaleString()}円）`;
       } else if (cryptoName === 'BLZ') {
         statusText = liveBlzRate 
-          ? `（自動取得：${liveBlzRate.toFixed(1)}円）` 
-          : `（手動設定：${c.rate.toFixed(1)}円）`;
+          ? `（自動取得：${liveBlzRate.toFixed(2)}円）` 
+          : `（手動設定：${c.rate.toFixed(2)}円）`;
       } else {
         statusText = `（手動設定：${Math.round(c.rate).toLocaleString()}円）`;
       }
