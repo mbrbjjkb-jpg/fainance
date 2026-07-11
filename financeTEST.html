@@ -1871,10 +1871,30 @@ function generateAndRenderChart(totals) {
     const temp = new Date(); temp.setDate(today.getDate() - i); const dateKey = temp.toISOString().split('T')[0];
     shortLabels.push(dateKey.substring(5)); let dailyTotal = 0; let hasData = false;
     stocks.forEach(s => {
-      let units = s.units * scale; // ★デモ倍率の適用
-      const pEnd = new Date(s.periodEnd);
-      if (temp < pEnd && s.periodEnd !== '2026-06-01') {
-        const pStart = new Date(s.periodStart); const totalM = (pEnd.getFullYear() - pStart.getFullYear()) * 12 + (pEnd.getMonth() - pStart.getMonth()); const elapsedM = (temp.getFullYear() - pStart.getFullYear()) * 12 + (temp.getMonth() - pStart.getMonth()); units = Math.max(0, (((s.units * scale)) / (totalM || 1)) * elapsedM);
+      // --- 修正部分ここから ---
+      let units = s.units * scale; // デフォルトは最新設定値
+      const yyyymm = `${temp.getFullYear()}-${('0' + (temp.getMonth() + 1)).slice(-2)}`;
+      const elapsedMonths = (temp.getFullYear() - 2016) * 12 + temp.getMonth() - 5;
+      const anchorIndex = 120; // 2026年6月基準点
+
+      if (elapsedMonths <= anchorIndex) {
+        // 2026年6月以前（長期のロジックと同様の逆算処理）
+        const pStart = new Date(s.periodStart);
+        const pEnd = new Date(s.periodEnd);
+        if (temp < pStart) {
+          units = 0;
+        } else if (temp >= pEnd) {
+          units = s.anchorUnits * scale;
+        } else {
+          const totalMonths = (pEnd.getFullYear() - pStart.getFullYear()) * 12 + (pEnd.getMonth() - pStart.getMonth());
+          const currentMonths = (temp.getFullYear() - pStart.getFullYear()) * 12 + (temp.getMonth() - pStart.getMonth());
+          units = ((s.anchorUnits * scale) / (totalMonths || 1)) * currentMonths;
+        }
+      } else {
+        // 2026年6月以降（月別の保有履歴データに記録がある場合は、その月の口数を優先的に参照）
+        if (portfolioHistory && portfolioHistory[yyyymm] && portfolioHistory[yyyymm][s.key]) {
+          units = portfolioHistory[yyyymm][s.key].units * scale;
+        }
       }
       let price = s.purchasePrice; const keyMap = { hifumi:'hifumi', saison:'saison', vti_new:'rakuten_vti', ishares:'ishares', vti_old:'rakuten_vti' };
       if (priceHistory && priceHistory[dateKey] && priceHistory[dateKey][keyMap[s.key]] !== undefined) { dailyTotal += units * priceHistory[dateKey][keyMap[s.key]]; hasData = true; }
