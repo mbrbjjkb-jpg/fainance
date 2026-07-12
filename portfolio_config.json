@@ -59,7 +59,7 @@
     "cash": [
       {
         "name": "普通預金",
-        "amount": 2855000
+        "amount": 2845100
       },
       {
         "name": "封筒",
@@ -74,12 +74,12 @@
       {
         "name": "BNB",
         "amount": 21.18,
-        "rate": 93007
+        "rate": 92785
       },
       {
         "name": "BLZ",
         "amount": 150272,
-        "rate": 1.19
+        "rate": 1.17
       }
     ]
   }
