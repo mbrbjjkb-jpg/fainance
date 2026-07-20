@@ -1980,7 +1980,6 @@ function generateAndRenderChart(totals) {
   }
 
   if (isLatestDateAfterFirst) {
-    longLabels[monthsPast] = `${longLabels[monthsPast]}-01`; 
     longLabels.splice(monthsPast + 1, 0, latestDateStr.substring(5)); 
     let latestTotalMarket = 0; let latestTotalPurchase = 0;
     stocks.forEach(s => {
