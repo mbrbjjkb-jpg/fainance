@@ -1852,7 +1852,7 @@ function generateAndRenderChart(totals) {
   if (!priceHistory) return;
   const scale = getDemoScale(); // ★デモ用スケールの取得
   const startDate = new Date('2016-06-01'); const today = new Date();
-  const generateDateLabels = (start, end) => { const list = []; let cur = new Date(start); while (cur <= end) { list.push(`${cur.getFullYear()}/${('0' + (cur.getMonth() + 1)).slice(-2)}`); cur.setMonth(cur.getMonth() + 1); } return list; };
+  const generateDateLabels = (start, end) => { const list = []; let cur = new Date(start); while (cur <= end) { list.push(`${cur.getFullYear()}-${('0' + (cur.getMonth() + 1)).slice(-2)}`); cur.setMonth(cur.getMonth() + 1); } return list; };
   
   // ★通信ロードの遅延に影響されないよう、関数内で最新の時価総額を即時再計算
   const latestTotals = calculateCurrentTotals();
@@ -2121,7 +2121,18 @@ function generateAndRenderChart(totals) {
         } catch(e) { console.error("Hover Error:", e); }
       },
       scales: {
-        x: { grid: { color: 'rgba(0, 0, 0, 0.03)' }, ticks: { maxTicksLimit: 20, font: { size: 10 } } },
+        x: { 
+          grid: { color: 'rgba(0, 0, 0, 0.03)' }, 
+          ticks: { 
+            maxTicksLimit: 20, 
+            font: { size: 10 },
+            // 表示ラベルが7文字を超える場合（例: 2026-07-01）は、先頭の7文字（2026-07）に強制カットする
+            callback: function(val, index) {
+              const label = this.getLabelForValue(val);
+              return label && label.length > 7 ? label.substring(0, 7) : label;
+            }
+          } 
+        },
         y: { type: 'linear', display: true, position: 'left', min: 0, ticks: { callback: v => (v / 10000).toLocaleString() + '万円' } }
       },
       plugins: {
