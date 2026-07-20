@@ -1980,7 +1980,7 @@ function generateAndRenderChart(totals) {
   }
 
   if (isLatestDateAfterFirst) {
-    longLabels.splice(monthsPast + 1, 0, latestDateStr.substring(5)); 
+    longLabels.splice(monthsPast + 1, 0, latestDateStr.substring(5).replace('-', '/')); 
     let latestTotalMarket = 0; let latestTotalPurchase = 0;
     stocks.forEach(s => {
       const keyMap = { hifumi:'hifumi', saison:'saison', vti_new:'rakuten_vti', ishares:'ishares', vti_old:'rakuten_vti' };
