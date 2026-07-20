@@ -1954,9 +1954,21 @@ function generateAndRenderChart(totals) {
     chartMediumObj = new Chart(canvasMedium, { type: 'line', data: { labels: mediumLabels, datasets: [{ label: '時価評価額 (円)', data: mediumData, borderColor: 'rgba(153, 102, 255, 1)', backgroundColor: 'rgba(153, 102, 255, 0.05)', borderWidth: 2, fill: true, pointRadius: 1, tension: 0.15 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { font: { size: 9 } } }, y: { ticks: { callback: v => (v / 10000).toLocaleString() + '万円' } } }, plugins: { legend: { display: false }, datalabels: { display: false } } } });
   }
 
-  // ③ 長期
+// ③ 長期
   const isFutureMode = (activeGraphTab === 'future'); const latestIdx = getLatestDatabaseIndex();
-  const longEndDate = isFutureMode ? new Date('2032-06-01') : new Date('2026-06-01'); const longLabels = generateDateLabels(startDate, longEndDate);
+  
+  // 実績モード時に最新データが2026年6月を超えている場合、時間軸を動的にそこまで拡張します
+  let longEndDate;
+  if (isFutureMode) {
+    longEndDate = new Date('2032-06-01');
+  } else {
+    const anchorLimit = new Date('2026-06-01');
+    const dbLimit = new Date(startDate);
+    dbLimit.setMonth(dbLimit.getMonth() + latestIdx);
+    longEndDate = dbLimit > anchorLimit ? dbLimit : anchorLimit;
+  }
+  
+  const longLabels = generateDateLabels(startDate, longEndDate);
   const pastData = []; const pastPurchaseData = []; const pastProfitData = [];
   const future3Data = []; const future7Data = []; const future9Data = []; const futurePurchaseData = [];
   const monthsPast = latestIdx; const monthsFuture = isFutureMode ? Math.max(0, 192 - latestIdx) : 0; 
@@ -2144,13 +2156,15 @@ function generateAndRenderChart(totals) {
                 if (context.dataset.label.includes('過去資産実績')) {
                   const idx = context.dataIndex;
                   const lbl = context.chart.data.labels[idx];
-                  const isLatestDay = lbl && !lbl.startsWith('20');
+                  
+                  // ラベルが「4桁数値 + 区切り記号 + 2桁数値」で始まらない場合のみ、月中最新日のデータ点と判断します
+                  const isLatestDateAfterFirst = lbl && !/^\d{4}[-\/]\d{2}/.test(lbl);
                   let afterTaxVal = 0;
 
-                  if (isLatestDay) {
+                  if (isLatestDateAfterFirst) {
                     const totals = calculateCurrentTotals();
                     afterTaxVal = totals.afterTaxMarket;
-                  } else if (lbl) {
+                  } else if (lbl && /^\d{4}[-\/]\d{2}/.test(lbl)) {
                     const year = parseInt(lbl.substring(0, 4));
                     const month = parseInt(lbl.substring(5, 7));
                     const targetIndex = (year - 2016) * 12 + (month - 6);
