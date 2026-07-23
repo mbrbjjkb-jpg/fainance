@@ -385,10 +385,7 @@
     <div style="position: relative; height: 170px; width: 100%; display: flex; align-items: center; justify-content: center;"><canvas id="pieChart"></canvas></div>
     <div id="pieChartTotal" style="text-align: center; font-weight: bold; font-size: 13px; margin: 10px 0; color: #2d3748; padding: 5px 0; border-top: 1px dashed #cbd5e0; border-bottom: 1px dashed #cbd5e0;">総資産額: --円</div>
     <div id="pieDetailsList" style="display: flex; flex-direction: column; gap: 6px; flex: 1; overflow-y: auto;"></div>
-    <div style="margin-top: 15px; border-top: 1px dashed #cbd5e0; padding-top: 10px; display: flex; flex-direction: column; gap: 8px;">
-      <button class="action-btn btn-blue" onclick="saveCurrentToDailyLog()" style="width: 100%; margin: 0; padding: 8px; font-size: 11px;">今月のデータを履歴に書き込む</button>
-      <button class="action-btn btn-gray" onclick="downloadDailyJson()" style="width: 100%; margin: 0; padding: 8px; font-size: 11px;">履歴データをJSONでダウンロード</button>
-    </div>
+    
   </div>
 </div>
 <!-- ★フェーズ3：全資産集計額一覧ボタンと表示エリア（横並び2ボタン化） -->
@@ -2199,33 +2196,7 @@ function generateAndRenderChart(totals) {
 // ----------------------------------------------------
 // 【以下、ボタンやモーダルのシステム動作（変更なし）】
 // ----------------------------------------------------
-function saveCurrentToDailyLog() {
-  const todayStr = new Date().toISOString().split('T')[0];
-  const localDaily = JSON.parse(localStorage.getItem('prices_daily')) || {};
-  const tempPrices = {};
-  stocks.forEach(s => {
-    const price = Math.round(s.marketValue / (s.units || 1));
-    let jsonKey = 'hifumi';
-    if (s.key === 'hifumi') jsonKey = 'hifumi';
-    if (s.key === 'saison') jsonKey = 'saison';
-    if (s.key === 'vti_new' || s.key === 'vti_old') jsonKey = 'rakuten_vti';
-    if (s.key === 'ishares') jsonKey = 'ishares';
-    tempPrices[jsonKey] = price;
-  });
-  localDaily[todayStr] = tempPrices;
-  localStorage.setItem('prices_daily', JSON.stringify(localDaily));
-  writeLog(`【手動記録】今日（${todayStr}）の価格データを保存しました。`);
-  alert(`今日（${todayStr}）のデータを保存しました。ダウンロードできます。`);
-  loadPriceHistoryAndRenderChart();
-}
 
-function downloadDailyJson() {
-  const localDaily = localStorage.getItem('prices_daily');
-  if (!localDaily || localDaily === '{}') { alert("履歴がありません。"); return; }
-  const blob = new Blob([localDaily], { type: 'application/json' });
-  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'prices_daily.json';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-}
 
 function toggleEncryptor() { const area = document.getElementById('tokenEncryptorArea'); area.style.display = area.style.display === 'none' ? 'flex' : 'none'; }
 function generateEncryptedToken() {
