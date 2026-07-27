@@ -6,13 +6,20 @@
       "monthlyInvest": 10000,
       "periodText": "2017/05-",
       "lastUpdated": "2026年7月25日"
+    },
+    "hifumi": {
+      "units": 67.6,
+      "purchasePrice": 53719,
+      "monthlyInvest": 0,
+      "periodText": "2016/06-2026/06",
+      "lastUpdated": "2026年7月27日"
     }
   },
   "history": {
     "2026-07": {
       "hifumi": {
-        "units": 67.97,
-        "purchasePrice": 53919
+        "units": 67.6,
+        "purchasePrice": 53719
       },
       "saison": {
         "units": 84.4,
