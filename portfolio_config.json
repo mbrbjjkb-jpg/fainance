@@ -74,12 +74,12 @@
       {
         "name": "BNB",
         "amount": 21.18,
-        "rate": 93977
+        "rate": 93323
       },
       {
         "name": "BLZ",
         "amount": 150272,
-        "rate": 1.074
+        "rate": 0.975194
       }
     ]
   }
