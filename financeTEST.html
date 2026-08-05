@@ -1870,14 +1870,12 @@ function generateAndRenderChart(totals) {
     const temp = new Date(); temp.setDate(today.getDate() - i); const dateKey = temp.toISOString().split('T')[0];
     shortLabels.push(dateKey.substring(5)); let dailyTotal = 0; let hasData = false;
     stocks.forEach(s => {
-      // --- 修正部分ここから ---
       let units = s.units * scale; // デフォルトは最新設定値
       const yyyymm = `${temp.getFullYear()}-${('0' + (temp.getMonth() + 1)).slice(-2)}`;
       const elapsedMonths = (temp.getFullYear() - 2016) * 12 + temp.getMonth() - 5;
       const anchorIndex = 120; // 2026年6月基準点
 
       if (elapsedMonths <= anchorIndex) {
-        // 2026年6月以前（長期のロジックと同様の逆算処理）
         const pStart = new Date(s.periodStart);
         const pEnd = new Date(s.periodEnd);
         if (temp < pStart) {
@@ -1890,7 +1888,6 @@ function generateAndRenderChart(totals) {
           units = ((s.anchorUnits * scale) / (totalMonths || 1)) * currentMonths;
         }
       } else {
-        // 2026年6月以降（月別の保有履歴データに記録がある場合は、その月の口数を優先的に参照）
         if (portfolioHistory && portfolioHistory[yyyymm] && portfolioHistory[yyyymm][s.key]) {
           units = portfolioHistory[yyyymm][s.key].units * scale;
         }
@@ -1900,20 +1897,58 @@ function generateAndRenderChart(totals) {
     });
     rawShortData.push(hasData ? Math.round(dailyTotal) : null);
   }
+
+  // データ補完と点の色（実データあり: 青色, 補完日: 灰色）の判定配列を作成
+  const shortPointColors = [];
   for (let i = 0; i < rawShortData.length; i++) {
-    if (rawShortData[i] !== null) { shortData.push(rawShortData[i]); } else {
+    if (rawShortData[i] !== null) {
+      shortData.push(rawShortData[i]);
+      shortPointColors.push('rgba(54, 162, 235, 1)'); // 実データがある日は青色
+    } else {
       let leftIdx = -1; let leftVal = null; for (let l = i - 1; l >= 0; l--) { if (rawShortData[l] !== null) { leftIdx = l; leftVal = rawShortData[l]; break; } }
       let rightIdx = -1; let rightVal = null; for (let r = i + 1; r < rawShortData.length; r++) { if (rawShortData[r] !== null) { rightIdx = r; rightVal = rawShortData[r]; break; } }
       if (leftIdx !== -1 && rightIdx !== -1) { shortData.push(Math.round(leftVal + (rightVal - leftVal) * ((i - leftIdx) / (rightIdx - leftIdx)))); } 
       else if (leftIdx !== -1) { shortData.push(leftVal); } else if (rightIdx !== -1) { shortData.push(rightVal); } else { shortData.push(Math.round(latestTotals.totalMarket)); }
+      
+      shortPointColors.push('#a0aec0'); // 価格の記録がない日（補完された日）は灰色
     }
   }
 
   const canvasShort = document.getElementById('shortChart');
   if (chartShortObj) { 
-    chartShortObj.data.labels = shortLabels; chartShortObj.data.datasets[0].data = shortData; chartShortObj.update('none');
+    chartShortObj.data.labels = shortLabels; 
+    chartShortObj.data.datasets[0].data = shortData; 
+    chartShortObj.data.datasets[0].pointBackgroundColor = shortPointColors;
+    chartShortObj.data.datasets[0].pointBorderColor = shortPointColors;
+    chartShortObj.update('none');
   } else {
-    chartShortObj = new Chart(canvasShort, { type: 'line', data: { labels: shortLabels, datasets: [{ label: '時価評価額 (円)', data: shortData, borderColor: 'rgba(54, 162, 235, 1)', backgroundColor: 'rgba(54, 162, 235, 0.05)', borderWidth: 2, fill: true, pointRadius: 1, tension: 0.15 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { font: { size: 9 } } }, y: { ticks: { callback: v => (v / 10000).toLocaleString() + '万円' } } }, plugins: { legend: { display: false }, datalabels: { display: false } } } });
+    chartShortObj = new Chart(canvasShort, { 
+      type: 'line', 
+      data: { 
+        labels: shortLabels, 
+        datasets: [{ 
+          label: '時価評価額 (円)', 
+          data: shortData, 
+          borderColor: 'rgba(54, 162, 235, 1)', 
+          backgroundColor: 'rgba(54, 162, 235, 0.05)', 
+          borderWidth: 2, 
+          fill: true, 
+          pointRadius: 3, 
+          pointBackgroundColor: shortPointColors,
+          pointBorderColor: shortPointColors,
+          tension: 0.15 
+        }] 
+      }, 
+      options: { 
+        responsive: true, 
+        maintainAspectRatio: false, 
+        scales: { 
+          x: { ticks: { font: { size: 9 } } }, 
+          y: { ticks: { callback: v => (v / 10000).toLocaleString() + '万円' } } 
+        }, 
+        plugins: { legend: { display: false }, datalabels: { display: false } } 
+      } 
+    });
   }
 
   // ② 中期 (長期の計算ロジック calculateMonthlyDetails を流用して完全に同期化)
