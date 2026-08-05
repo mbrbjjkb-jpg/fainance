@@ -1598,9 +1598,11 @@ function calculateMonthlyDetails(index, forceLatest = false) {
         } else {
           const availableDates = Object.keys(priceHistory).filter(d => d.startsWith(yearMonth)).sort();
           if (availableDates.length > 0) {
-            const latestDateOfThisMonth = availableDates[availableDates.length - 1]; 
-            if (priceHistory[latestDateOfThisMonth] && priceHistory[latestDateOfThisMonth][map.key] !== undefined) {
-              foundPrice = priceHistory[latestDateOfThisMonth][map.key];
+            // 末尾 [availableDates.length - 1] ではなく、先頭 [0] を取ることで
+            // 「1日（ついたち）に最も近い実際の更新日（最初の営業日）」を取得します
+            const closestToFirstDate = availableDates[0]; 
+            if (priceHistory[closestToFirstDate] && priceHistory[closestToFirstDate][map.key] !== undefined) {
+              foundPrice = priceHistory[closestToFirstDate][map.key];
             }
           }
         }
