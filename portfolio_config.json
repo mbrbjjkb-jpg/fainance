@@ -1,14 +1,14 @@
 {
   "activeSettings": {
     "hifumi": {
-      "units": 67.97,
-      "purchasePrice": 53919,
+      "units": 67.6,
+      "purchasePrice": 53719,
       "monthlyInvest": 0,
       "periodText": "2016/06-2026/06"
     },
     "saison": {
-      "units": 83.8,
-      "purchasePrice": 16707,
+      "units": 84.4,
+      "purchasePrice": 16824,
       "monthlyInvest": 10000,
       "periodText": "2017/05-"
     },
@@ -56,12 +56,12 @@
     },
     "2026-08": {
       "hifumi": {
-        "units": 67.97,
-        "purchasePrice": 53919
+        "units": 67.6,
+        "purchasePrice": 53719
       },
       "saison": {
-        "units": 83.8,
-        "purchasePrice": 16707
+        "units": 84.4,
+        "purchasePrice": 16824
       },
       "vti_new": {
         "units": 29.2,
@@ -96,12 +96,12 @@
       {
         "name": "BNB",
         "amount": 21.18,
-        "rate": 94921
+        "rate": 95403
       },
       {
         "name": "BLZ",
         "amount": 150272,
-        "rate": 0.992488
+        "rate": 0.991341
       }
     ]
   }
