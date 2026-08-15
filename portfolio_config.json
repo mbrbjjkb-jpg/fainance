@@ -56,16 +56,16 @@
     },
     "2026-08": {
       "hifumi": {
-        "units": 67.97,
-        "purchasePrice": 53919
+        "units": 67.6,
+        "purchasePrice": 53719
       },
       "saison": {
-        "units": 83.8,
-        "purchasePrice": 16707
+        "units": 84.4,
+        "purchasePrice": 16824
       },
       "vti_new": {
-        "units": 31.1,
-        "purchasePrice": 33439
+        "units": 29.2,
+        "purchasePrice": 32700
       },
       "ishares": {
         "units": 70.3,
@@ -81,7 +81,7 @@
     "cash": [
       {
         "name": "普通預金",
-        "amount": 2881624
+        "amount": 0
       },
       {
         "name": "封筒",
@@ -96,7 +96,7 @@
       {
         "name": "BNB",
         "amount": 21.18,
-        "rate": 97329
+        "rate": 97220
       },
       {
         "name": "BLZ",
