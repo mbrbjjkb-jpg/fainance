@@ -900,12 +900,13 @@ function loadPriceHistoryAndRenderChart() {
   writeLog("外部データファイルの読み込みを開始します...");
   const localDaily = JSON.parse(localStorage.getItem('prices_daily')) || {};
   const cacheBuster = `?v=${new Date().getTime()}`;
+  const fetchOpt = { cache: 'no-store' }; // スマホブラウザのキャッシュを完全にバイパス
 
   Promise.all([
-    fetch('prices.json' + cacheBuster).then(r => r.ok ? r.json() : null).catch(() => null),
-    fetch('prices_past.json' + cacheBuster).then(r => r.ok ? r.json() : null).catch(() => null),
-    fetch('prices_daily.json' + cacheBuster).then(r => r.ok ? r.json() : null).catch(() => null),
-    fetch('portfolio_config.json' + cacheBuster).then(r => r.ok ? r.json() : null).catch(() => null)
+    fetch('prices.json' + cacheBuster, fetchOpt).then(r => r.ok ? r.json() : null).catch(() => null),
+    fetch('prices_past.json' + cacheBuster, fetchOpt).then(r => r.ok ? r.json() : null).catch(() => null),
+    fetch('prices_daily.json' + cacheBuster, fetchOpt).then(r => r.ok ? r.json() : null).catch(() => null),
+    fetch('portfolio_config.json' + cacheBuster, fetchOpt).then(r => r.ok ? r.json() : null).catch(() => null)
   ])
   .then(([singleData, pastData, dailyData, configData]) => {
     if (configData) { applyConfigDataToStocks(configData); writeLog("【成功】GitHub から portfolio_config.json を適用しました。"); } 
