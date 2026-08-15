@@ -798,42 +798,13 @@ function loadUserConfigFromStorage() {
   }
 }
 // ==========================================
-// 外部設定ファイル適用（ネットワーク遅延による巻き戻し防止ガード付き）
+// 外部設定ファイル適用（クラウドの最新データを最優先に同期）
 // ==========================================
 function applyConfigDataToStocks(configData) {
-  let activeConfig = configData;
-  if (configData && configData.activeSettings) {
-    activeConfig = configData.activeSettings;
-  }
-  
-  if (configData && configData.history) {
-    portfolioHistory = configData.history;
-    localStorage.setItem('portfolio_history', JSON.stringify(portfolioHistory));
-    writeLog("【成功】GitHubから時系列の口数・単価履歴を適用しました。");
-  }
+  if (!configData) return;
 
-  // ★修正：GitHubからの復元時にも、現金の複数項目（配列）形式への救済マージを実行します
-  const localOtherAssets = JSON.parse(localStorage.getItem('portfolio_other_assets')) || null;
-  if (localOtherAssets) {
-    let parsedCash = [];
-    if (Array.isArray(localOtherAssets.cash)) {
-      parsedCash = localOtherAssets.cash;
-    } else if (localOtherAssets.cash && localOtherAssets.cash.amount !== undefined) {
-      parsedCash = [{ name: "普通預金", amount: localOtherAssets.cash.amount }];
-    } else {
-      parsedCash = [{ name: "普通預金", amount: 0 }];
-    }
-
-    otherAssets = {
-      cash: parsedCash,
-      usd: { 
-        amount: (localOtherAssets.usd && localOtherAssets.usd.amount !== undefined) ? localOtherAssets.usd.amount : 0, 
-        rate: (localOtherAssets.usd && localOtherAssets.usd.rate !== undefined) ? localOtherAssets.usd.rate : 150 
-      },
-      crypto: Array.isArray(localOtherAssets.crypto) ? localOtherAssets.crypto : []
-    };
-    writeLog("【ガード】ブラウザ内の最新の他資産データを安全に複数行形式で復元・維持しました。");
-  } else if (configData && configData.otherAssets) {
+  // 1. 他資産（現金・外貨・仮想通貨）の同期：クラウド(GitHub)の設定を最優先
+  if (configData.otherAssets) {
     const gOther = configData.otherAssets;
     let parsedCash = [];
     if (Array.isArray(gOther.cash)) {
@@ -852,13 +823,20 @@ function applyConfigDataToStocks(configData) {
       },
       crypto: Array.isArray(gOther.crypto) ? gOther.crypto : []
     };
+    // クラウドの最新情報で端末内LocalStorageも上書き更新
     localStorage.setItem('portfolio_other_assets', JSON.stringify(otherAssets));
-    writeLog("【成功】GitHubから他資産（現金動的リスト対応）の設定を安全に復元・適用しました。");
+    writeLog("【成功】GitHubから最新の他資産（現金含む）データを同期・適用しました。");
   }
 
-  const localConfig = JSON.parse(localStorage.getItem('portfolio_config')) || null;
-  const configToApply = localConfig || activeConfig;
+  // 2. 口数・単価履歴データの同期
+  if (configData.history) {
+    portfolioHistory = configData.history;
+    localStorage.setItem('portfolio_history', JSON.stringify(portfolioHistory));
+    writeLog("【成功】GitHubから時系列の口数・単価履歴を適用しました。");
+  }
 
+  // 3. 投資信託の設定：クラウドの activeSettings を最優先
+  const configToApply = configData.activeSettings || configData;
   if (configToApply) {
     stocks.forEach(s => {
       if (configToApply[s.key]) {
@@ -870,6 +848,8 @@ function applyConfigDataToStocks(configData) {
         s.lastUpdated = cfg.lastUpdated || '';
       }
     });
+    localStorage.setItem('portfolio_config', JSON.stringify(configToApply));
+    writeLog("【成功】GitHubから最新の投信設定を同期・適用しました。");
   }
   
   initInputFields();
