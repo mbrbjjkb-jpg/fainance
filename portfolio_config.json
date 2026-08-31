@@ -75,6 +75,28 @@
         "units": 53.2,
         "purchasePrice": 19834
       }
+    },
+    "2026-09": {
+      "hifumi": {
+        "units": 67.97,
+        "purchasePrice": 53919
+      },
+      "saison": {
+        "units": 84.4,
+        "purchasePrice": 16824
+      },
+      "vti_new": {
+        "units": 29.2,
+        "purchasePrice": 32700
+      },
+      "ishares": {
+        "units": 70.3,
+        "purchasePrice": 20478
+      },
+      "vti_old": {
+        "units": 53.2,
+        "purchasePrice": 19834
+      }
     }
   },
   "otherAssets": {
