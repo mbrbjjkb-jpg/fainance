@@ -478,12 +478,24 @@
       <h4 style="margin:0 0 5px 0; color:#b7791f;">🔒 【自動化】GitHub直接自動保存 & 暗号化設定</h4>
       <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
         <div>4桁パスワード: <input type="password" maxlength="4" id="pinInput" style="width:50px; text-align:center;" placeholder="1234"></div>
+        
+        <!-- ★追加：ワークフロー強制起動ボタン -->
+        <button class="action-btn btn-green" id="triggerWorkflowBtn" onclick="triggerWorkflowDispatch()" style="padding:4px 10px; font-size:11px; margin:0; font-weight:bold;">
+          🔄 最新データを強制取得（Actions実行）
+        </button>
+
+        <!-- ★追加：GitHub Actionsタブを開くリンクボタン -->
+        <a href="https://github.com/mbrbjjkb-jpg/fainance/actions" target="_blank" rel="noopener noreferrer" class="action-btn btn-gray" style="padding:4px 8px; font-size:11px; text-decoration:none; display:inline-flex; align-items:center; gap:3px;">
+          ↗ Actions確認
+        </a>
+
         <div id="tokenEncryptorArea" style="display:none; align-items:center; gap:5px;">
           本物トークン: <input type="password" id="rawTokenInput" style="width:130px;" placeholder="ghp_...">
           <button class="action-btn btn-blue" onclick="generateEncryptedToken()" style="padding:4px 8px; font-size:10px; margin:0;">暗号文を生成</button>
         </div>
         <button class="action-btn btn-gray" onclick="toggleEncryptor()" style="padding:4px 8px; font-size:10px; margin:0;">初回トークン暗号化窓の開閉</button>
       </div>
+
       <div id="encryptResultArea" style="margin-top:5px; font-family:monospace; font-size:10px; word-break:break-all; color:#2d3748; background:white; padding:5px; border-radius:4px; display:none;"></div>
       
       <!-- ★追加：デモ公開モード設定チェックボックス -->
@@ -2752,6 +2764,80 @@ function githubDirectCommit(token, fileName, contentString) {
   .then(d => fetch(url, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ message: `【自動更新】${fileName}`, content: btoa(unescape(encodeURIComponent(contentString))), sha: d.sha }) }))
   .then(res => { if (res.ok) writeLog(`【GitHub成功】${fileName} を保存しました。`); else writeLog(`【GitHub失敗】上書き失敗。`); })
   .catch(err => writeLog(`【通信エラー】${err.message}`));
+}
+
+// =================================================================
+// ★ここに追加：GitHub Actions (auto_run.yml) を強制実行する関数
+// =================================================================
+function triggerWorkflowDispatch() {
+  const pin = document.getElementById('pinInput').value.trim();
+  if (pin.length !== 4) {
+    alert("GitHub Actionsを起動するには、左の入力欄に4桁のパスワードを入力してください。");
+    return;
+  }
+
+  if (!CONFIG_ENCRYPTED_TOKEN || !CONFIG_GITHUB_USER || !CONFIG_GITHUB_REPO) {
+    alert("GitHubの認証・リポジトリ設定が完了していません。");
+    return;
+  }
+
+  let decryptedToken = "";
+  try {
+    decryptedToken = CryptoJS.AES.decrypt(CONFIG_ENCRYPTED_TOKEN, pin).toString(CryptoJS.enc.Utf8);
+    if (!decryptedToken || !decryptedToken.startsWith('github_pat_')) {
+      throw new Error("Invalid Token");
+    }
+  } catch (e) {
+    alert("暗証番号が間違っているか、トークンを復号できませんでした。");
+    return;
+  }
+
+  const btn = document.getElementById('triggerWorkflowBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerText = "⏳ 起動リクエスト送信中...";
+  }
+
+  writeLog("【Actions起動】GitHub Actionsの強制実行リクエストを送信中...");
+
+  // GitHub Actions の workflow_dispatch API エンドポイント
+  const workflowFileName = 'auto_run.yml';
+  const url = `https://api.github.com/repos/${CONFIG_GITHUB_USER}/${CONFIG_GITHUB_REPO}/actions/workflows/${workflowFileName}/dispatches`;
+
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${decryptedToken}`,
+      'Accept': 'application/vnd.github+json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      ref: 'main' // 実行するブランチ名
+    })
+  })
+  .then(res => {
+    if (res.status === 204) {
+      // 204 No Content はGitHub APIで「リクエスト受理・実行成功」を意味します
+      writeLog("【Actions成功】ワークフロー (auto_run.yml) が正常に起動しました！");
+      alert("✅ GitHub Actionsの強制実行を開始しました！\n\nスクレイピングと価格ファイルの更新完了まで約1〜2分かかります。\n完了後、ページを再読み込みしてください。");
+    } else if (res.status === 404) {
+      throw new Error("ワークフローファイル（auto_run.yml）が見つからないか、トークン権限が不足しています (404)。");
+    } else if (res.status === 401 || res.status === 403) {
+      throw new Error("認証エラー: トークンの権限（workflow/actions:write）が不足しています。");
+    } else {
+      throw new Error(`起動リクエスト失敗 (Status: ${res.status})`);
+    }
+  })
+  .catch(err => {
+    writeLog(`【Actionsエラー】${err.message}`);
+    alert(`❌ 実行に失敗しました:\n${err.message}`);
+  })
+  .finally(() => {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerText = "🔄 最新データを強制取得（Actions実行）";
+    }
+  });
 }
 
 function updateHeaderSummary() {
