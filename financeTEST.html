@@ -1,8 +1,7 @@
 <!DOCTYPE html>
-<html lang="ja">
-<head>
+<html lang="ja"><head>
 <meta charset="UTF-8">
-<title>投資信託タイムラインシミュレーター & 埋込ダッシュボード</title>
+<title>投資信託タイムラインシミュレーター &amp; 埋込ダッシュボード</title>
 <!-- 外部の公式安全ライブラリのみロード -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
@@ -106,7 +105,7 @@
 <body>
 
 <div class="header-container">
-  <h2>投資信託タイムラインシミュレーター & 埋込ダッシュボード</h2>
+  <h2>投資信託タイムラインシミュレーター &amp; 埋込ダッシュボード</h2>
   <button class="action-btn btn-blue" onclick="openSettingsModal()" style="font-size:12px;padding:6px 12px;">⚙ システム設定（別画面）</button>
 </div>
 
@@ -128,19 +127,19 @@
 <div class="summary-dashboard">
   <div class="summary-item">
     <div class="summary-label">時価総額</div>
-    <div class="summary-value" id="val-market">--</div>
+    <div class="summary-value" id="val-market">8,481,063円</div>
   </div>
   <div class="summary-item">
     <div class="summary-label">損益 (率)</div>
-    <div class="summary-value" id="val-profit">--</div>
+    <div class="summary-value plus" id="val-profit">+0円<br><span style="font-size:14px;">(0.00%)</span></div>
   </div>
   <div class="summary-item">
     <div class="summary-label">前日比</div>
-    <div class="summary-value" id="val-daychange">--</div>
+    <div class="summary-value plus" id="val-daychange">+0円<br><span style="font-size:14px;">(0.00%)</span></div>
   </div>
   <div class="summary-item">
     <div class="summary-label">元本</div>
-    <div class="summary-value" id="val-purchase">--</div>
+    <div class="summary-value" id="val-purchase">8,481,063円</div>
   </div>
 </div>
 
@@ -154,23 +153,23 @@
   <div class="fund-card" id="card-hifumi">
     <div>
       <div class="fund-card-title">【A】ひふみ投信</div>
-      <div class="fund-card-price"><span id="price-hifumi">-,--- 円</span><span class="fund-card-price-date" id="date-hifumi"></span></div>
-      <div class="fund-card-profit" id="daychange-price-hifumi" style="font-size:11px; margin-bottom:2px;">-</div>
+      <div class="fund-card-price"><span id="price-hifumi">53,719 円</span><span class="fund-card-price-date" id="date-hifumi"></span></div>
+      <div class="fund-card-profit profit-plus" id="daychange-price-hifumi" style="font-size:11px; margin-bottom:2px;">前日比：+0 (+0.00%)</div>
     </div>
-    <div class="mini-chart-container"><canvas id="miniChart-hifumi"></canvas></div>
+    <div class="mini-chart-container"><canvas id="miniChart-hifumi" width="232" height="150" style="display: block; box-sizing: border-box; height: 100px; width: 154.7px;"></canvas></div>
     <div class="fund-card-details-list">
-      <div class="fund-card-details-item"><span>購入価格:</span><span id="detail-purchase-hifumi">-</span></div>
-      <div class="fund-card-details-item"><span>保有数:</span><span id="detail-units-hifumi">-</span></div>
-      <div class="fund-card-details-item"><span>時価:</span><span id="detail-market-hifumi">-</span></div>
-      <div class="fund-card-details-item"><span>損益:</span><span id="detail-profit-hifumi">-</span></div>
-      <div class="fund-card-details-item"><span>前日差:</span><span id="detail-daychange-hifumi">-</span></div>
-      <div class="fund-card-details-item"><span>元本:</span><span id="detail-principal-hifumi">-</span></div>
+      <div class="fund-card-details-item"><span>購入価格:</span><span id="detail-purchase-hifumi">53,719円</span></div>
+      <div class="fund-card-details-item"><span>保有数:</span><span id="detail-units-hifumi">67.60万口</span></div>
+      <div class="fund-card-details-item"><span>時価:</span><span id="detail-market-hifumi">3,631,404.40円</span></div>
+      <div class="fund-card-details-item"><span>損益:</span><span id="detail-profit-hifumi" class="profit-plus">+0.00円 (+0.00%)</span></div>
+      <div class="fund-card-details-item"><span>前日差:</span><span id="detail-daychange-hifumi" class="profit-plus">+0.00円 (+0.00%)</span></div>
+      <div class="fund-card-details-item"><span>元本:</span><span id="detail-principal-hifumi">3,631,404.40円</span></div>
       <!-- 仕切り線と追加の3項目 -->
       <div class="fund-card-divider"></div>
-      <div class="fund-card-details-item"><span>毎月投資額:</span><span id="detail-monthly-hifumi">-</span></div>
+      <div class="fund-card-details-item"><span>毎月投資額:</span><span id="detail-monthly-hifumi">30,000円</span></div>
 
-      <div class="fund-card-details-item"><span>区分:</span><span id="detail-nisa-hifumi">-</span></div>
-      <div class="fund-card-details-item"><span>投資期間:</span><span id="detail-period-hifumi">-</span></div>
+      <div class="fund-card-details-item"><span>区分:</span><span id="detail-nisa-hifumi">課税</span></div>
+      <div class="fund-card-details-item"><span>投資期間:</span><span id="detail-period-hifumi">2016/06〜2026/06<br>（10年0か月）</span></div>
     </div>
   </div>
 
@@ -178,23 +177,23 @@
   <div class="fund-card" id="card-saison">
     <div>
       <div class="fund-card-title">【B】セゾン･グローバルバランスF</div>
-      <div class="fund-card-price"><span id="price-saison">-,--- 円</span><span class="fund-card-price-date" id="date-saison"></span></div>
-      <div class="fund-card-profit" id="daychange-price-saison" style="font-size:11px; margin-bottom:2px;">-</div>
+      <div class="fund-card-price"><span id="price-saison">16,707 円</span><span class="fund-card-price-date" id="date-saison"></span></div>
+      <div class="fund-card-profit profit-plus" id="daychange-price-saison" style="font-size:11px; margin-bottom:2px;">前日比：+0 (+0.00%)</div>
     </div>
-    <div class="mini-chart-container"><canvas id="miniChart-saison"></canvas></div>
+    <div class="mini-chart-container"><canvas id="miniChart-saison" width="232" height="150" style="display: block; box-sizing: border-box; height: 100px; width: 154.7px;"></canvas></div>
     <div class="fund-card-details-list">
-      <div class="fund-card-details-item"><span>購入価格:</span><span id="detail-purchase-saison">-</span></div>
-      <div class="fund-card-details-item"><span>保有数:</span><span id="detail-units-saison">-</span></div>
-      <div class="fund-card-details-item"><span>時価:</span><span id="detail-market-saison">-</span></div>
-      <div class="fund-card-details-item"><span>損益:</span><span id="detail-profit-saison">-</span></div>
-      <div class="fund-card-details-item"><span>前日差:</span><span id="detail-daychange-saison">-</span></div>
-      <div class="fund-card-details-item"><span>元本:</span><span id="detail-principal-saison">-</span></div>
+      <div class="fund-card-details-item"><span>購入価格:</span><span id="detail-purchase-saison">16,707円</span></div>
+      <div class="fund-card-details-item"><span>保有数:</span><span id="detail-units-saison">83.80万口</span></div>
+      <div class="fund-card-details-item"><span>時価:</span><span id="detail-market-saison">1,400,046.60円</span></div>
+      <div class="fund-card-details-item"><span>損益:</span><span id="detail-profit-saison" class="profit-plus">+0.00円 (+0.00%)</span></div>
+      <div class="fund-card-details-item"><span>前日差:</span><span id="detail-daychange-saison" class="profit-plus">+0.00円 (+0.00%)</span></div>
+      <div class="fund-card-details-item"><span>元本:</span><span id="detail-principal-saison">1,400,046.60円</span></div>
       <!-- 仕切り線と追加の3項目 -->
       <div class="fund-card-divider"></div>
-      <div class="fund-card-details-item"><span>毎月投資額:</span><span id="detail-monthly-saison">-</span></div>
+      <div class="fund-card-details-item"><span>毎月投資額:</span><span id="detail-monthly-saison">10,000円</span></div>
 
-      <div class="fund-card-details-item"><span>区分:</span><span id="detail-nisa-saison">-</span></div>
-      <div class="fund-card-details-item"><span>投資期間:</span><span id="detail-period-saison">-</span></div>
+      <div class="fund-card-details-item"><span>区分:</span><span id="detail-nisa-saison">課税</span></div>
+      <div class="fund-card-details-item"><span>投資期間:</span><span id="detail-period-saison">2017/05〜継続中<br>（9年1か月）</span></div>
     </div>
   </div>
 
@@ -202,47 +201,47 @@
   <div class="fund-card" id="card-vti-new">
     <div>
       <div class="fund-card-title">【C】楽天・全米株式（新NISA）</div>
-      <div class="fund-card-price"><span id="price-vti-new">-,--- 円</span><span class="fund-card-price-date" id="date-vti-new"></span></div>
-      <div class="fund-card-profit" id="daychange-price-vti-new" style="font-size:11px; margin-bottom:2px;">-</div>
+      <div class="fund-card-price"><span id="price-vti-new">32,700 円</span><span class="fund-card-price-date" id="date-vti-new"></span></div>
+      <div class="fund-card-profit profit-plus" id="daychange-price-vti-new" style="font-size:11px; margin-bottom:2px;">前日比：+0 (+0.00%)</div>
     </div>
-    <div class="mini-chart-container"><canvas id="miniChart-vti-new"></canvas></div>
+    <div class="mini-chart-container"><canvas id="miniChart-vti-new" width="232" height="150" style="display: block; box-sizing: border-box; height: 100px; width: 154.7px;"></canvas></div>
     <div class="fund-card-details-list">
-      <div class="fund-card-details-item"><span>購入価格:</span><span id="detail-purchase-vti-new">-</span></div>
-      <div class="fund-card-details-item"><span>保有数:</span><span id="detail-units-vti-new">-</span></div>
-      <div class="fund-card-details-item"><span>時価:</span><span id="detail-market-vti-new">-</span></div>
-      <div class="fund-card-details-item"><span>損益:</span><span id="detail-profit-vti-new">-</span></div>
-      <div class="fund-card-details-item"><span>前日差:</span><span id="detail-daychange-vti-new">-</span></div>
-      <div class="fund-card-details-item"><span>元本:</span><span id="detail-principal-vti-new">-</span></div>
+      <div class="fund-card-details-item"><span>購入価格:</span><span id="detail-purchase-vti-new">32,700円</span></div>
+      <div class="fund-card-details-item"><span>保有数:</span><span id="detail-units-vti-new">29.20万口</span></div>
+      <div class="fund-card-details-item"><span>時価:</span><span id="detail-market-vti-new">954,840.00円</span></div>
+      <div class="fund-card-details-item"><span>損益:</span><span id="detail-profit-vti-new" class="profit-plus">+0.00円 (+0.00%)</span></div>
+      <div class="fund-card-details-item"><span>前日差:</span><span id="detail-daychange-vti-new" class="profit-plus">+0.00円 (+0.00%)</span></div>
+      <div class="fund-card-details-item"><span>元本:</span><span id="detail-principal-vti-new">954,840.00円</span></div>
       <!-- 仕切り線と追加の3項目 -->
       <div class="fund-card-divider"></div>
-      <div class="fund-card-details-item"><span>毎月投資額:</span><span id="detail-monthly-vti-new">-</span></div>
+      <div class="fund-card-details-item"><span>毎月投資額:</span><span id="detail-monthly-vti-new">33,000円</span></div>
 
-      <div class="fund-card-details-item"><span>区分:</span><span id="detail-nisa-vti-new">-</span></div>
-      <div class="fund-card-details-item"><span>投資期間:</span><span id="detail-period-vti-new">-</span></div>
+      <div class="fund-card-details-item"><span>区分:</span><span id="detail-nisa-vti-new">NISA</span></div>
+      <div class="fund-card-details-item"><span>投資期間:</span><span id="detail-period-vti-new">2024/01〜継続中<br>（2年5か月）</span></div>
     </div>
   </div>
 
   <!-- 【D】iシェアーズ 米国株式(S&P500) -->
   <div class="fund-card" id="card-ishares">
     <div>
-      <div class="fund-card-title">【D】iシェアーズ 米国株式(S&P500)</div>
-      <div class="fund-card-price"><span id="price-ishares">-,--- 円</span><span class="fund-card-price-date" id="date-ishares"></span></div>
-      <div class="fund-card-profit" id="daychange-price-ishares" style="font-size:11px; margin-bottom:2px;">-</div>
+      <div class="fund-card-title">【D】iシェアーズ 米国株式(S&amp;P500)</div>
+      <div class="fund-card-price"><span id="price-ishares">20,478 円</span><span class="fund-card-price-date" id="date-ishares"></span></div>
+      <div class="fund-card-profit profit-plus" id="daychange-price-ishares" style="font-size:11px; margin-bottom:2px;">前日比：+0 (+0.00%)</div>
     </div>
-    <div class="mini-chart-container"><canvas id="miniChart-ishares"></canvas></div>
+    <div class="mini-chart-container"><canvas id="miniChart-ishares" width="232" height="150" style="display: block; box-sizing: border-box; height: 100px; width: 154.7px;"></canvas></div>
     <div class="fund-card-details-list">
-      <div class="fund-card-details-item"><span>購入価格:</span><span id="detail-purchase-ishares">-</span></div>
-      <div class="fund-card-details-item"><span>保有数:</span><span id="detail-units-ishares">-</span></div>
-      <div class="fund-card-details-item"><span>時価:</span><span id="detail-market-ishares">-</span></div>
-      <div class="fund-card-details-item"><span>損益:</span><span id="detail-profit-ishares">-</span></div>
-      <div class="fund-card-details-item"><span>前日差:</span><span id="detail-daychange-ishares">-</span></div>
-      <div class="fund-card-details-item"><span>元本:</span><span id="detail-principal-ishares">-</span></div>
+      <div class="fund-card-details-item"><span>購入価格:</span><span id="detail-purchase-ishares">20,478円</span></div>
+      <div class="fund-card-details-item"><span>保有数:</span><span id="detail-units-ishares">70.30万口</span></div>
+      <div class="fund-card-details-item"><span>時価:</span><span id="detail-market-ishares">1,439,603.40円</span></div>
+      <div class="fund-card-details-item"><span>損益:</span><span id="detail-profit-ishares" class="profit-plus">+0.00円 (+0.00%)</span></div>
+      <div class="fund-card-details-item"><span>前日差:</span><span id="detail-daychange-ishares" class="profit-plus">+0.00円 (+0.00%)</span></div>
+      <div class="fund-card-details-item"><span>元本:</span><span id="detail-principal-ishares">1,439,603.40円</span></div>
       <!-- 仕切り線と追加の3項目 -->
       <div class="fund-card-divider"></div>
-      <div class="fund-card-details-item"><span>毎月投資額:</span><span id="detail-monthly-ishares">-</span></div>
+      <div class="fund-card-details-item"><span>毎月投資額:</span><span id="detail-monthly-ishares">なし</span></div>
 
-      <div class="fund-card-details-item"><span>区分:</span><span id="detail-nisa-ishares">-</span></div>
-      <div class="fund-card-details-item"><span>投資期間:</span><span id="detail-period-ishares">-</span></div>
+      <div class="fund-card-details-item"><span>区分:</span><span id="detail-nisa-ishares">課税</span></div>
+      <div class="fund-card-details-item"><span>投資期間:</span><span id="detail-period-ishares">2017/05〜2021/04<br>（3年11か月）</span></div>
     </div>
   </div>
 
@@ -250,23 +249,23 @@
   <div class="fund-card" id="card-vti-old">
     <div>
       <div class="fund-card-title">【E】楽天・全米株式（旧NISA）</div>
-      <div class="fund-card-price"><span id="price-vti-old">-,--- 円</span><span class="fund-card-price-date" id="date-vti-old"></span></div>
-      <div class="fund-card-profit" id="daychange-price-vti-old" style="font-size:11px; margin-bottom:2px;">-</div>
+      <div class="fund-card-price"><span id="price-vti-old">19,834 円</span><span class="fund-card-price-date" id="date-vti-old"></span></div>
+      <div class="fund-card-profit profit-plus" id="daychange-price-vti-old" style="font-size:11px; margin-bottom:2px;">前日比：+0 (+0.00%)</div>
     </div>
-    <div class="mini-chart-container"><canvas id="miniChart-vti-old"></canvas></div>
+    <div class="mini-chart-container"><canvas id="miniChart-vti-old" width="232" height="150" style="display: block; box-sizing: border-box; height: 100px; width: 154.7px;"></canvas></div>
     <div class="fund-card-details-list">
-      <div class="fund-card-details-item"><span>購入価格:</span><span id="detail-purchase-vti-old">-</span></div>
-      <div class="fund-card-details-item"><span>保有数:</span><span id="detail-units-vti-old">-</span></div>
-      <div class="fund-card-details-item"><span>時価:</span><span id="detail-market-vti-old">-</span></div>
-      <div class="fund-card-details-item"><span>損益:</span><span id="detail-profit-vti-old">-</span></div>
-      <div class="fund-card-details-item"><span>前日差:</span><span id="detail-daychange-vti-old">-</span></div>
-      <div class="fund-card-details-item"><span>元本:</span><span id="detail-principal-vti-old">-</span></div>
+      <div class="fund-card-details-item"><span>購入価格:</span><span id="detail-purchase-vti-old">19,834円</span></div>
+      <div class="fund-card-details-item"><span>保有数:</span><span id="detail-units-vti-old">53.20万口</span></div>
+      <div class="fund-card-details-item"><span>時価:</span><span id="detail-market-vti-old">1,055,168.80円</span></div>
+      <div class="fund-card-details-item"><span>損益:</span><span id="detail-profit-vti-old" class="profit-plus">+0.00円 (+0.00%)</span></div>
+      <div class="fund-card-details-item"><span>前日差:</span><span id="detail-daychange-vti-old" class="profit-plus">+0.00円 (+0.00%)</span></div>
+      <div class="fund-card-details-item"><span>元本:</span><span id="detail-principal-vti-old">1,055,168.80円</span></div>
       <!-- 仕切り線と追加の3項目 -->
       <div class="fund-card-divider"></div>
-      <div class="fund-card-details-item"><span>毎月投資額:</span><span id="detail-monthly-vti-old">-</span></div>
+      <div class="fund-card-details-item"><span>毎月投資額:</span><span id="detail-monthly-vti-old">なし</span></div>
 
-      <div class="fund-card-details-item"><span>区分:</span><span id="detail-nisa-vti-old">-</span></div>
-      <div class="fund-card-details-item"><span>投資期間:</span><span id="detail-period-vti-old">-</span></div>
+      <div class="fund-card-details-item"><span>区分:</span><span id="detail-nisa-vti-old">NISA</span></div>
+      <div class="fund-card-details-item"><span>投資期間:</span><span id="detail-period-vti-old">2021/05〜2023/12<br>（2年7か月）</span></div>
     </div>
   </div>
 </div>
@@ -287,30 +286,30 @@
       <!-- ① 額面時価総額（税引前）のスタックバー -->
       <div style="margin-bottom: 20px;">
         <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 6px; font-weight: bold; color: #4a5568;">
-          <span>① 額面時価総額: <span id="bar-total-market-label" style="font-size: 13px; color: #1a202c;">0円</span></span>
+          <span>① 額面時価総額: <span id="bar-total-market-label" style="font-size: 13px; color: #1a202c;">8,481,063 円</span></span>
           <span style="color: #718096; font-weight: normal;">額面（税引前）</span>
         </div>
         <!-- 棒グラフ本体 -->
         <div style="display: flex; height: 38px; border-top-left-radius: 6px; border-top-right-radius: 6px; overflow: hidden; background: #e2e8f0; font-size: 10px; color: white; font-weight: bold; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 0;">
           <!-- 左：元本 -->
-          <div id="bar-past-purchase" style="background: #718096; display: flex; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden;">元本</div>
+          <div id="bar-past-purchase" style="background: rgb(113, 128, 150); display: flex; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden; width: 100%; padding: 0px 2px; font-size: 10px; white-space: pre-wrap;">元本<br>848万円</div>
           <!-- 中：課税利益（マージ済） -->
-          <div id="bar-past-taxable" style="background: #3182ce; display: flex; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden;">課税利益（課税金額含む）</div>
+          <div id="bar-past-taxable" style="background: rgb(49, 130, 206); display: none; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden; width: 0%;">課税利益（課税金額含む）</div>
           <!-- 右：NISA利益 -->
-          <div id="bar-past-nisa" style="background: #2f855a; display: flex; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden;">NISA利益</div>
+          <div id="bar-past-nisa" style="background: rgb(47, 133, 90); display: none; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden; width: 0%;">NISA利益</div>
         </div>
         
         <!-- ①用U字型ガイドライン（棒グラフと2pxの隙間を保持） -->
         <div style="display: flex; width: 100%; height: 6px; margin-top: 2px; margin-bottom: 2px; overflow: hidden;">
-          <div id="bar-guide-spacer" style="width: 70%; transition: width 0.3s;"></div>
-          <div id="bar-guide-bracket" style="width: 30%; border-left: 2px solid #3182ce; border-right: 2px solid #2f855a; border-bottom: 2px solid #4a5568; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; height: 6px; box-sizing: border-box; transition: width 0.3s;"></div>
+          <div id="bar-guide-spacer" style="width: 100%; transition: width 0.3s;"></div>
+          <div id="bar-guide-bracket" style="width: 30%; border-left: 2px solid rgb(49, 130, 206); border-right: 2px solid rgb(47, 133, 90); border-bottom: 2px solid rgb(74, 85, 104); border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; height: 6px; box-sizing: border-box; transition: width 0.3s; display: none;"></div>
         </div>
         
         <!-- ①用金額表記（U字型ブラケットの真下中央に追従スライドしてセンタリング） -->
         <div style="display: flex; width: 100%; font-size: 11px; font-weight: bold; color: #2d3748; padding-top: 2px; overflow: hidden;">
-          <div id="bar-text-spacer" style="width: 70%; transition: width 0.3s;"></div>
-          <div id="bar-text-container" style="width: 30%; text-align: center; transition: width 0.3s; white-space: nowrap; display: flex; justify-content: center;">
-            <span id="bar-total-profit-label" style="font-size: 10px; color: #2f855a; border-bottom: 2px double #2f855a; padding-bottom: 1px; font-family: monospace;">利益合計: -- 円</span>
+          <div id="bar-text-spacer" style="width: 100%; transition: width 0.3s;"></div>
+          <div id="bar-text-container" style="width: 30%; text-align: center; transition: width 0.3s; white-space: nowrap; display: none; justify-content: center;">
+            <span id="bar-total-profit-label" style="font-size: 10px; color: #2f855a; border-bottom: 2px double #2f855a; padding-bottom: 1px; font-family: monospace;">利益合計: 0 円</span>
           </div>
         </div>
       </div>
@@ -318,32 +317,32 @@
       <!-- ② 税引後評価額（実質手残り）のスタックバー -->
       <div>
         <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 6px; font-weight: bold; color: #4a5568;">
-          <span>② 税引後評価額（実質手残り）: <span id="bar-after-tax-label" style="font-size: 13px; color: #2f855a;">0円</span></span>
-          <span style="color: #c53030; font-weight: normal;">手取りベース（控除税額: <span id="bar-tax-amount-label">0円</span>）</span>
+          <span>② 税引後評価額（実質手残り）: <span id="bar-after-tax-label" style="font-size: 13px; color: #2f855a;">8,481,063 円</span></span>
+          <span style="color: #c53030; font-weight: normal;">手取りベース（控除税額: <span id="bar-tax-amount-label">0 円</span>）</span>
         </div>
         <!-- 棒グラフ本体 -->
         <div style="display: flex; height: 38px; border-top-left-radius: 6px; border-top-right-radius: 6px; overflow: hidden; background: #e2e8f0; font-size: 10px; color: white; font-weight: bold; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 0;">
           <!-- 左から：元本 -> 税引後利益 -> NISA利益 -> 想定税額控除分 -->
-          <div id="bar-after-purchase" style="background: #718096; display: flex; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden;">元本</div>
-          <div id="bar-after-taxable-net" style="background: #319795; display: flex; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden;">税引後利益</div>
-          <div id="bar-after-nisa" style="background: #2f855a; display: flex; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden;">NISA利益</div>
-          <div id="bar-after-tax-ghost" style="background: repeating-linear-gradient(45deg, #f7fafc, #f7fafc 6px, #cbd5e0 6px, #cbd5e0 12px); color: #718096; display: flex; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden; font-weight: normal;">(税控除)</div>
+          <div id="bar-after-purchase" style="background: rgb(113, 128, 150); display: flex; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden; width: 100%; padding: 0px 2px; font-size: 10px; white-space: pre-wrap;">元本<br>848万円</div>
+          <div id="bar-after-taxable-net" style="background: rgb(49, 151, 149); display: none; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden; width: 0%;">税引後利益</div>
+          <div id="bar-after-nisa" style="background: rgb(47, 133, 90); display: none; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden; width: 0%;">NISA利益</div>
+          <div id="bar-after-tax-ghost" style="background: repeating-linear-gradient(45deg, rgb(247, 250, 252), rgb(247, 250, 252) 6px, rgb(203, 213, 224) 6px, rgb(203, 213, 224) 12px); color: rgb(113, 128, 150); display: none; flex-direction: column; justify-content: center; align-items: center; line-height: 1.2; transition: width 0.3s; overflow: hidden; font-weight: normal; width: 0%;">(税控除)</div>
         </div>
 
         <!-- ②用U字型ガイドライン（棒グラフと2pxの隙間を保持、税控除分を避けて吸着） -->
         <div style="display: flex; width: 100%; height: 6px; margin-top: 2px; margin-bottom: 2px; overflow: hidden;">
-          <div id="bar-guide-spacer2-left" style="width: 60%; transition: width 0.3s;"></div>
-          <div id="bar-guide-bracket2" style="width: 30%; border-left: 2px solid #319795; border-right: 2px solid #2f855a; border-bottom: 2px solid #4a5568; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; height: 6px; box-sizing: border-box; transition: width 0.3s; position: relative; left: -3px;"></div>
-          <div id="bar-guide-spacer2-right" style="width: 10%; transition: width 0.3s;"></div>
+          <div id="bar-guide-spacer2-left" style="width: 100%; transition: width 0.3s;"></div>
+          <div id="bar-guide-bracket2" style="width: 30%; border-left: 2px solid rgb(49, 151, 149); border-right: 2px solid rgb(47, 133, 90); border-bottom: 2px solid rgb(74, 85, 104); border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; height: 6px; box-sizing: border-box; transition: width 0.3s; position: relative; left: -3px; display: none;"></div>
+          <div id="bar-guide-spacer2-right" style="width: 0%; transition: width 0.3s;"></div>
         </div>
 
         <!-- ②用金額表記（U字型ブラケットの真下中央に追従スライドしてセンタリング） -->
         <div style="display: flex; width: 100%; font-size: 11px; font-weight: bold; color: #2d3748; padding-top: 2px; overflow: hidden;">
-          <div id="bar-text-spacer2-left" style="width: 60%; transition: width 0.3s;"></div>
-          <div id="bar-text-container2" style="width: 30%; text-align: center; transition: width 0.3s; white-space: nowrap; display: flex; justify-content: center; position: relative; left: -3px;">
-            <span id="bar-total-profit-label2" style="font-size: 10px; color: #2f855a; border-bottom: 2px double #2f855a; padding-bottom: 1px; font-family: monospace;">実質利益合計: -- 円</span>
+          <div id="bar-text-spacer2-left" style="width: 100%; transition: width 0.3s;"></div>
+          <div id="bar-text-container2" style="width: 30%; text-align: center; transition: width 0.3s; white-space: nowrap; display: none; justify-content: center; position: relative; left: -3px;">
+            <span id="bar-total-profit-label2" style="font-size: 10px; color: #2f855a; border-bottom: 2px double #2f855a; padding-bottom: 1px; font-family: monospace;">実質利益合計: 0 円</span>
           </div>
-          <div id="bar-text-spacer2-right" style="width: 10%; transition: width 0.3s;"></div>
+          <div id="bar-text-spacer2-right" style="width: 0%; transition: width 0.3s;"></div>
         </div>
       </div>
     </div>
@@ -354,7 +353,7 @@
     <div class="card" style="height: 100%; box-sizing: border-box; margin-bottom: 0;">
       <h3>2. 現在の資産状況</h3>
       <p class="label-desc" style="margin-bottom: 12px;">※確定データに基づく税金計算等のサマリー情報です。</p>
-      <div id="summary">データ読み込み中...</div>
+      <div id="summary">[ 基準日: ----/--/-- 時点 ]<br>---------------------------------<br>合計時価総額: 8,481,063円<br>（元本: 8,481,063円 / 損益: +0円 [+0.00%]）<br>---------------------------------<br>うち課税利益: 0円<br>想定税額(20%): 0円<br>非課税(NISA)利益: 0円<br>---------------------------------<br>税引き後評価額: 8,481,063円</div>
     </div>
   </div>
 </div>
@@ -364,11 +363,11 @@
     <div style="display: flex; gap: 15px; height: 260px;">
       <div class="card" style="flex:1; margin:0; padding:15px; display:flex; flex-direction:column;">
         <h4 style="margin:0 0 10px 0; font-size:13px; color:#2c3e50;">【短期】1ヶ月分 (直近30日の日別資産推移)</h4>
-        <div style="flex:1; position:relative;"><canvas id="shortChart"></canvas></div>
+        <div style="flex:1; position:relative;"><canvas id="shortChart" width="618" height="298" style="display: block; box-sizing: border-box; height: 198.7px; width: 412.2px;"></canvas></div>
       </div>
       <div class="card" style="flex:1; margin:0; padding:15px; display:flex; flex-direction:column;">
         <h4 style="margin:0 0 10px 0; font-size:13px; color:#2c3e50;">【中期】1年分 (直近1年間の月別資産推移)</h4>
-        <div style="flex:1; position:relative;"><canvas id="mediumChart"></canvas></div>
+        <div style="flex:1; position:relative;"><canvas id="mediumChart" width="618" height="298" style="display: block; box-sizing: border-box; height: 198.7px; width: 412.1px;"></canvas></div>
       </div>
     </div>
     <div class="card" style="margin:0; padding:15px; display:flex; flex-direction:column; height:380px;">
@@ -377,14 +376,14 @@
         <button id="tabPast" class="tab-btn active" onclick="switchGraphTab('past')">過去の実績のみ (2016/06〜現在)</button>
         <button id="tabFuture" class="tab-btn" onclick="switchGraphTab('future')">16年計画シミュレーション (2016/06〜2032/06)</button>
       </div>
-      <div style="flex:1; position:relative;"><canvas id="timeLineChart"></canvas></div>
+      <div style="flex:1; position:relative;"><canvas id="timeLineChart" width="553" height="442" style="display: block; box-sizing: border-box; height: 295px; width: 368.7px;"></canvas></div>
     </div>
   </div>
   <div style="flex: 2; min-width: 260px; display: flex; flex-direction: column; justify-content: flex-start; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; box-sizing: border-box; height: 710px; position: sticky; top: 10px;">
-    <h4 id="pieChartTitle" style="margin: 150px 0 10px 0; text-align: center; font-size: 12px; color: #4a5568;">現在の資産構成比</h4>
-    <div style="position: relative; height: 170px; width: 100%; display: flex; align-items: center; justify-content: center;"><canvas id="pieChart"></canvas></div>
-    <div id="pieChartTotal" style="text-align: center; font-weight: bold; font-size: 13px; margin: 10px 0; color: #2d3748; padding: 5px 0; border-top: 1px dashed #cbd5e0; border-bottom: 1px dashed #cbd5e0;">総資産額: --円</div>
-    <div id="pieDetailsList" style="display: flex; flex-direction: column; gap: 6px; flex: 1; overflow-y: auto;"></div>
+    <h4 id="pieChartTitle" style="margin: 150px 0 10px 0; text-align: center; font-size: 12px; color: #4a5568;">現在の資産構成比 (----/--/--基準)</h4>
+    <div style="position: relative; height: 170px; width: 100%; display: flex; align-items: center; justify-content: center;"><canvas id="pieChart" width="458" height="255" style="display: block; box-sizing: border-box; height: 170px; width: 305.3px;"></canvas></div>
+    <div id="pieChartTotal" style="text-align: center; font-weight: bold; font-size: 13px; margin: 10px 0; color: #2d3748; padding: 5px 0; border-top: 1px dashed #cbd5e0; border-bottom: 1px dashed #cbd5e0;">総資産額: 8,481,063 円</div>
+    <div id="pieDetailsList" style="display: flex; flex-direction: column; gap: 6px; flex: 1; overflow-y: auto;"><div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; padding: 2px 0;"><div style="display: flex; align-items: center; gap: 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 140px;"><span class="list-badge" style="background-color: #3182ce;">A</span><span style="font-weight: bold; color: #4a5568; overflow: hidden; text-overflow: ellipsis;">ひふみ投信</span></div><div style="text-align: right; color: #2d3748; font-family: monospace;"><span>3,631,404円</span><span style="font-weight: bold; color: #718096; margin-left: 4px;">(42.8%)</span></div></div><div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; padding: 2px 0;"><div style="display: flex; align-items: center; gap: 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 140px;"><span class="list-badge" style="background-color: #805ad5;">D</span><span style="font-weight: bold; color: #4a5568; overflow: hidden; text-overflow: ellipsis;">iシェアーズ米国株</span></div><div style="text-align: right; color: #2d3748; font-family: monospace;"><span>1,439,603円</span><span style="font-weight: bold; color: #718096; margin-left: 4px;">(17.0%)</span></div></div><div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; padding: 2px 0;"><div style="display: flex; align-items: center; gap: 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 140px;"><span class="list-badge" style="background-color: #dd6b20;">B</span><span style="font-weight: bold; color: #4a5568; overflow: hidden; text-overflow: ellipsis;">セゾンGBF</span></div><div style="text-align: right; color: #2d3748; font-family: monospace;"><span>1,400,047円</span><span style="font-weight: bold; color: #718096; margin-left: 4px;">(16.5%)</span></div></div><div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; padding: 2px 0;"><div style="display: flex; align-items: center; gap: 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 140px;"><span class="list-badge" style="background-color: #4ea8de;">E</span><span style="font-weight: bold; color: #4a5568; overflow: hidden; text-overflow: ellipsis;">楽天・全米(旧NISA)</span></div><div style="text-align: right; color: #2d3748; font-family: monospace;"><span>1,055,169円</span><span style="font-weight: bold; color: #718096; margin-left: 4px;">(12.4%)</span></div></div><div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; padding: 2px 0;"><div style="display: flex; align-items: center; gap: 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 140px;"><span class="list-badge" style="background-color: #319795;">C</span><span style="font-weight: bold; color: #4a5568; overflow: hidden; text-overflow: ellipsis;">楽天・全米(新NISA)</span></div><div style="text-align: right; color: #2d3748; font-family: monospace;"><span>954,840円</span><span style="font-weight: bold; color: #718096; margin-left: 4px;">(11.3%)</span></div></div></div>
     
   </div>
 </div>
@@ -460,7 +459,7 @@
 
 <div class="card">
   <h3>5. システムデバッグログ</h3>
-  <div class="debug-log" id="debugLog">[システムログ起動]</div>
+  <div class="debug-log" id="debugLog">[システムログ起動]<br>[23:40:54] 【成功】基本表示システム（サマリーとテーブル）が即時起動しました。<br>[23:40:54] 外部データファイルの読み込みを開始します...<br>[23:40:54] 【案内】設定ファイルがないためデフォルト値で起動します。<br>[23:40:54] 【成功】外部データファイルをロードしました。</div>
 </div>
 
 <div class="modal-overlay" id="settingsModal">
@@ -475,9 +474,14 @@
       <textarea id="modalInputText" placeholder="証券会社のマイページのテキストをコピーしてここに貼り付けると、自動的に該当するファンドの数値（口数・取得単価）が上の入力窓に自動反映されます。" oninput="autoFillFromText()"></textarea>
     </div>
     <div style="margin-top:15px; border-top:1px solid #e2e8f0; padding-top:10px; font-size:11px; background:#fffcf5; padding:10px; border-radius:6px; border:1px solid #ffeb3b;">
-      <h4 style="margin:0 0 5px 0; color:#b7791f;">🔒 【自動化】GitHub直接自動保存 & 暗号化設定</h4>
+      <h4 style="margin:0 0 5px 0; color:#b7791f;">🔒 【自動化】GitHub直接自動保存 &amp; 暗号化設定</h4>
       <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+        <div style="display:flex; align-items:center; gap:6px;">
         <div>4桁パスワード: <input type="password" maxlength="4" id="pinInput" style="width:50px; text-align:center;" placeholder="1234"></div>
+        <label style="font-size:11px; color:#4a5568; cursor:pointer; display:inline-flex; align-items:center; gap:3px;">
+          <input type="checkbox" id="rememberDeviceCheckbox" onchange="handleRememberPinChange(this.checked)"> このPCを記憶（次回からパスワード不要）
+        </label>
+      </div>
         
         <!-- ★追加：ワークフロー強制起動ボタン -->
         <button class="action-btn btn-green" id="triggerWorkflowBtn" onclick="triggerWorkflowDispatch()" style="padding:4px 10px; font-size:11px; margin:0; font-weight:bold;">
@@ -514,6 +518,44 @@
 </div>
 
 <script>
+
+// ==========================================
+// ★特定端末の認証記憶（パスワードレス化）用ロジック
+// ==========================================
+function getEffectivePin() {
+  const pinEl = document.getElementById('pinInput');
+  const inputPin = pinEl ? pinEl.value.trim() : '';
+  if (inputPin.length === 4) {
+    const chk = document.getElementById('rememberDeviceCheckbox');
+    if (chk && chk.checked) {
+      localStorage.setItem('portfolio_trusted_device_pin', inputPin);
+    }
+    return inputPin;
+  }
+  const savedPin = localStorage.getItem('portfolio_trusted_device_pin');
+  if (savedPin && savedPin.length === 4) {
+    return savedPin;
+  }
+  return '';
+}
+
+function handleRememberPinChange(checked) {
+  if (checked) {
+    const pinEl = document.getElementById('pinInput');
+    const inputPin = pinEl ? pinEl.value.trim() : '';
+    if (inputPin.length === 4) {
+      localStorage.setItem('portfolio_trusted_device_pin', inputPin);
+      writeLog("【端末認証】このパソコンを信頼済み端末として記憶しました。次回からPIN入力を省略できます。");
+    } else {
+      alert("記憶させるには、まず左の入力欄に4桁のパスワードを入力してください。");
+      document.getElementById('rememberDeviceCheckbox').checked = false;
+    }
+  } else {
+    localStorage.removeItem('portfolio_trusted_device_pin');
+    writeLog("【端末認証】このパソコンの認証記憶を解除しました。");
+  }
+}
+
 // ==========================================
 // ★【最重要セキュリティ設定】ここに4桁パスワードで暗号化されたトークン文字列を貼り付けます！
 // ==========================================
@@ -2301,13 +2343,27 @@ function generateAndRenderChart(totals) {
 
 function toggleEncryptor() { const area = document.getElementById('tokenEncryptorArea'); area.style.display = area.style.display === 'none' ? 'flex' : 'none'; }
 function generateEncryptedToken() {
-  const pin = document.getElementById('pinInput').value.trim(); const rawToken = document.getElementById('rawTokenInput').value.trim();
+  const pin = getEffectivePin(); const rawToken = document.getElementById('rawTokenInput').value.trim();
   if (pin.length !== 4 || !rawToken) { alert("正しく入力してください。"); return; }
   const encrypted = CryptoJS.AES.encrypt(rawToken, pin).toString();
   const resultArea = document.getElementById('encryptResultArea'); resultArea.style.display = 'block'; resultArea.innerText = `【生成暗号文】\n${encrypted}`;
 }
 
-function openSettingsModal() { document.getElementById('settingsModal').style.display = 'flex'; document.getElementById('modalInputText').value = ''; renderModalSettingsGrid(); }
+function openSettingsModal() { 
+  document.getElementById('settingsModal').style.display = 'flex'; 
+  document.getElementById('modalInputText').value = ''; 
+  renderModalSettingsGrid(); 
+  const savedPin = localStorage.getItem('portfolio_trusted_device_pin');
+  const pinInput = document.getElementById('pinInput');
+  const chk = document.getElementById('rememberDeviceCheckbox');
+  if (savedPin && savedPin.length === 4) {
+    if (pinInput) pinInput.value = savedPin;
+    if (chk) chk.checked = true;
+  } else {
+    if (pinInput) pinInput.value = '';
+    if (chk) chk.checked = false;
+  }
+}
 function closeSettingsModal() { document.getElementById('settingsModal').style.display = 'none'; }
 
 // ==========================================
@@ -2424,7 +2480,7 @@ function renderModalSettingsGrid() {
 // 特定の投信（キー指定）のみを個別に更新して保存・同期する（2026年6月対応版）
 // ==========================================
 function updateSingleFundSettings(key) {
-  const pin = document.getElementById('pinInput').value.trim();
+  const pin = getEffectivePin();
   if (pin.length !== 4) {
     alert("個別に更新して保存する場合も、認証用に4桁の暗証パスワードを入力してください。");
     return;
@@ -2533,7 +2589,7 @@ function autoFillFromText() {
 // モーダルの変更を適用し、最新設定および時系列履歴を保存（2026年6月対応版）
 // ==========================================
 function applyModalSettings() {
-  const pin = document.getElementById('pinInput').value.trim(); 
+  const pin = getEffectivePin(); 
   if (pin.length !== 4) { alert("4桁の暗証パスワードを入力してください。"); return; }
   
   const savedSettings = {};
@@ -2730,7 +2786,7 @@ function updateOtherAssetSettings(assetType) {
   }
 
   // 4. 【独立処理】GitHub同期を別の安全なブロックで試行
-  const pin = document.getElementById('pinInput').value.trim();
+  const pin = getEffectivePin();
   if (CONFIG_ENCRYPTED_TOKEN && CONFIG_GITHUB_USER && CONFIG_GITHUB_REPO) {
     if (pin.length === 4) {
       try {
@@ -2770,7 +2826,7 @@ function githubDirectCommit(token, fileName, contentString) {
 // ★ここに追加：GitHub Actions (auto_run.yml) を強制実行する関数
 // =================================================================
 function triggerWorkflowDispatch() {
-  const pin = document.getElementById('pinInput').value.trim();
+  const pin = getEffectivePin();
   if (pin.length !== 4) {
     alert("GitHub Actionsを起動するには、左の入力欄に4桁のパスワードを入力してください。");
     return;
@@ -3523,4 +3579,4 @@ function calculateDecumulationTable() {
 
   tableArea.innerHTML = html;
 }
-</script>
+</script></body></html>
