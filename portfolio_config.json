@@ -7,8 +7,8 @@
       "periodText": "2016/06-2026/06"
     },
     "saison": {
-      "units": 84.4,
-      "purchasePrice": 16824,
+      "units": 84.7,
+      "purchasePrice": 16882,
       "monthlyInvest": 10000,
       "periodText": "2017/05-"
     },
@@ -82,8 +82,8 @@
         "purchasePrice": 53919
       },
       "saison": {
-        "units": 84.4,
-        "purchasePrice": 16824
+        "units": 84.7,
+        "purchasePrice": 16882
       },
       "vti_new": {
         "units": 34.8,
