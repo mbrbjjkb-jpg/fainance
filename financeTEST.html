@@ -3665,7 +3665,9 @@ async function toggleEarlyRetireDashboard() {
   }
 }
 
-// 2. プルダウンの動的初期化
+// ==========================================
+// ★修正版：早期退職コントロール初期化（0年後＆54歳スタート対応）
+// ==========================================
 function initEarlyRetireControls() {
   const yearsSelect = document.getElementById('er-retire-years');
   const ageSelect = document.getElementById('er-current-age');
@@ -3674,18 +3676,19 @@ function initEarlyRetireControls() {
 
   if (!yearsSelect || yearsSelect.options.length > 0) return;
 
-  // ① 退職までの年数 (1〜10年後)
+  // ① 退職までの年数 (0年後〜10年後)
   let yHtml = '';
-  for (let y = 1; y <= 10; y++) {
-    const sel = (y === 3) ? 'selected' : '';
-    yHtml += `<option value="${y}" ${sel}>${y}年後 に早期退職</option>`;
+  for (let y = 0; y <= 10; y++) {
+    const sel = (y === 0) ? 'selected' : ''; // デフォルトを0年後（今すぐ）に設定
+    const label = (y === 0) ? '0年後（今すぐ退職）' : `${y}年後 に早期退職`;
+    yHtml += `<option value="${y}" ${sel}>${label}</option>`;
   }
   yearsSelect.innerHTML = yHtml;
 
-  // ② 現在の年齢 (30〜60歳)
+  // ② 現在の年齢 (45〜70歳、デフォルト54歳)
   let aHtml = '';
-  for (let a = 30; a <= 60; a++) {
-    const sel = (a === 45) ? 'selected' : '';
+  for (let a = 45; a <= 70; a++) {
+    const sel = (a === 54) ? 'selected' : ''; // デフォルト54歳
     aHtml += `<option value="${a}" ${sel}>${a}歳</option>`;
   }
   ageSelect.innerHTML = aHtml;
@@ -3709,29 +3712,23 @@ function initEarlyRetireControls() {
   withdrawSelect.innerHTML = wHtml;
 }
 
-// 3. インフレトグル
-function toggleEarlyRetireInflation() {
-  const btn = document.getElementById('er-inflation-btn');
-  if (!btn) return;
-  earlyRetireInflationActive = !earlyRetireInflationActive;
-  btn.innerText = earlyRetireInflationActive ? 'ON' : 'OFF';
-  btn.className = `action-btn ${earlyRetireInflationActive ? 'btn-green' : 'btn-gray'}`;
-  calculateEarlyRetireTable();
-}
-
 // ==========================================
-// ★修正版：早期退職シミュレーション計算関数（現金先行取り崩し型）
+// ★修正版：早期退職シミュレーション計算関数（0年後・当日資産ベース対応）
 // ==========================================
 function calculateEarlyRetireTable() {
-  const retireYears = parseInt(document.getElementById('er-retire-years').value) || 3;
-  const currentAge = parseInt(document.getElementById('er-current-age').value) || 45;
+  const elYears = document.getElementById('er-retire-years');
+  const elAge = document.getElementById('er-current-age');
+  
+  // 0年後が正しく 0 として取得できるように判定
+  const retireYears = (elYears && elYears.value !== "") ? parseInt(elYears.value) : 0;
+  const currentAge = (elAge && elAge.value !== "") ? parseInt(elAge.value) : 54;
   const cashBuffer = parseFloat(document.getElementById('er-cash-buffer').value) || 0;
   const monthlyWithdraw = parseInt(document.getElementById('er-monthly-withdraw').value) || 150000;
 
   const otherTotals = calculateOtherAssetsTotals();
   const totals = calculateCurrentTotals();
   
-  // 現在の投資信託（税引き後）と、他資産（現金+ドル+仮想通貨）の分離
+  // 当日時点の確定資産（投資信託税引き後 ＋ 他資産合計）
   const currentInvestTotal = totals.afterTaxMarket;
   const otherAssetsTotal = otherTotals.grandTotal;
 
@@ -3743,8 +3740,11 @@ function calculateEarlyRetireTable() {
 
   const rates = [0.03, 0.07, 0.09];
 
-  // 退職時（N年後）の投資信託評価額を算出（積立継続＋複利運用）
+  // 退職時点の投資信託評価額（0年後の場合は複利・積立計算をスキップし当日資産をそのまま使用）
   const retireInvestTotals = rates.map(rate => {
+    if (retireYears === 0) {
+      return Math.round(currentInvestTotal);
+    }
     const mRate = rate / 12;
     const months = retireYears * 12;
     const fCur = currentInvestTotal * Math.pow(1 + rate, retireYears);
@@ -3762,12 +3762,13 @@ function calculateEarlyRetireTable() {
     const cashStr = Math.round(otherTotals.cash).toLocaleString() + '円';
     const usdStr = Math.round(otherTotals.usd).toLocaleString() + '円';
     const cryptoStr = Math.round(otherTotals.crypto).toLocaleString() + '円';
+    const timingText = (retireYears === 0) ? `今すぐ（${retireAge}歳時点・当日資産）` : `${retireYears}年後（${retireAge}歳時点）`;
 
     banner.innerHTML = `
       <div style="flex: 1; min-width: 170px;">
         <span style="color: #718096; font-weight: bold;">退職タイミング:</span>
         <div style="font-size: 15px; font-weight: bold; color: #2d3748; margin-top: 3px;">
-          ${retireYears}年後（${retireAge}歳時点）
+          ${timingText}
         </div>
       </div>
       <div style="flex: 2; min-width: 320px;">
@@ -3916,7 +3917,7 @@ function calculateEarlyRetireTable() {
 }
 
 // ==========================================
-// ★修正版：逆引き判定マトリクス（現金先行取り崩し連動型）
+// ★修正版：逆引き判定マトリクス（0年後スタート対応）
 // ==========================================
 function renderEarlyRetireMatrix(currentInvest, otherAssetsTotal, monthlyInvest, currentAge, cashBuffer, monthlyWithdraw) {
   const matrixArea = document.getElementById('earlyRetireMatrixArea');
@@ -3936,17 +3937,22 @@ function renderEarlyRetireMatrix(currentInvest, otherAssetsTotal, monthlyInvest,
       <tbody>
   `;
 
-  for (let y = 1; y <= 10; y++) {
+  // 0年後（今すぐ退職）から10年後までをループ
+  for (let y = 0; y <= 10; y++) {
     const retAge = currentAge + y;
-    mHtml += `<tr><td style="border: 1px solid #e2e8f0; padding: 6px 14px; text-align: center; font-weight: bold; background: #fafbfc;">${y}年後 (${retAge}歳退職)</td>`;
+    const label = (y === 0) ? `今すぐ (${retAge}歳退職)` : `${y}年後 (${retAge}歳退職)`;
+    mHtml += `<tr><td style="border: 1px solid #e2e8f0; padding: 6px 14px; text-align: center; font-weight: bold; background: #fafbfc;">${label}</td>`;
 
     rates.forEach(r => {
-      const mRate = r / 12;
-      const months = y * 12;
-      const fCur = currentInvest * Math.pow(1 + r, y);
-      const accum = monthlyInvest > 0 ? monthlyInvest * ((Math.pow(1 + mRate, months) - 1) / mRate) : 0;
+      let opInvest = currentInvest;
+      if (y > 0) {
+        const mRate = r / 12;
+        const months = y * 12;
+        const fCur = currentInvest * Math.pow(1 + r, y);
+        const accum = monthlyInvest > 0 ? monthlyInvest * ((Math.pow(1 + mRate, months) - 1) / mRate) : 0;
+        opInvest = fCur + accum;
+      }
       
-      let opInvest = fCur + accum;
       let curOther = otherAssetsTotal;
       let depAge = null;
 
