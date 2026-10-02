@@ -3749,26 +3749,39 @@ function calculateEarlyRetireTable() {
     return Math.round(fCur + accum);
   });
 
-  // サマリーバナー描画
+  // サマリーバナー描画（他資産の内訳を改行して追加）
   const retireAge = currentAge + retireYears;
   const banner = document.getElementById('er-summary-banner');
   if (banner) {
+    // 各他資産の円換算額（0円の場合は 0円 と表示）
+    const cashStr = Math.round(otherTotals.cash).toLocaleString() + '円';
+    const usdStr = Math.round(otherTotals.usd).toLocaleString() + '円';
+    const cryptoStr = Math.round(otherTotals.crypto).toLocaleString() + '円';
+
     banner.innerHTML = `
-      <div style="flex:1; min-width:200px;">
-        <span style="color:#718096; font-weight:bold;">退職タイミング:</span>
-        <div style="font-size:15px; font-weight:bold; color:#2d3748;">${retireYears}年後（${retireAge}歳時点）</div>
-      </div>
-      <div style="flex:1.2; min-width:220px;">
-        <span style="color:#718096; font-weight:bold;">退職時の想定総資産:</span>
-        <div style="font-family:monospace; font-weight:bold; color:#2b6cb0;">
-          3%: 約${Math.round(retireGrandTotals[0]/10000)}万円 / 
-          7%: 約${Math.round(retireGrandTotals[1]/10000)}万円 / 
-          9%: 約${Math.round(retireGrandTotals[2]/10000)}万円
+      <div style="flex: 1; min-width: 180px;">
+        <span style="color: #718096; font-weight: bold;">退職タイミング:</span>
+        <div style="font-size: 15px; font-weight: bold; color: #2d3748; margin-top: 3px;">
+          ${retireYears}年後（${retireAge}歳時点）
         </div>
       </div>
-      <div style="flex:1; min-width:180px;">
-        <span style="color:#718096; font-weight:bold;">資金内訳配分:</span>
-        <div style="font-size:13px; font-weight:bold; color:#2f855a;">手元現金: ${(cashBuffer/10000)}万円 + 残り運用</div>
+      <div style="flex: 2; min-width: 320px;">
+        <span style="color: #718096; font-weight: bold;">退職時の想定総資産:</span>
+        <div style="font-family: monospace; font-weight: bold; color: #2b6cb0; font-size: 13px; margin-top: 3px; line-height: 1.5;">
+          3%: 約${Math.round(retireGrandTotals[0]/10000).toLocaleString()}万円 / 
+          7%: 約${Math.round(retireGrandTotals[1]/10000).toLocaleString()}万円 / 
+          9%: 約${Math.round(retireGrandTotals[2]/10000).toLocaleString()}万円
+          <br>
+          <span style="font-size: 11.5px; color: #4a5568; font-weight: normal;">
+            + 現金 ${cashStr}、米ドル ${usdStr}、仮想通貨 ${cryptoStr}
+          </span>
+        </div>
+      </div>
+      <div style="flex: 1; min-width: 180px;">
+        <span style="color: #718096; font-weight: bold;">資金内訳配分:</span>
+        <div style="font-size: 13px; font-weight: bold; color: #2f855a; margin-top: 3px;">
+          手元現金: ${(cashBuffer/10000).toLocaleString()}万円 + 残り運用
+        </div>
       </div>
     `;
   }
