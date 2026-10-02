@@ -3636,6 +3636,30 @@ function calculateDecumulationTable() {
 // ==========================================
 let earlyRetireInflationActive = false;
 
+// ★【ここを追加】インフレボタンの切り替え関数
+function toggleEarlyRetireInflation() {
+  const btn = document.getElementById('er-inflation-btn');
+  if (!btn) return;
+
+  earlyRetireInflationActive = !earlyRetireInflationActive;
+
+  if (earlyRetireInflationActive) {
+    btn.innerText = 'ON';
+    btn.className = 'action-btn btn-green';
+    writeLog("【早期退職】インフレ考慮（年率2%生活費増加）を有効にしました。");
+  } else {
+    btn.innerText = 'OFF';
+    btn.className = 'action-btn btn-gray';
+    writeLog("【早期退職】インフレ考慮を無効（額面維持）にしました。");
+  }
+
+  // テーブルおよび判定マトリクスを再計算
+  calculateEarlyRetireTable();
+}
+
+// 1. ダッシュボード開閉トグル
+async function toggleEarlyRetireDashboard() {
+
 // 1. ダッシュボード開閉トグル
 async function toggleEarlyRetireDashboard() {
   const dashboard = document.getElementById('earlyRetireDashboard');
