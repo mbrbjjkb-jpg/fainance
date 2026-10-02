@@ -387,20 +387,15 @@
     
   </div>
 </div>
-<!-- ★フェーズ3：全資産集計額一覧ボタンと表示エリア（横並び2ボタン化） -->
+<!-- ★フェーズ3：ボタン配置エリア（取り崩しボタン削除済） -->
 <div style="text-align: center; margin: 30px 0 20px 0; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
   <button id="toggleAllAssetsBtn" class="action-btn btn-blue" onclick="toggleAllAssetsDashboard()" style="font-size: 14px; padding: 12px 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s;">
     📊 全資産集計額一覧を表示
   </button>
-  <!-- ★新設：取り崩しシミュレーション起動ボタン -->
-  <button id="toggleDecumulationBtn" class="action-btn btn-blue" onclick="toggleDecumulationDashboard()" style="font-size: 14px; padding: 12px 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s;">
-    💰 取り崩しシミュレーション
-  </button>
 
   <button id="toggleEarlyRetireBtn" class="action-btn btn-purple" onclick="toggleEarlyRetireDashboard()" style="font-size: 14px; padding: 12px 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s; background-color: #805ad5;">
-    🏖 早期退職時期シミュレーション
+    🏖 早期退職・老後資産シミュレーション
   </button>
-
 </div>
 
 <div id="allAssetsDashboard" class="card" style="display: none; flex-wrap: wrap; gap: 20px; align-items: stretch; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px;">
@@ -459,15 +454,15 @@
   </div>
 </div>
 
-<!-- ★新設：早期退職時期シミュレーション用ダッシュボードエリア -->
+<!-- ★老後・早期退職シミュレーション（年金スライダー追加版） -->
 <div id="earlyRetireDashboard" class="card" style="display: none; flex-direction: column; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; box-sizing: border-box;">
   <div style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid #805ad5; padding-bottom: 8px; margin-bottom: 10px;">
-    <h3 style="margin: 0; font-size: 16px; color: #2c3e50;">🏖 早期退職時期シミュレーター（全資産連動型）</h3>
-    <span style="font-size: 12px; font-weight: bold; color: #805ad5;">全資産総合計 ＋ 現金キープ考慮型</span>
+    <h3 style="margin: 0; font-size: 16px; color: #2c3e50;">🏖 老後・早期退職時期シミュレーター（全資産 ＆ 年金連動型）</h3>
+    <span style="font-size: 12px; font-weight: bold; color: #805ad5;">全資産総合計 ＋ 現金キープ ＋ 65歳以降年金控除</span>
   </div>
-  <p class="label-desc" style="margin-bottom: 15px;">※現在の全資産総合計からスタートし、早期退職年まで現行の積立を継続。退職時に指定額の現金を「手元キープ」したうえで、残りの資産を運用しながら85歳まで取り崩した場合の寿命をシミュレートします。</p>
+  <p class="label-desc" style="margin-bottom: 15px;">※現在の全資産総合計からスタートし、退職年まで現行積立を継続。退職時の指定現金を温存した上で運用取り崩しを行い、65歳以降は公的年金を生活費から相殺して試算します。</p>
 
-  <!-- 操作コントロールパネル -->
+  <!-- 操作コントロールパネル（年金スライダー新設） -->
   <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center; background: #fdfaff; padding: 15px; border-radius: 6px; border: 1px solid #e9d8fd; margin-bottom: 20px;">
     <div style="display: flex; flex-direction: column; gap: 4px;">
       <span style="font-size: 11px; font-weight: bold; color: #4a5568;">① 早期退職までの年数</span>
@@ -478,16 +473,28 @@
       <select id="er-current-age" style="padding: 6px 12px; font-size: 12px; border-radius: 4px; border: 1px solid #cbd5e0; font-weight: bold; background: white;" onchange="calculateEarlyRetireTable()"></select>
     </div>
     <div style="display: flex; flex-direction: column; gap: 4px;">
-      <span style="font-size: 11px; font-weight: bold; color: #4a5568;">③ 手元に残す現金（生活防衛資金）</span>
+      <span style="font-size: 11px; font-weight: bold; color: #4a5568;">③ 手元に残す現金</span>
       <select id="er-cash-buffer" style="padding: 6px 12px; font-size: 12px; border-radius: 4px; border: 1px solid #cbd5e0; font-weight: bold; background: white;" onchange="calculateEarlyRetireTable()"></select>
     </div>
     <div style="display: flex; flex-direction: column; gap: 4px;">
-      <span style="font-size: 11px; font-weight: bold; color: #4a5568;">④ 毎月の希望取り崩し額</span>
+      <span style="font-size: 11px; font-weight: bold; color: #4a5568;">④ 毎月の希望生活費</span>
       <select id="er-monthly-withdraw" style="padding: 6px 12px; font-size: 12px; border-radius: 4px; border: 1px solid #cbd5e0; font-weight: bold; background: white;" onchange="calculateEarlyRetireTable()"></select>
     </div>
+
+    <!-- ★新設：65歳以降の年金受取額スライダー -->
+    <div style="display: flex; flex-direction: column; gap: 4px; min-width: 170px;">
+      <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; color: #4a5568;">
+        <span>⑤ 65歳以降の想定年金</span>
+        <span id="er-pension-label" style="color: #805ad5; font-size: 12px;">月 13 万円</span>
+      </div>
+      <input type="range" id="er-pension-slider" min="0" max="300000" step="10000" value="130000" 
+             style="cursor: pointer; accent-color: #805ad5;" 
+             oninput="updatePensionSlider(this.value)">
+    </div>
+
     <div style="display: flex; flex-direction: column; gap: 4px;">
-      <span style="font-size: 11px; font-weight: bold; color: #4a5568;">⑤ インフレ考慮（年率2%増）</span>
-      <button id="er-inflation-btn" class="action-btn btn-gray" onclick="toggleEarlyRetireInflation()" style="padding: 6px 16px; font-size: 12px; border-radius: 4px; margin: 0; min-width: 80px; font-weight: bold;">OFF</button>
+      <span style="font-size: 11px; font-weight: bold; color: #4a5568;">⑥ インフレ(年2%増)</span>
+      <button id="er-inflation-btn" class="action-btn btn-gray" onclick="toggleEarlyRetireInflation()" style="padding: 6px 16px; font-size: 12px; border-radius: 4px; margin: 0; min-width: 70px; font-weight: bold;">OFF</button>
     </div>
   </div>
 
@@ -499,14 +506,13 @@
     <p style="color: #718096; font-size: 13px; text-align: center; padding: 10px 0;">計算データを構築中...</p>
   </div>
 
-  <!-- 逆引きマトリクス（何年後に退職すると何歳まで持つか） -->
+  <!-- 逆引きマトリクス -->
   <div style="border-top: 1px dashed #cbd5e0; padding-top: 15px;">
     <h4 style="margin: 0 0 8px 0; font-size: 14px; color: #2c3e50;">📊 退職時期別・資産逃げ切り判定マトリクス</h4>
-    <p class="label-desc" style="margin-bottom: 12px;">※設定中の「手元キープ現金」「取り崩し額」「インフレ」に基づき、1〜10年後退職時の資産寿命を比較します。</p>
+    <p class="label-desc" style="margin-bottom: 12px;">※現在の全設定（現金キープ、生活費、年金受給額、インフレ）に基づき、各時期での85歳資産逃げ切り可否を判定します。</p>
     <div id="earlyRetireMatrixArea" style="overflow-x: auto;"></div>
   </div>
 </div>
-
 
 <div class="card">
   <h3>5. システムデバッグログ</h3>
@@ -714,7 +720,6 @@ let liveUsdRate = null; // リアルタイムのドル円レート保持用
 // ==========================================
 let liveBnbRate = null; 
 let liveBlzRate = null;
-let decumulationInflationActive = false; // 取り崩しインフレ考慮フラグ（デフォルトOFF）
 
 
 // ==========================================
@@ -3401,14 +3406,18 @@ function removeCashInputRow(btn) {
 }
 
 // ==========================================
-// ★改善版：老後・早期退職シミュレーション制御ロジック
+// ★老後・早期退職シミュレーション制御ロジック（年金スライダー連動版）
 // ==========================================
 let earlyRetireInflationActive = false;
-const RETIRE_RATES = [
-  { rate: 0.02, label: '【堅実：2%運用】総残高' },
-  { rate: 0.04, label: '【標準：4%運用】総残高' },
-  { rate: 0.06, label: '【積極：6%運用】総残高' }
-];
+
+// 年金スライダードラッグ時の表示同期と再計算
+function updatePensionSlider(val) {
+  const label = document.getElementById('er-pension-label');
+  if (label) {
+    label.innerText = `月 ${(parseInt(val) / 10000)} 万円`;
+  }
+  calculateEarlyRetireTable();
+}
 
 function toggleEarlyRetireInflation() {
   const btn = document.getElementById('er-inflation-btn');
@@ -3425,7 +3434,7 @@ async function toggleEarlyRetireDashboard() {
   if (!dashboard || !btn) return;
 
   if (dashboard.style.display === 'none') {
-    btn.innerText = '⏳ 為替・資産を集計中...';
+    btn.innerText = '⏳ 集計中...';
     btn.style.opacity = '0.7';
     await fetchRealTimeUsdRate();
     btn.style.opacity = '1.0';
@@ -3436,226 +3445,259 @@ async function toggleEarlyRetireDashboard() {
 
     initEarlyRetireControls();
     calculateEarlyRetireTable();
-    setTimeout(() => { dashboard.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50);
+
+    setTimeout(() => {
+      dashboard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
   } else {
     dashboard.style.display = 'none';
-    btn.innerText = '🏖 老後・早期退職 資産取り崩しシミュレーション';
+    btn.innerText = '🏖 早期退職・老後資産シミュレーション';
     btn.className = 'action-btn btn-purple';
   }
 }
 
 function initEarlyRetireControls() {
-  const yearsSel = document.getElementById('er-retire-years');
-  const ageSel = document.getElementById('er-current-age');
-  const bufferSel = document.getElementById('er-cash-buffer');
-  const withdrawSel = document.getElementById('er-monthly-withdraw');
-  const pensionSel = document.getElementById('er-monthly-pension');
+  const yearsSelect = document.getElementById('er-retire-years');
+  const ageSelect = document.getElementById('er-current-age');
+  const bufferSelect = document.getElementById('er-cash-buffer');
+  const withdrawSelect = document.getElementById('er-monthly-withdraw');
 
-  if (!yearsSel || yearsSel.options.length > 0) return;
+  if (!yearsSelect || yearsSelect.options.length > 0) return;
 
-  yearsSel.innerHTML = '';
+  let yHtml = '';
   for (let y = 0; y <= 10; y++) {
-    yearsSel.innerHTML += `<option value="${y}" ${y === 0 ? 'selected' : ''}>${y === 0 ? '0年後（今すぐ退職）' : y + '年後 に退職'}</option>`;
+    yHtml += `<option value="${y}" ${y === 0 ? 'selected' : ''}>${y === 0 ? '0年後（今すぐ退職）' : `${y}年後 に退職`}</option>`;
   }
+  yearsSelect.innerHTML = yHtml;
 
-  ageSel.innerHTML = '';
+  let aHtml = '';
   for (let a = 45; a <= 70; a++) {
-    ageSel.innerHTML += `<option value="${a}" ${a === 54 ? 'selected' : ''}>${a}歳</option>`;
+    aHtml += `<option value="${a}" ${a === 54 ? 'selected' : ''}>${a}歳</option>`;
   }
+  ageSelect.innerHTML = aHtml;
 
-  bufferSel.innerHTML = '';
+  let bHtml = '';
   [0, 1000000, 2000000, 3000000, 5000000, 7000000, 10000000, 15000000, 20000000].forEach(b => {
-    bufferSel.innerHTML += `<option value="${b}" ${b === 3000000 ? 'selected' : ''}>${b === 0 ? '防衛資金 0円' : '防衛資金 ' + (b / 10000) + '万円'}</option>`;
+    bHtml += `<option value="${b}" ${b === 3000000 ? 'selected' : ''}>${b === 0 ? '手元現金 0円（全額運用）' : `手元現金 ${(b / 10000)}万円 キープ`}</option>`;
   });
+  bufferSelect.innerHTML = bHtml;
 
-  withdrawSel.innerHTML = '';
-  for (let w = 50000; w <= 350000; w += 10000) {
-    withdrawSel.innerHTML += `<option value="${w}" ${w === 150000 ? 'selected' : ''}>毎月 ${(w / 10000)} 万円</option>`;
+  let wHtml = '';
+  for (let w = 50000; w <= 300000; w += 10000) {
+    wHtml += `<option value="${w}" ${w === 150000 ? 'selected' : ''}>毎月 ${(w / 10000)} 万円</option>`;
   }
-
-  pensionSel.innerHTML = '';
-  for (let p = 0; p <= 250000; p += 10000) {
-    pensionSel.innerHTML += `<option value="${p}" ${p === 100000 ? 'selected' : ''}>${p === 0 ? '年金なし (0円)' : '月 ' + (p / 10000) + ' 万円'}</option>`;
-  }
+  withdrawSelect.innerHTML = wHtml;
 }
 
-// 共通シミュレーションエンジン（重複を完全排除）
-function runDecumulationCore(r, startInvest, startOther, retAge, cashBuffer, monthlyWithdraw, monthlyPension, effTaxRate, maxYears) {
-  let opInvest = startInvest;
-  let curOther = startOther;
-  let depAge = null;
-  const totalMonths = maxYears * 12;
-  const snapshots = [];
-  let cumWithdrawn = 0;
-
-  for (let m = 1; m <= totalMonths; m++) {
-    const elapsedYears = Math.floor((m - 1) / 12);
-    const ageNow = retAge + (m / 12);
-    const baseLifeCost = earlyRetireInflationActive ? monthlyWithdraw * Math.pow(1.02, elapsedYears) : monthlyWithdraw;
-    const pensionNow = (ageNow >= 65) ? monthlyPension : 0;
-    const neededNet = Math.max(0, baseLifeCost - pensionNow);
-
-    cumWithdrawn += neededNet;
-    let remainNet = neededNet;
-
-    // ① 余剰現金から取り崩し
-    const surplus = Math.max(0, curOther - cashBuffer);
-    if (surplus > 0) {
-      const fromOther = Math.min(surplus, remainNet);
-      curOther -= fromOther;
-      remainNet -= fromOther;
-    }
-
-    // ② 投資信託から取り崩し（運用益＋税金逆算）
-    if (opInvest > 0) {
-      opInvest = opInvest * (1 + r / 12);
-      if (remainNet > 0) {
-        const grossNeeded = remainNet / (1 - effTaxRate);
-        opInvest -= grossNeeded;
-        if (opInvest < 0) {
-          remainNet = (-opInvest) * (1 - effTaxRate);
-          opInvest = 0;
-        } else {
-          remainNet = 0;
-        }
-      }
-    }
-
-    // ③ 防衛資金から補填
-    if (remainNet > 0 && curOther > 0) {
-      curOther -= remainNet;
-      if (curOther < 0) curOther = 0;
-    }
-
-    if (opInvest <= 0 && curOther <= 0 && depAge === null) {
-      depAge = ageNow;
-    }
-
-    if ((m % 24 === 0 && m < totalMonths) || m === totalMonths) {
-      snapshots.push({
-        year: Math.round(m / 12),
-        age: Math.round(retAge + (m / 12)),
-        totalBal: Math.max(0, opInvest + curOther),
-        cumWithdrawn: cumWithdrawn,
-        isDepleted: (opInvest <= 0 && curOther <= 0)
-      });
-    }
-  }
-  return { depAge, snapshots };
-}
-
+// 計算メイン処理（年金相殺を適用）
 function calculateEarlyRetireTable() {
-  const retireYears = parseInt(document.getElementById('er-retire-years')?.value) || 0;
-  const currentAge = parseInt(document.getElementById('er-current-age')?.value) || 54;
-  const cashBuffer = parseFloat(document.getElementById('er-cash-buffer')?.value) || 0;
-  const monthlyWithdraw = parseInt(document.getElementById('er-monthly-withdraw')?.value) || 150000;
-  const monthlyPension = parseInt(document.getElementById('er-monthly-pension')?.value) || 0;
+  const elYears = document.getElementById('er-retire-years');
+  const elAge = document.getElementById('er-current-age');
+  const retireYears = (elYears && elYears.value !== "") ? parseInt(elYears.value) : 0;
+  const currentAge = (elAge && elAge.value !== "") ? parseInt(elAge.value) : 54;
+  const cashBuffer = parseFloat(document.getElementById('er-cash-buffer').value) || 0;
+  const monthlyWithdraw = parseInt(document.getElementById('er-monthly-withdraw').value) || 150000;
+  // ★スライダーから年金受取月額を取得
+  const pensionMonthly = parseInt(document.getElementById('er-pension-slider').value) || 0;
 
   const otherTotals = calculateOtherAssetsTotals();
   const totals = calculateCurrentTotals();
   const currentInvestTotal = totals.totalMarket;
   const otherAssetsTotal = otherTotals.grandTotal;
 
-  const effTaxRate = totals.totalMarket > 0 ? (Math.max(0, totals.taxableProfit) / totals.totalMarket) * 0.20315 : 0;
-  const scale = getDemoScale();
-  let monthlyInvestSum = 0;
-  stocks.forEach(s => { monthlyInvestSum += (parseFloat(s.monthlyInvest) || 0) * scale; });
+  // 実効税率の算出
+  const taxableProfitRatio = totals.totalMarket > 0 ? Math.max(0, totals.taxableProfit) / totals.totalMarket : 0;
+  const effectiveTaxRate = taxableProfitRatio * 0.20315;
 
-  const retireAge = currentAge + retireYears;
-  const simResults = RETIRE_RATES.map(item => {
-    let startInv = currentInvestTotal;
-    if (retireYears > 0) {
-      const mRate = item.rate / 12;
-      const mCount = retireYears * 12;
-      startInv = (currentInvestTotal * Math.pow(1 + item.rate, retireYears)) +
-                 (monthlyInvestSum > 0 ? monthlyInvestSum * ((Math.pow(1 + mRate, mCount) - 1) / mRate) : 0);
-    }
-    const maxSimYears = Math.max(5, 85 - retireAge);
-    return {
-      rateName: item.label,
-      startInv: Math.round(startInv),
-      startGrand: Math.round(startInv + otherAssetsTotal),
-      ...runDecumulationCore(item.rate, startInv, otherAssetsTotal, retireAge, cashBuffer, monthlyWithdraw, monthlyPension, effTaxRate, maxSimYears)
-    };
+  const scale = getDemoScale();
+  let totalMonthlyInvest = 0;
+  stocks.forEach(s => {
+    totalMonthlyInvest += (parseFloat(s.monthlyInvest) || 0) * scale;
   });
 
+  const rates = [0.03, 0.07, 0.09];
+  const retireInvestTotals = rates.map(rate => {
+    if (retireYears === 0) return Math.round(currentInvestTotal);
+    const mRate = rate / 12;
+    const months = retireYears * 12;
+    const fCur = currentInvestTotal * Math.pow(1 + rate, retireYears);
+    const accum = totalMonthlyInvest > 0 ? totalMonthlyInvest * ((Math.pow(1 + mRate, months) - 1) / mRate) : 0;
+    return Math.round(fCur + accum);
+  });
+  const retireGrandTotals = retireInvestTotals.map(inv => inv + otherAssetsTotal);
+
   // サマリーバナー
+  const retireAge = currentAge + retireYears;
   const banner = document.getElementById('er-summary-banner');
   if (banner) {
+    const timingText = (retireYears === 0) ? `今すぐ（${retireAge}歳時点）` : `${retireYears}年後（${retireAge}歳時点）`;
     banner.innerHTML = `
-      <div style="flex: 1; min-width: 170px;">
+      <div style="flex: 1; min-width: 160px;">
         <span style="color: #718096; font-weight: bold;">退職タイミング:</span>
-        <div style="font-size: 15px; font-weight: bold; color: #2d3748; margin-top: 3px;">
-          ${retireYears === 0 ? '今すぐ (' + retireAge + '歳)' : retireYears + '年後 (' + retireAge + '歳)'}
+        <div style="font-size: 14px; font-weight: bold; color: #2d3748; margin-top: 3px;">${timingText}</div>
+      </div>
+      <div style="flex: 2; min-width: 280px;">
+        <span style="color: #718096; font-weight: bold;">退職時想定総資産（額面）:</span>
+        <div style="font-family: monospace; font-weight: bold; color: #2b6cb0; font-size: 13px; margin-top: 3px;">
+          3%: 約${Math.round(retireGrandTotals[0]/10000).toLocaleString()}万円 / 
+          7%: 約${Math.round(retireGrandTotals[1]/10000).toLocaleString()}万円 / 
+          9%: 約${Math.round(retireGrandTotals[2]/10000).toLocaleString()}万円
         </div>
       </div>
-      <div style="flex: 2; min-width: 320px;">
-        <span style="color: #718096; font-weight: bold;">退職時の想定総資産（額面）:</span>
-        <div style="font-family: monospace; font-weight: bold; color: #2b6cb0; font-size: 12.5px; margin-top: 3px;">
-          2%: 約${Math.round(simResults[0].startGrand / 10000).toLocaleString()}万円 / 
-          4%: 約${Math.round(simResults[1].startGrand / 10000).toLocaleString()}万円 / 
-          6%: 約${Math.round(simResults[2].startGrand / 10000).toLocaleString()}万円
-        </div>
-      </div>
-      <div style="flex: 1.5; min-width: 230px;">
-        <span style="color: #718096; font-weight: bold;">公的年金＆税金考慮ルール:</span>
-        <div style="font-size: 11px; font-weight: bold; color: #2f855a; margin-top: 3px; line-height: 1.4;">
-          手取り生活費 ${(monthlyWithdraw / 10000)}万円 (65歳以降は年金月${(monthlyPension / 10000)}万円控除)<br>
-          <span style="color: #718096; font-weight: normal;">投信売却時は手取り確保のため実効税率(${(effTaxRate * 100).toFixed(1)}%)を加味</span>
+      <div style="flex: 1.5; min-width: 220px;">
+        <span style="color: #718096; font-weight: bold;">65歳以降の生活費実質負担:</span>
+        <div style="font-size: 12px; font-weight: bold; color: #2f855a; margin-top: 3px;">
+          月 ${Math.max(0, monthlyWithdraw - pensionMonthly) / 10000} 万円 
+          <span style="font-size: 11px; color: #718096; font-weight: normal;">（生活費${monthlyWithdraw/10000}万 - 年金${pensionMonthly/10000}万）</span>
         </div>
       </div>
     `;
   }
 
-  // 推移テーブル
+  // 取り崩し推移ループ（退職〜85歳）
+  const totalMonths = Math.max(12, (85 - retireAge) * 12);
+  let operationalInvest = [...retireInvestTotals];
+  let currentOtherBalances = [otherAssetsTotal, otherAssetsTotal, otherAssetsTotal];
+  let depletionAges = [null, null, null];
+  let cumulativeWithdrawn = 0;
+
+  const snapshots = [{
+    year: 0,
+    age: retireAge,
+    cumulativeWithdrawn: 0,
+    balances: retireGrandTotals.map(t => t),
+    depletionAges: [...depletionAges]
+  }];
+
+  for (let m = 1; m <= totalMonths; m++) {
+    const elapsedYears = Math.floor((m - 1) / 12);
+    const currentAgeAtMonth = retireAge + (m / 12);
+    
+    // 生活費（インフレ考慮）
+    const livingCost = earlyRetireInflationActive
+      ? monthlyWithdraw * Math.pow(1.02, elapsedYears)
+      : monthlyWithdraw;
+
+    // ★重要：65歳以降は年金受取分を生活費から差し引く
+    const isPensionActive = currentAgeAtMonth >= 65;
+    const currentWithdrawNet = isPensionActive ? Math.max(0, livingCost - pensionMonthly) : livingCost;
+
+    cumulativeWithdrawn += currentWithdrawNet;
+
+    for (let i = 0; i < 3; i++) {
+      let neededNet = currentWithdrawNet;
+
+      // ① 余剰現金から取り崩し
+      const surplusOther = Math.max(0, currentOtherBalances[i] - cashBuffer);
+      if (surplusOther > 0) {
+        const fromOther = Math.min(surplusOther, neededNet);
+        currentOtherBalances[i] -= fromOther;
+        neededNet -= fromOther;
+      }
+
+      // ② 投資信託から取り崩し（税金加味）
+      if (operationalInvest[i] > 0) {
+        operationalInvest[i] = operationalInvest[i] * (1 + rates[i] / 12);
+        if (neededNet > 0) {
+          const neededGross = neededNet / (1 - effectiveTaxRate);
+          operationalInvest[i] -= neededGross;
+          if (operationalInvest[i] < 0) {
+            const deficitGross = -operationalInvest[i];
+            neededNet = deficitGross * (1 - effectiveTaxRate);
+            operationalInvest[i] = 0;
+          } else {
+            neededNet = 0;
+          }
+        }
+      }
+
+      // ③ 温存していた手元現金から補填
+      if (neededNet > 0 && currentOtherBalances[i] > 0) {
+        currentOtherBalances[i] -= neededNet;
+        if (currentOtherBalances[i] < 0) currentOtherBalances[i] = 0;
+      }
+
+      if (operationalInvest[i] <= 0 && currentOtherBalances[i] <= 0 && depletionAges[i] === null) {
+        depletionAges[i] = currentAgeAtMonth;
+      }
+    }
+
+    if ((m % 24 === 0 && m < totalMonths) || m === totalMonths) {
+      snapshots.push({
+        year: Math.round(m / 12),
+        age: Math.round(currentAgeAtMonth),
+        cumulativeWithdrawn: cumulativeWithdrawn,
+        balances: operationalInvest.map((inv, idx) => Math.max(0, inv + currentOtherBalances[idx])),
+        depletionAges: [...depletionAges]
+      });
+    }
+  }
+
+  // テーブルHTML生成
   let tHtml = `
-    <table style="width: auto; margin: 0 auto; border-collapse: collapse; background: white; border: 1px solid #e2e8f0; font-size: 12px;">
+    <table style="width: auto; margin: 0 auto; border-collapse: collapse; background: white; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; font-size: 12.5px;">
       <thead>
         <tr style="background: #f7fafc; color: #4a5568;">
-          <th style="padding: 8px 14px; border: 1px solid #e2e8f0; white-space: nowrap;">経過 (年齢)</th>
-          <th style="padding: 8px 14px; border: 1px solid #e2e8f0; text-align: right; white-space: nowrap;">累計自己負担生活費</th>
-          ${RETIRE_RATES.map(r => `<th style="padding: 8px 14px; border: 1px solid #e2e8f0; text-align: right; white-space: nowrap;">${r.label}</th>`).join('')}
+          <th style="border: 1px solid #e2e8f0; padding: 8px 16px; text-align: center; font-weight: bold; white-space: nowrap;">経過 (年齢)</th>
+          <th style="border: 1px solid #e2e8f0; padding: 8px 16px; text-align: right; font-weight: bold; white-space: nowrap;">累計手取り負担額</th>
+          <th style="border: 1px solid #e2e8f0; padding: 8px 16px; text-align: right; font-weight: bold; white-space: nowrap;">【堅実：3%運用】総残高</th>
+          <th style="border: 1px solid #e2e8f0; padding: 8px 16px; text-align: right; font-weight: bold; white-space: nowrap;">【期待：7%運用】総残高</th>
+          <th style="border: 1px solid #e2e8f0; padding: 8px 16px; text-align: right; font-weight: bold; white-space: nowrap;">【積極：9%運用】総残高</th>
         </tr>
       </thead>
       <tbody>
   `;
 
-  const rowCount = simResults[0].snapshots.length;
-  for (let s = 0; s < rowCount; s++) {
-    const snap0 = simResults[0].snapshots[s];
-    tHtml += `<tr style="${s % 2 === 0 ? 'background: #fafbfc;' : ''}">`;
-    tHtml += `<td style="padding: 6px 14px; border: 1px solid #e2e8f0; text-align: center; font-weight: bold;">${s === rowCount - 1 ? '85歳時点' : snap0.year + '年目 (' + snap0.age + '歳)'}</td>`;
-    tHtml += `<td style="padding: 6px 14px; border: 1px solid #e2e8f0; text-align: right; font-family: monospace;">${Math.round(snap0.cumWithdrawn).toLocaleString()} 円</td>`;
+  snapshots.forEach((snap, idx) => {
+    const isFirst = idx === 0;
+    const isFinal = snap.age >= 85;
+    const rowBg = isFirst ? "background: #edf2f7; font-weight: bold;" : (idx % 2 === 0 ? "background: #fafbfc;" : "background: #ffffff;");
+    const label = isFirst ? `退職時 (${snap.age}歳)` : (isFinal ? `85歳時点` : `${snap.year}年目 (${snap.age}歳)`);
 
-    simResults.forEach(res => {
-      const snap = res.snapshots[s];
-      let content = "";
-      if (snap.totalBal <= 0 && res.depAge !== null) {
-        content = `<span style="color: #e53e3e; font-weight: bold;">🚨 ${Math.floor(res.depAge)}歳で枯渇</span>`;
+    tHtml += `<tr style="${rowBg}">`;
+    tHtml += `<td style="border: 1px solid #e2e8f0; padding: 6px 16px; text-align: center; font-weight: bold; color: #2d3748; white-space: nowrap;">${label}</td>`;
+    tHtml += `<td style="border: 1px solid #e2e8f0; padding: 6px 16px; text-align: right; font-family: monospace; font-weight: bold; color: #4a5568; white-space: nowrap;">${Math.round(snap.cumulativeWithdrawn).toLocaleString()} 円</td>`;
+
+    for (let i = 0; i < 3; i++) {
+      const bal = snap.balances[i];
+      const depAge = snap.depletionAges[i];
+      let cellText = "";
+      let cellStyle = "border: 1px solid #e2e8f0; padding: 6px 16px; text-align: right; font-family: monospace; white-space: nowrap;";
+
+      if (bal <= 0 && depAge !== null) {
+        cellText = `<span style="color: #e53e3e; font-weight: bold;">🚨 ${Math.floor(depAge)}歳で枯渇</span>`;
+        cellStyle += " background-color: #fff5f5;";
       } else {
-        const isUp = snap.totalBal >= res.startGrand;
-        content = `<span style="color: ${isUp ? '#2f855a' : '#1a202c'}; font-weight: bold; font-family: monospace;">${Math.round(snap.totalBal).toLocaleString()} 円</span>`;
+        const isGrowing = bal >= retireGrandTotals[i];
+        const color = isGrowing ? '#2f855a' : '#1a202c';
+        cellText = `<span style="color: ${color}; font-weight: bold;">${Math.round(bal).toLocaleString()} 円</span>`;
+        if (isGrowing) cellStyle += " background-color: #f0fff4;";
       }
-      tHtml += `<td style="padding: 6px 14px; border: 1px solid #e2e8f0; text-align: right;">${content}</td>`;
-    });
+      tHtml += `<td style="${cellStyle}">${cellText}</td>`;
+    }
     tHtml += `</tr>`;
-  }
+  });
   tHtml += `</tbody></table>`;
   document.getElementById('earlyRetireTableArea').innerHTML = tHtml;
 
-  renderEarlyRetireMatrix(currentInvestTotal, otherAssetsTotal, monthlyInvestSum, currentAge, cashBuffer, monthlyWithdraw, monthlyPension, effTaxRate);
+  // 判定マトリクスを年金考慮型で再描画
+  renderEarlyRetireMatrix(currentInvestTotal, otherAssetsTotal, totalMonthlyInvest, currentAge, cashBuffer, monthlyWithdraw, pensionMonthly, effectiveTaxRate);
 }
 
-function renderEarlyRetireMatrix(currentInvest, otherAssetsTotal, monthlyInvest, currentAge, cashBuffer, monthlyWithdraw, monthlyPension, effTaxRate) {
+// 判定マトリクス（年金控除対応）
+function renderEarlyRetireMatrix(currentInvest, otherAssetsTotal, monthlyInvest, currentAge, cashBuffer, monthlyWithdraw, pensionMonthly, effectiveTaxRate) {
   const matrixArea = document.getElementById('earlyRetireMatrixArea');
   if (!matrixArea) return;
 
+  const rates = [0.03, 0.07, 0.09];
   let mHtml = `
-    <table style="width: auto; margin: 0 auto; border-collapse: collapse; background: white; border: 1px solid #e2e8f0; font-size: 12px;">
+    <table style="width: auto; margin: 0 auto; border-collapse: collapse; background: white; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px;">
       <thead>
         <tr style="background: #edf2f7; color: #4a5568;">
-          <th style="padding: 8px 14px; border: 1px solid #e2e8f0;">早期退職時期</th>
-          ${RETIRE_RATES.map(r => `<th style="padding: 8px 14px; border: 1px solid #e2e8f0;">${r.label.replace('【','').replace('】総残高','')}の寿命</th>`).join('')}
+          <th style="border: 1px solid #e2e8f0; padding: 8px 14px; text-align: center;">退職時期</th>
+          <th style="border: 1px solid #e2e8f0; padding: 8px 14px; text-align: center;">堅実(3%運用)</th>
+          <th style="border: 1px solid #e2e8f0; padding: 8px 14px; text-align: center;">期待(7%運用)</th>
+          <th style="border: 1px solid #e2e8f0; padding: 8px 14px; text-align: center;">積極(9%運用)</th>
         </tr>
       </thead>
       <tbody>
@@ -3663,28 +3705,77 @@ function renderEarlyRetireMatrix(currentInvest, otherAssetsTotal, monthlyInvest,
 
   for (let y = 0; y <= 10; y++) {
     const retAge = currentAge + y;
-    mHtml += `<tr><td style="padding: 6px 14px; border: 1px solid #e2e8f0; text-align: center; font-weight: bold; background: #fafbfc;">${y === 0 ? '今すぐ (' + retAge + '歳)' : y + '年後 (' + retAge + '歳)'}</td>`;
+    const label = (y === 0) ? `今すぐ (${retAge}歳)` : `${y}年後 (${retAge}歳)`;
+    mHtml += `<tr><td style="border: 1px solid #e2e8f0; padding: 6px 14px; text-align: center; font-weight: bold; background: #fafbfc;">${label}</td>`;
 
-    RETIRE_RATES.forEach(r => {
-      let startInv = currentInvest;
+    rates.forEach(r => {
+      let opInvest = currentInvest;
       if (y > 0) {
-        const mRate = r.rate / 12;
-        const mCount = y * 12;
-        startInv = (currentInvest * Math.pow(1 + r.rate, y)) +
-                   (monthlyInvest > 0 ? monthlyInvest * ((Math.pow(1 + mRate, mCount) - 1) / mRate) : 0);
+        const mRate = r / 12;
+        const months = y * 12;
+        const fCur = currentInvest * Math.pow(1 + r, y);
+        const accum = monthlyInvest > 0 ? monthlyInvest * ((Math.pow(1 + mRate, months) - 1) / mRate) : 0;
+        opInvest = fCur + accum;
       }
-      const sim = runDecumulationCore(r.rate, startInv, otherAssetsTotal, retAge, cashBuffer, monthlyWithdraw, monthlyPension, effTaxRate, 95 - retAge);
-      if (sim.depAge === null || sim.depAge >= 85) {
-        mHtml += `<td style="padding: 6px 14px; border: 1px solid #e2e8f0; text-align: center; color: #2f855a; font-weight: bold; background: #f0fff4;">✅ 85歳超クリア</td>`;
+      
+      let curOther = otherAssetsTotal;
+      let depAge = null;
+
+      for (let m = 1; m <= (95 - retAge) * 12; m++) {
+        const elY = Math.floor((m - 1) / 12);
+        const ageAtMonth = retAge + (m / 12);
+        const livingCost = earlyRetireInflationActive ? monthlyWithdraw * Math.pow(1.02, elY) : monthlyWithdraw;
+        // ★65歳以降の年金相殺
+        const wNet = (ageAtMonth >= 65) ? Math.max(0, livingCost - pensionMonthly) : livingCost;
+        let neededNet = wNet;
+
+        // 現金
+        const surplus = Math.max(0, curOther - cashBuffer);
+        if (surplus > 0) {
+          const fromOther = Math.min(surplus, neededNet);
+          curOther -= fromOther;
+          neededNet -= fromOther;
+        }
+
+        // 投信（税引後手取り補填）
+        if (opInvest > 0) {
+          opInvest = opInvest * (1 + r / 12);
+          if (neededNet > 0) {
+            const neededGross = neededNet / (1 - effectiveTaxRate);
+            opInvest -= neededGross;
+            if (opInvest < 0) {
+              const deficitGross = -opInvest;
+              neededNet = deficitGross * (1 - effectiveTaxRate);
+              opInvest = 0;
+            } else {
+              neededNet = 0;
+            }
+          }
+        }
+
+        // 予備キープ現金
+        if (neededNet > 0 && curOther > 0) {
+          curOther -= neededNet;
+          if (curOther < 0) curOther = 0;
+        }
+
+        if (opInvest <= 0 && curOther <= 0) {
+          depAge = ageAtMonth;
+          break;
+        }
+      }
+
+      if (depAge === null || depAge >= 85) {
+        mHtml += `<td style="border: 1px solid #e2e8f0; padding: 6px 14px; text-align: center; color: #2f855a; font-weight: bold; background: #f0fff4;">✅ 85歳超クリア</td>`;
       } else {
-        mHtml += `<td style="padding: 6px 14px; border: 1px solid #e2e8f0; text-align: center; color: #e53e3e; font-weight: bold; background: #fff5f5;">🚨 ${Math.floor(sim.depAge)}歳で枯渇</td>`;
+        mHtml += `<td style="border: 1px solid #e2e8f0; padding: 6px 14px; text-align: center; color: #e53e3e; font-weight: bold; background: #fff5f5;">🚨 ${Math.floor(depAge)}歳で枯渇</td>`;
       }
     });
+
     mHtml += `</tr>`;
   }
+
   mHtml += `</tbody></table>`;
   matrixArea.innerHTML = mHtml;
 }
-</script>
-</body>
-</html>
+</script></body></html>
