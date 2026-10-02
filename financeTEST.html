@@ -3734,13 +3734,12 @@ function initEarlyRetireControls() {
 }
 
 // ==========================================
-// ★修正版：早期退職シミュレーション計算関数（0年後・当日資産ベース対応）
+// ★修正版：早期退職シミュレーション（税引き前額面＋リアル課税取り崩し型）
 // ==========================================
 function calculateEarlyRetireTable() {
   const elYears = document.getElementById('er-retire-years');
   const elAge = document.getElementById('er-current-age');
   
-  // 0年後が正しく 0 として取得できるように判定
   const retireYears = (elYears && elYears.value !== "") ? parseInt(elYears.value) : 0;
   const currentAge = (elAge && elAge.value !== "") ? parseInt(elAge.value) : 54;
   const cashBuffer = parseFloat(document.getElementById('er-cash-buffer').value) || 0;
@@ -3749,9 +3748,13 @@ function calculateEarlyRetireTable() {
   const otherTotals = calculateOtherAssetsTotals();
   const totals = calculateCurrentTotals();
   
-  // 当日時点の確定資産（投資信託税引き後 ＋ 他資産合計）
-  const currentInvestTotal = totals.afterTaxMarket;
+  // ★【重要】投資信託を「税引き前（額面）」でスタート
+  const currentInvestTotal = totals.totalMarket;
   const otherAssetsTotal = otherTotals.grandTotal;
+
+  // 実効税率の動的算出（課税枠の利益割合 × 約20%）
+  const taxableProfitRatio = totals.totalMarket > 0 ? Math.max(0, totals.taxableProfit) / totals.totalMarket : 0;
+  const effectiveTaxRate = taxableProfitRatio * 0.20315; // 例: 約0.06〜0.08 (6〜8%)
 
   const scale = getDemoScale();
   let totalMonthlyInvest = 0;
@@ -3761,11 +3764,9 @@ function calculateEarlyRetireTable() {
 
   const rates = [0.03, 0.07, 0.09];
 
-  // 退職時点の投資信託評価額（0年後の場合は複利・積立計算をスキップし当日資産をそのまま使用）
+  // 退職時点の投資信託評価額（税引き前額面ベースで複利＋積立成長）
   const retireInvestTotals = rates.map(rate => {
-    if (retireYears === 0) {
-      return Math.round(currentInvestTotal);
-    }
+    if (retireYears === 0) return Math.round(currentInvestTotal);
     const mRate = rate / 12;
     const months = retireYears * 12;
     const fCur = currentInvestTotal * Math.pow(1 + rate, retireYears);
@@ -3773,7 +3774,7 @@ function calculateEarlyRetireTable() {
     return Math.round(fCur + accum);
   });
 
-  // 退職時点の総資産額（投信 + 他資産）
+  // 退職時点の総資産額（税引き前投信 + 他資産）
   const retireGrandTotals = retireInvestTotals.map(inv => inv + otherAssetsTotal);
 
   // サマリーバナー描画
@@ -3784,6 +3785,9 @@ function calculateEarlyRetireTable() {
     const usdStr = Math.round(otherTotals.usd).toLocaleString() + '円';
     const cryptoStr = Math.round(otherTotals.crypto).toLocaleString() + '円';
     const timingText = (retireYears === 0) ? `今すぐ（${retireAge}歳時点・当日資産）` : `${retireYears}年後（${retireAge}歳時点）`;
+    
+    // 手取り生活費に対する投信売却時の想定額面（税金加味）
+    const grossWithdrawSample = Math.round(monthlyWithdraw / (1 - effectiveTaxRate));
 
     banner.innerHTML = `
       <div style="flex: 1; min-width: 170px;">
@@ -3793,7 +3797,7 @@ function calculateEarlyRetireTable() {
         </div>
       </div>
       <div style="flex: 2; min-width: 320px;">
-        <span style="color: #718096; font-weight: bold;">退職時の想定総資産:</span>
+        <span style="color: #718096; font-weight: bold;">退職時の想定総資産（額面ベース）:</span>
         <div style="font-family: monospace; font-weight: bold; color: #2b6cb0; font-size: 13px; margin-top: 3px; line-height: 1.5;">
           3%: 約${Math.round(retireGrandTotals[0]/10000).toLocaleString()}万円 / 
           7%: 約${Math.round(retireGrandTotals[1]/10000).toLocaleString()}万円 / 
@@ -3804,11 +3808,11 @@ function calculateEarlyRetireTable() {
           </span>
         </div>
       </div>
-      <div style="flex: 1.2; min-width: 200px;">
-        <span style="color: #718096; font-weight: bold;">資金取り崩しルール:</span>
-        <div style="font-size: 12px; font-weight: bold; color: #2f855a; margin-top: 3px; line-height: 1.4;">
-          現金等残高が ${(cashBuffer/10000).toLocaleString()}万円 になるまで先行消費<br>
-          <span style="color: #718096; font-weight: normal;">（到達後に投信切り崩し開始）</span>
+      <div style="flex: 1.3; min-width: 210px;">
+        <span style="color: #718096; font-weight: bold;">税金加味取り崩しルール:</span>
+        <div style="font-size: 11.5px; font-weight: bold; color: #2f855a; margin-top: 3px; line-height: 1.4;">
+          手取り ${(monthlyWithdraw/10000).toLocaleString()}万円 確保のため、投信売却時は税金加味で月約 ${(grossWithdrawSample/10000).toFixed(1)}万円 を売却<br>
+          <span style="color: #718096; font-weight: normal;">（現金残高 ${(cashBuffer/10000).toLocaleString()}万円 まで先行消費）</span>
         </div>
       </div>
     `;
@@ -3819,7 +3823,7 @@ function calculateEarlyRetireTable() {
   let operationalInvest = [...retireInvestTotals];
   let currentOtherBalances = [otherAssetsTotal, otherAssetsTotal, otherAssetsTotal];
   let depletionAges = [null, null, null];
-  let cumulativeWithdrawn = 0;
+  let cumulativeWithdrawn = 0; // 手取り累計額
 
   const snapshots = [{
     year: 0,
@@ -3831,40 +3835,46 @@ function calculateEarlyRetireTable() {
 
   for (let m = 1; m <= totalMonths; m++) {
     const elapsedYears = Math.floor((m - 1) / 12);
-    const currentWithdraw = earlyRetireInflationActive
+    // インフレ考慮時の手取り希望額
+    const currentWithdrawNet = earlyRetireInflationActive
       ? monthlyWithdraw * Math.pow(1.02, elapsedYears)
       : monthlyWithdraw;
 
-    cumulativeWithdrawn += currentWithdraw;
+    cumulativeWithdrawn += currentWithdrawNet;
 
     for (let i = 0; i < 3; i++) {
-      let needed = currentWithdraw;
+      let neededNet = currentWithdrawNet;
 
-      // ① まず「現金等」のうちキープ目標（cashBuffer）を超える余剰から取り崩す
+      // ① まず「現金等」のうちキープ目標（cashBuffer）を超える余剰から取り崩す（非課税）
       const surplusOther = Math.max(0, currentOtherBalances[i] - cashBuffer);
       if (surplusOther > 0) {
-        const fromOther = Math.min(surplusOther, needed);
+        const fromOther = Math.min(surplusOther, neededNet);
         currentOtherBalances[i] -= fromOther;
-        needed -= fromOther;
+        neededNet -= fromOther;
       }
 
-      // ② 余剰現金で足りない分を「投資信託」から取り崩す（投信は月次複利運用）
+      // ② 不足分を「投資信託」から取り崩す（★手取りを確保するため税金分を上乗せして売却）
       if (operationalInvest[i] > 0) {
-        operationalInvest[i] = operationalInvest[i] * (1 + rates[i] / 12);
-        if (needed > 0) {
-          operationalInvest[i] -= needed;
+        operationalInvest[i] = operationalInvest[i] * (1 + rates[i] / 12); // 当月の複利成長
+        if (neededNet > 0) {
+          // 税金を加味した必要売却額（額面）
+          const neededGross = neededNet / (1 - effectiveTaxRate);
+          operationalInvest[i] -= neededGross;
           if (operationalInvest[i] < 0) {
-            needed = -operationalInvest[i];
+            // 投信が尽きた場合、不足した手取り分を逆算して手元現金から補填
+            const deficitGross = -operationalInvest[i];
+            const deficitNet = deficitGross * (1 - effectiveTaxRate);
             operationalInvest[i] = 0;
+            neededNet = deficitNet;
           } else {
-            needed = 0;
+            neededNet = 0;
           }
         }
       }
 
       // ③ 投資信託も尽きた場合、温存していたキープ現金を取り崩して延命
-      if (needed > 0 && currentOtherBalances[i] > 0) {
-        currentOtherBalances[i] -= needed;
+      if (neededNet > 0 && currentOtherBalances[i] > 0) {
+        currentOtherBalances[i] -= neededNet;
         if (currentOtherBalances[i] < 0) currentOtherBalances[i] = 0;
       }
 
@@ -3891,7 +3901,7 @@ function calculateEarlyRetireTable() {
       <thead>
         <tr style="background: #f7fafc; color: #4a5568;">
           <th style="border: 1px solid #e2e8f0; padding: 8px 16px; text-align: center; font-weight: bold; white-space: nowrap;">経過 (年齢)</th>
-          <th style="border: 1px solid #e2e8f0; padding: 8px 16px; text-align: right; font-weight: bold; white-space: nowrap;">累計生活費取り崩し</th>
+          <th style="border: 1px solid #e2e8f0; padding: 8px 16px; text-align: right; font-weight: bold; white-space: nowrap;">累計手取り生活費</th>
           <th style="border: 1px solid #e2e8f0; padding: 8px 16px; text-align: right; font-weight: bold; white-space: nowrap;">【堅実：3%運用】総残高</th>
           <th style="border: 1px solid #e2e8f0; padding: 8px 16px; text-align: right; font-weight: bold; white-space: nowrap;">【期待：7%運用】総残高</th>
           <th style="border: 1px solid #e2e8f0; padding: 8px 16px; text-align: right; font-weight: bold; white-space: nowrap;">【積極：9%運用】総残高</th>
@@ -3934,13 +3944,13 @@ function calculateEarlyRetireTable() {
   tHtml += `</tbody></table>`;
   document.getElementById('earlyRetireTableArea').innerHTML = tHtml;
 
-  renderEarlyRetireMatrix(currentInvestTotal, otherAssetsTotal, totalMonthlyInvest, currentAge, cashBuffer, monthlyWithdraw);
+  renderEarlyRetireMatrix(currentInvestTotal, otherAssetsTotal, totalMonthlyInvest, currentAge, cashBuffer, monthlyWithdraw, effectiveTaxRate);
 }
 
 // ==========================================
-// ★修正版：逆引き判定マトリクス（0年後スタート対応）
+// ★修正版：逆引き判定マトリクス（税金加味取り崩し連動型）
 // ==========================================
-function renderEarlyRetireMatrix(currentInvest, otherAssetsTotal, monthlyInvest, currentAge, cashBuffer, monthlyWithdraw) {
+function renderEarlyRetireMatrix(currentInvest, otherAssetsTotal, monthlyInvest, currentAge, cashBuffer, monthlyWithdraw, effectiveTaxRate) {
   const matrixArea = document.getElementById('earlyRetireMatrixArea');
   if (!matrixArea) return;
 
@@ -3958,7 +3968,6 @@ function renderEarlyRetireMatrix(currentInvest, otherAssetsTotal, monthlyInvest,
       <tbody>
   `;
 
-  // 0年後（今すぐ退職）から10年後までをループ
   for (let y = 0; y <= 10; y++) {
     const retAge = currentAge + y;
     const label = (y === 0) ? `今すぐ (${retAge}歳退職)` : `${y}年後 (${retAge}歳退職)`;
@@ -3979,27 +3988,36 @@ function renderEarlyRetireMatrix(currentInvest, otherAssetsTotal, monthlyInvest,
 
       for (let m = 1; m <= (95 - retAge) * 12; m++) {
         const elY = Math.floor((m - 1) / 12);
-        const wVal = earlyRetireInflationActive ? monthlyWithdraw * Math.pow(1.02, elY) : monthlyWithdraw;
-        let needed = wVal;
+        const wNet = earlyRetireInflationActive ? monthlyWithdraw * Math.pow(1.02, elY) : monthlyWithdraw;
+        let neededNet = wNet;
 
+        // 現金から取り崩し
         const surplus = Math.max(0, curOther - cashBuffer);
         if (surplus > 0) {
-          const fromOther = Math.min(surplus, needed);
+          const fromOther = Math.min(surplus, neededNet);
           curOther -= fromOther;
-          needed -= fromOther;
+          neededNet -= fromOther;
         }
 
+        // 投信から取り崩し（税金上乗せ）
         if (opInvest > 0) {
           opInvest = opInvest * (1 + r / 12);
-          if (needed > 0) {
-            opInvest -= needed;
-            if (opInvest < 0) { needed = -opInvest; opInvest = 0; }
-            else { needed = 0; }
+          if (neededNet > 0) {
+            const neededGross = neededNet / (1 - effectiveTaxRate);
+            opInvest -= neededGross;
+            if (opInvest < 0) {
+              const deficitGross = -opInvest;
+              neededNet = deficitGross * (1 - effectiveTaxRate);
+              opInvest = 0;
+            } else {
+              neededNet = 0;
+            }
           }
         }
 
-        if (needed > 0 && curOther > 0) {
-          curOther -= needed;
+        // 予備キープ現金から補填
+        if (neededNet > 0 && curOther > 0) {
+          curOther -= neededNet;
           if (curOther < 0) curOther = 0;
         }
 
@@ -4022,4 +4040,5 @@ function renderEarlyRetireMatrix(currentInvest, otherAssetsTotal, monthlyInvest,
   mHtml += `</tbody></table>`;
   matrixArea.innerHTML = mHtml;
 }
+
 </script></body></html>
