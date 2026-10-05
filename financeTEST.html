@@ -452,19 +452,21 @@
       <button id="er-inflation-btn" class="action-btn btn-gray" onclick="toggleEarlyRetireInflation()" style="padding: 6px 16px; font-size: 12px; border-radius: 4px; margin: 0; min-width: 80px; font-weight: bold;">OFF</button>
     </div>
 
-<!-- ⑤ 投信切替ライン（現金残高ストッパー）スライダー -->
-    <div style="display: flex; flex-direction: column; gap: 4px; min-width: 220px;">
+<!-- ⑤ 投信切替ライン (投信を除く資産残高) スライダー -->
+    <div style="display: flex; flex-direction: column; gap: 4px; min-width: 250px;">
       <div style="display: flex; justify-content: space-between; align-items: baseline;">
-        <span style="font-size: 11px; font-weight: bold; color: #4a5568;">⑤ 投信切替ライン (現金残高)</span>
-        <span id="er-cash-use-val" style="font-size: 12px; font-weight: bold; color: #2f855a; font-family: monospace;">800 万円で切替</span>
+        <span style="font-size: 11px; font-weight: bold; color: #4a5568;">⑤ 投信切替ライン (現金・米ドル・暗号資産)</span>
+        <span id="er-cash-use-val" style="font-size: 13px; font-weight: bold; color: #2f855a; font-family: monospace;">800 万円で切替</span>
       </div>
       <input type="range" id="er-cash-use-slider" min="2000000" max="8000000" step="1000000" value="8000000" 
-             style="cursor: pointer; accent-color: #2f855a;" 
-             oninput="updateCashSliderLabel(this.value); calculateEarlyRetireTable();">
-      <div id="er-cash-slider-ticks" style="display: flex; justify-content: space-between; font-size: 9px; color: #a0aec0;">
-        <span>200万(下限防衛)</span>
-        <span>500万</span>
-        <span id="er-cash-max-label">800万(温存)</span>
+             style="cursor: pointer; width: 100%; accent-color: #2f855a;" 
+             oninput="updateCashSliderLabel(this.value); calculateEarlyRetireTable();"
+             onchange="calculateEarlyRetireTable();">
+      <div style="display: flex; justify-content: space-between; font-size: 9px; color: #718096; font-weight: bold; padding: 0 2px;">
+        <span>200万(死守下限)</span>
+        <span>400万</span>
+        <span>600万</span>
+        <span id="er-cash-max-label">800万(全額温存)</span>
       </div>
     </div>
   </div>
@@ -3377,7 +3379,7 @@ function removeCashInputRow(btn) {
 }
 
 // ==========================================
-// ★新設：早期退職時期シミュレーション制御ロジック（現金残高ストッパー切替版）
+// ★新設：早期退職時期シミュレーション制御ロジック（投信を除く全資産ストッパー対応版）
 // ==========================================
 let earlyRetireInflationActive = false;
 
@@ -3393,16 +3395,16 @@ function toggleEarlyRetireInflation() {
 // スライダーの表示ラベル更新
 function updateCashSliderLabel(val) {
   const el = document.getElementById('er-cash-use-val');
-  const otherTotals = calculateOtherAssetsTotals();
-  const currentCash = otherTotals.cash;
-  const threshold = parseInt(val) || 2000000;
-  const spendAmount = Math.max(0, currentCash - threshold);
+  const slider = document.getElementById('er-cash-use-slider');
+  const maxVal = slider ? parseInt(slider.max) : 8000000;
+  const currentThreshold = parseInt(val) || 2000000;
+  const spendAmount = Math.max(0, maxVal - currentThreshold);
 
   if (el) {
     if (spendAmount === 0) {
-      el.innerHTML = `${Math.round(threshold / 10000)}万円 <span style="font-size:10px; color:#718096;">(現金温存・即投信)</span>`;
+      el.innerHTML = `<span style="color:#2f855a; font-size:14px;">${Math.round(currentThreshold / 10000)}万円</span> <span style="font-size:10px; color:#718096;">(全額温存・即投信)</span>`;
     } else {
-      el.innerHTML = `${Math.round(threshold / 10000)}万円 <span style="font-size:10px; color:#2b6cb0;">(現金${Math.round(spendAmount / 10000)}万消費)</span>`;
+      el.innerHTML = `<span style="color:#2b6cb0; font-size:14px;">${Math.round(currentThreshold / 10000)}万円</span> <span style="font-size:10px; color:#2b6cb0;">(他資産約${Math.round(spendAmount / 10000)}万消費)</span>`;
     }
   }
 }
@@ -3434,21 +3436,25 @@ function initEarlyRetireControls() {
   const withdrawSelect = document.getElementById('er-monthly-withdraw');
   const slider = document.getElementById('er-cash-use-slider');
 
-  // 現在の実際の手持ち現金をベースに、スライダーのmax（100万円単位で切り捨て）を動的設定
+  // ★「投信を除く資産（現金＋米ドル＋仮想通貨）」の合計額を取得（約800万円強）
   const otherTotals = calculateOtherAssetsTotals();
-  const currentCash = otherTotals.cash;
-  const maxCashStep = Math.max(2000000, Math.floor(currentCash / 1000000) * 1000000);
+  const totalOtherAssets = otherTotals.grandTotal || 0;
+  
+  // 100万円単位で丸めた上限値（最低でも800万円を担保）
+  const maxStep = Math.max(8000000, Math.floor(totalOtherAssets / 1000000) * 1000000);
 
   if (slider) {
-    slider.min = 2000000; // 最低防衛ライン200万円
-    slider.max = maxCashStep; // 手持ち現金（例: 800万円）
+    slider.min = 2000000; // 最低防衛ライン200万円（これ以上左には動かない）
+    slider.max = maxStep; // 800万円（手持ち他資産の最大値）
     slider.step = 1000000; // 100万円刻み
+
     if (!slider.dataset.initialized) {
-      slider.value = maxCashStep; // 初期値は現金を温存する最大値
+      slider.value = maxStep; // 初期値は温存（800万円）
       slider.dataset.initialized = "true";
     }
     const maxLabel = document.getElementById('er-cash-max-label');
-    if (maxLabel) maxLabel.innerText = `${Math.round(maxCashStep / 10000)}万(温存)`;
+    if (maxLabel) maxLabel.innerText = `${Math.round(maxStep / 10000)}万(全額温存)`;
+    
     updateCashSliderLabel(slider.value);
   }
 
@@ -3482,18 +3488,17 @@ function calculateEarlyRetireTable() {
 
   const totals = calculateCurrentTotals();
   const currentInvestTotal = totals.totalMarket; // 額面投信
+  
+  // ★投信以外の全資産（現金＋米ドル＋仮想通貨）
   const otherTotals = calculateOtherAssetsTotals();
-  const currentCash = otherTotals.cash; // 手持ち現金（例: 800万強）
+  const totalOtherAssets = otherTotals.grandTotal; 
 
-  // ★スライダーから指定した現金ストッパー閾値（200万〜800万）を取得
+  // ★スライダーから指定したストッパー閾値（200万〜800万）を取得
   const elSlider = document.getElementById('er-cash-use-slider');
-  const cashStopThreshold = elSlider ? Math.max(2000000, parseInt(elSlider.value) || 2000000) : 2000000;
+  const stopThreshold = elSlider ? Math.max(2000000, parseInt(elSlider.value) || 2000000) : 2000000;
   
-  // 生活費として消費可能な現金枠 = 現在現金 - 切替残高
-  const cashSpendBudget = Math.max(0, currentCash - cashStopThreshold);
-  
-  // 完全温存されるプール資金（指定残高＋外貨＋仮想通貨）
-  const totalReservedPool = cashStopThreshold + (otherTotals.usd + otherTotals.crypto);
+  // 先行消費する生活費予算 = 他資産合計 - 切替閾値残高
+  const spendBudget = Math.max(0, totalOtherAssets - stopThreshold);
 
   const scale = getDemoScale();
   let totalMonthlyInvest = 0;
@@ -3522,9 +3527,9 @@ function calculateEarlyRetireTable() {
     const post65Gross = Math.round(post65Net * TAX_FRICTION);
     const inflText = earlyRetireInflationActive ? '<span style="color:#2f855a;">【インフレ2%加算中】</span>' : '';
     
-    const cashStrategyText = (cashSpendBudget > 0)
-      ? `<br><span style="color:#2f855a; font-weight:bold;">💵 現金を残り${Math.round(cashStopThreshold/10000)}万円まで消費（先行支出: 約${Math.round(cashSpendBudget/10000)}万円 / 投信無傷・税金0円）</span>`
-      : `<br><span style="color:#718096; font-weight:bold;">💵 現金全額温存（退職初月から投信を取り崩し）</span>`;
+    const strategyText = (spendBudget > 0)
+      ? `<br><span style="color:#2f855a; font-weight:bold;">💵 投信以外の資産を残り${Math.round(stopThreshold/10000)}万円まで消費（先行支出: 約${Math.round(spendBudget/10000)}万円 / その間投信無傷・税金0円）</span>`
+      : `<br><span style="color:#718096; font-weight:bold;">💵 投信以外の資産は全額温存（退職初月から投信を取り崩し）</span>`;
 
     banner.innerHTML = `
       <div style="flex: 1.2; min-width: 200px;">
@@ -3534,7 +3539,7 @@ function calculateEarlyRetireTable() {
         </div>
         <div style="font-size: 11px; color: #718096; margin-top: 4px;">
           退職時投信額面: <strong>${Math.round(retireInvestBalance).toLocaleString()} 円</strong>
-          ${cashStrategyText}
+          ${strategyText}
         </div>
       </div>
       <div style="flex: 1.5; min-width: 240px;">
@@ -3545,11 +3550,11 @@ function calculateEarlyRetireTable() {
         </div>
       </div>
       <div style="flex: 1.3; min-width: 200px;">
-        <span style="color: #2f855a; font-weight: bold;">🛡 完全防衛プール資金（予備費）:</span>
+        <span style="color: #2f855a; font-weight: bold;">🛡 完全死守プール資金（緊急予備費）:</span>
         <div style="font-size: 13px; font-weight: bold; color: #2f855a; margin-top: 3px;">
-          合計: ${Math.round(totalReservedPool).toLocaleString()} 円
+          残高: ${Math.round(stopThreshold).toLocaleString()} 円
         </div>
-        <div style="font-size: 11px; color: #718096;">（防衛現金 ${Math.round(cashStopThreshold/10000)}万円 ＋ 外貨・仮想通貨）</div>
+        <div style="font-size: 11px; color: #718096;">（他資産総額 ${Math.round(totalOtherAssets).toLocaleString()}円 − 先行支出 ${Math.round(spendBudget).toLocaleString()}円）</div>
       </div>
     `;
   }
@@ -3558,14 +3563,14 @@ function calculateEarlyRetireTable() {
   let currentBalance = retireInvestBalance;
   let depletionAge = null;
   let cumulativeNetWithdrawn = 0;
-  let cumulativeCashUsed = 0; // 消費した現金累計
+  let cumulativeOtherUsed = 0; // 消費した他資産の累計
 
   const snapshots = [{
     year: 0,
     age: retireAge,
     cumulativeNetWithdrawn: 0,
     monthlyGrossWithdraw: 0,
-    isUsingCash: cashSpendBudget > 0,
+    isUsingOtherAssets: spendBudget > 0,
     balance: currentBalance,
     depletionAge: null
   }];
@@ -3580,15 +3585,15 @@ function calculateEarlyRetireTable() {
     const neededNet = (curAge >= 65) ? Math.max(0, currentWithdrawTarget - PENSION_NET) : currentWithdrawTarget;
     cumulativeNetWithdrawn += neededNet;
 
-    // 現金残高が閾値に達するまで（予算を使い切るまで）手持ち現金から優先充当
-    let paidFromCash = 0;
-    if (cumulativeCashUsed < cashSpendBudget) {
-      paidFromCash = Math.min(neededNet, cashSpendBudget - cumulativeCashUsed);
-      cumulativeCashUsed += paidFromCash;
+    // 残高が指定閾値に達するまで（予算を使い切るまで）他資産から優先充当
+    let paidFromOther = 0;
+    if (cumulativeOtherUsed < spendBudget) {
+      paidFromOther = Math.min(neededNet, spendBudget - cumulativeOtherUsed);
+      cumulativeOtherUsed += paidFromOther;
     }
 
-    // 現金で足りない分のみを投資信託から売却（税金摩擦8%上乗せ）
-    const neededFromInvestNet = neededNet - paidFromCash;
+    // 他資産で足りない分のみを投資信託から売却（税金摩擦8%上乗せ）
+    const neededFromInvestNet = neededNet - paidFromOther;
     const grossInvestWithdraw = neededFromInvestNet * TAX_FRICTION;
 
     if (currentBalance > 0) {
@@ -3605,7 +3610,7 @@ function calculateEarlyRetireTable() {
         age: retireAge + Math.round(m / 12),
         cumulativeNetWithdrawn: cumulativeNetWithdrawn,
         monthlyGrossWithdraw: Math.round(grossInvestWithdraw),
-        isUsingCash: (paidFromCash > 0 && neededFromInvestNet === 0),
+        isUsingOtherAssets: (paidFromOther > 0 && neededFromInvestNet === 0),
         balance: Math.round(currentBalance),
         depletionAge: depletionAge
       });
@@ -3631,8 +3636,8 @@ function calculateEarlyRetireTable() {
     const label = isFirst ? `退職時 (${snap.age}歳)` : (isFinal ? `85歳時点` : `${snap.year}年目 (${snap.age}歳)`);
     
     let withdrawColText = `${snap.monthlyGrossWithdraw.toLocaleString()} 円/月`;
-    if (snap.isUsingCash && !isFirst) {
-      withdrawColText = `<span style="color:#2f855a; font-weight:bold;">💵 現金より支出 (投信0円)</span>`;
+    if (snap.isUsingOtherAssets && !isFirst) {
+      withdrawColText = `<span style="color:#2f855a; font-weight:bold;">💵 他資産より支出 (投信0円)</span>`;
     }
 
     tHtml += `<tr style="${isFirst ? 'background: #edf2f7; font-weight: bold;' : (idx % 2 === 0 ? 'background: #fafbfc;' : 'background: #ffffff;')}">
@@ -3650,10 +3655,10 @@ function calculateEarlyRetireTable() {
   tHtml += `</tbody></table>`;
   document.getElementById('earlyRetireTableArea').innerHTML = tHtml;
 
-  renderEarlyRetireMatrix(currentInvestTotal, totalMonthlyInvest, currentAge, monthlyWithdrawNet, cashSpendBudget);
+  renderEarlyRetireMatrix(currentInvestTotal, totalMonthlyInvest, currentAge, monthlyWithdrawNet, spendBudget);
 }
 
-function renderEarlyRetireMatrix(currentInvest, monthlyInvest, currentAge, monthlyWithdrawNet, cashSpendBudget) {
+function renderEarlyRetireMatrix(currentInvest, monthlyInvest, currentAge, monthlyWithdrawNet, spendBudget) {
   const matrixArea = document.getElementById('earlyRetireMatrixArea');
   if (!matrixArea) return;
 
@@ -3687,7 +3692,7 @@ function renderEarlyRetireMatrix(currentInvest, monthlyInvest, currentAge, month
     const initialOpInvest = opInvest;
 
     let depAge = null;
-    let cumCash = 0;
+    let cumOther = 0;
 
     for (let m = 1; m <= (95 - retAge) * 12; m++) {
       const curAge = retAge + (m / 12);
@@ -3697,13 +3702,13 @@ function renderEarlyRetireMatrix(currentInvest, monthlyInvest, currentAge, month
 
       const neededNet = (curAge >= 65) ? Math.max(0, currentWithdrawTarget - PENSION_NET) : currentWithdrawTarget;
 
-      let paidFromCash = 0;
-      if (cumCash < cashSpendBudget) {
-        paidFromCash = Math.min(neededNet, cashSpendBudget - cumCash);
-        cumCash += paidFromCash;
+      let paidFromOther = 0;
+      if (cumOther < spendBudget) {
+        paidFromOther = Math.min(neededNet, spendBudget - cumOther);
+        cumOther += paidFromOther;
       }
 
-      const neededFromInvestNet = neededNet - paidFromCash;
+      const neededFromInvestNet = neededNet - paidFromOther;
       opInvest = opInvest * (1 + MONTHLY_RATE) - (neededFromInvestNet * TAX_FRICTION);
       if (opInvest <= 0) { depAge = curAge; break; }
     }
