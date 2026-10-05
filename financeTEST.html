@@ -3604,7 +3604,7 @@ function calculateEarlyRetireTable() {
       }
     }
 
-    if ((m % 24 === 0 && m < totalMonths) || m === totalMonths) {
+    if ((m % 12 === 0 && m < totalMonths) || m === totalMonths) {
       snapshots.push({
         year: Math.round(m / 12),
         age: retireAge + Math.round(m / 12),
