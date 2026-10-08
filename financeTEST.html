@@ -474,12 +474,127 @@
   <!-- サマリーバナー -->
   <div id="er-summary-banner" style="display: flex; flex-wrap: wrap; gap: 15px; background: #ebf8ff; border: 1px solid #bee3f8; padding: 12px 15px; border-radius: 6px; margin-bottom: 20px;"></div>
 
-  <!-- プラン詳細テーブル -->
-  <h4 style="margin: 0 0 10px 0; font-size: 13px; color: #2c3e50;">■ 選択プランの時系列シミュレーション推移</h4>
-  <div id="earlyRetireTableArea" style="overflow-x: auto; margin-bottom: 25px;"></div>
+<style>
+    /* 歴史ストレステスト統合用スタイル */
+    .st-layout-wrapper { display: flex; gap: 20px; align-items: flex-start; margin-top: 15px; }
+    .st-table-container { flex: 1.7; background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow-x: auto; }
+    .st-panel-container { flex: 1; position: sticky; top: 20px; background: white; border: 1px solid #cbd5e0; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.06); box-sizing: border-box; }
+    .st-slider-box { margin: 10px 0 15px 0; background: #f8fafc; padding: 12px 15px; border-radius: 6px; border: 1px solid #e2e8f0; }
+    .st-slider-val { font-size: 20px; font-weight: bold; color: #3182ce; font-family: monospace; text-align: center; }
+    .st-strategy-box { background: #f0fff4; border: 1px solid #c6f6d5; border-radius: 6px; padding: 10px 12px; margin-bottom: 15px; }
+    .st-strategy-box label { font-size: 12px; font-weight: bold; color: #22543d; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+    .st-badge-era { background: #fffaf0; border-left: 4px solid #dd6b20; padding: 10px; font-size: 11px; color: #7b341e; border-radius: 4px; margin-bottom: 12px; line-height: 1.5; }
+    .st-result-card { background: #ebf8ff; border: 1px solid #bee3f8; border-radius: 6px; padding: 12px; margin-top: 15px; margin-bottom: 15px; }
+    .st-result-item { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px; }
+    .st-result-item:last-child { margin-bottom: 0; }
+    .st-result-item span:first-child { color: #4a5568; font-weight: bold; }
+    .st-result-item span:last-child { font-weight: bold; font-family: monospace; font-size: 13.5px; }
+    .st-quick-btns { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+    .st-quick-btn { background: #edf2f7; border: 1px solid #cbd5e0; border-radius: 4px; padding: 4px 7px; font-size: 11px; cursor: pointer; color: #2d3748; transition: all 0.15s; }
+    .st-quick-btn:hover { background: #3182ce; color: white; border-color: #3182ce; }
+    .st-worst-btn { background: #fff5f5; border: 1px solid #feb2b2; color: #c53030; font-weight: bold; width: 100%; padding: 8px; border-radius: 6px; cursor: pointer; margin-bottom: 15px; transition: all 0.2s; }
+    .st-worst-btn:hover { background: #e53e3e; color: white; }
+    .st-plus { color: #2f855a; font-weight: bold; }
+    .st-minus { color: #c53030; font-weight: bold; }
+  </style>
 
-  <!-- 退職時期別 逃げ切り判定マトリクス -->
-  <h4 style="margin: 0 0 10px 0; font-size: 13px; color: #2c3e50;">■ 早期退職時期別の資産寿命・85歳逃げ切り判定マトリクス</h4>
+  <!-- 歴史ストレステスト 統合レイアウト -->
+  <div class="st-layout-wrapper">
+    <!-- 左側：年次推移リスト -->
+    <div class="st-table-container">
+      <h4 style="margin: 0 0 10px 0; font-size: 13px; color: #2c3e50;">■ 歴史相場ストレステスト 時系列シミュレーション推移</h4>
+      <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+        <thead>
+          <tr style="background: #edf2f7; color: #4a5568;">
+            <th style="border: 1px solid #e2e8f0; padding: 6px 8px; text-align: center;">経過 (年齢)</th>
+            <th style="border: 1px solid #e2e8f0; padding: 6px 8px; text-align: center;">年号</th>
+            <th style="border: 1px solid #e2e8f0; padding: 6px 8px; text-align: center;">騰落率(実質)</th>
+            <th style="border: 1px solid #e2e8f0; padding: 6px 8px; text-align: right;">生活費支出 (月換算)</th>
+            <th style="border: 1px solid #e2e8f0; padding: 6px 8px; text-align: right;">現金プール</th>
+            <th style="border: 1px solid #e2e8f0; padding: 6px 8px; text-align: right;">投資信託 残高</th>
+          </tr>
+        </thead>
+        <tbody id="sim-tbody">
+          <!-- JSで動的生成 -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 右側：スライダー＆判定操作パネル -->
+    <div class="st-panel-container">
+      <h3 style="margin-top: 0; font-size: 14px; color: #2c3e50; border-bottom: 2px solid #3182ce; padding-bottom: 6px;">⚙ 歴史追体験コントローラー</h3>
+      
+      <!-- 史上最悪年ジャンプボタン -->
+      <button class="st-worst-btn" onclick="jumpToWorstYear()">
+        🚨 史上最悪の年に自動ジャンプ（ワースト探索）
+      </button>
+
+      <div class="st-slider-box">
+        <div style="display: flex; align-items: center; justify-content: center; position: relative; margin-bottom: 6px;">
+          <div class="st-slider-val" id="year-display">1929 年 退職</div>
+          <div style="position: absolute; right: 0; display: flex; gap: 4px;">
+            <button class="st-quick-btn" onclick="stepYear(-1)" title="1年戻る" style="padding: 3px 8px; font-size: 11px;">◀</button>
+            <button class="st-quick-btn" onclick="stepYear(1)" title="1年進む" style="padding: 3px 8px; font-size: 11px;">▶</button>
+          </div>
+        </div>
+        <input type="range" id="year-slider" min="1900" max="1993" value="1929" oninput="runSimulation()" style="width: 100%; cursor: pointer; accent-color: #3182ce;">
+        <div style="display: flex; justify-content: space-between; font-size: 10px; color: #718096; font-weight: bold; margin-top: 5px;">
+          <span>1900年</span>
+          <span>1950年</span>
+          <span>1993年</span>
+        </div>
+      </div>
+
+      <!-- キャッシュバッファー補充チェックボックス -->
+      <div class="st-strategy-box">
+        <label>
+          <input type="checkbox" id="chk-buffer" onchange="runSimulation()" checked>
+          <span>🛡 先行資金消費後、好景気時にプール補充<br><span id="chk-buffer-desc" style="font-weight:normal; font-size:10px; color:#276749;">（死守ライン＋クッション200万／暴落時はクッションから生活費捻出）</span></span>
+        </label>
+      </div>
+
+      <!-- 時代背景バッジ -->
+      <div class="st-badge-era" id="era-badge">
+        時代背景を集計中...
+      </div>
+
+      <!-- 歴史的事件へジャンプ -->
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; margin-bottom: 12px;">
+        <div style="font-size: 11px; font-weight: bold; color: #4a5568; margin-bottom: 4px;">歴史的事件へジャンプ:</div>
+        <div class="st-quick-btns">
+          <button class="st-quick-btn" onclick="setSliderYear(1929)">1929年 世界恐慌</button>
+          <button class="st-quick-btn" onclick="setSliderYear(1937)">1937年 ルーズベルト不況</button>
+          <button class="st-quick-btn" onclick="setSliderYear(1966)">1966年 スタグフレーション</button>
+          <button class="st-quick-btn" onclick="setSliderYear(1973)">1973年 第1次オイルショック</button>
+          <button class="st-quick-btn" onclick="setSliderYear(1982)">1982年 黄金の強気相場</button>
+        </div>
+      </div>
+
+      <!-- 結果サマリーカード -->
+      <div class="st-result-card">
+        <div class="st-result-item">
+          <span>85歳時点 投信残高:</span>
+          <span id="final-invest">0 円</span>
+        </div>
+        <div class="st-result-item">
+          <span>85歳時点 現金残高:</span>
+          <span id="final-cash">0 円</span>
+        </div>
+        <div class="st-result-item">
+          <span>資産寿命:</span>
+          <span id="depletion-age" style="color: #2b6cb0;">95歳以上持続</span>
+        </div>
+        <div class="st-result-item">
+          <span>85歳逃げ切り判定:</span>
+          <span id="judge-status" style="color: #2f855a;">✅ 逃げ切り可能</span>
+        </div>
+      </div>
+
+      <div id="st-rule-desc" style="font-size: 11px; color: #4a5568; line-height: 1.5; background: #edf2f7; padding: 8px 10px; border-radius: 4px;">
+        <!-- JSで動的に初期条件の説明文を注入 -->
+      </div>
+    </div>
+  </div>
   <div id="earlyRetireMatrixArea" style="overflow-x: auto;"></div>
 </div>
 
