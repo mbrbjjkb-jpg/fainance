@@ -3589,7 +3589,7 @@ function initEarlyRetireControls() {
 
   let wHtml = '';
   for (let w = 50000; w <= 300000; w += 10000) {
-    wHtml += `<option value="${w}" ${w === 150000 ? 'selected' : ''}>毎月手取り ${(w / 10000)} 万円</option>`;
+    wHtml += `<option value="${w}" ${w === 100000 ? 'selected' : ''}>毎月手取り ${(w / 10000)} 万円</option>`;
   }
   withdrawSelect.innerHTML = wHtml;
 }
@@ -3641,7 +3641,7 @@ let currentSimParams = {
   initOtherTotal: 0,
   cashFloor: 4000000, // スライダー連動の死守ライン
   cashCap: 6000000,   // 復元上限（常に600万円以上をキープ）
-  baseExpenseMonthly: 150000,
+  baseExpenseMonthly: 100000,
   inflationActive: false,
   retireAge: 54,
   spendBudget: 0
@@ -3652,7 +3652,7 @@ function calculateEarlyRetireTable() {
   const elAge = document.getElementById('er-current-age');
   const retireYears = elYears ? parseInt(elYears.value) : 0;
   const currentAge = elAge ? parseInt(elAge.value) : 54;
-  const monthlyWithdrawNet = parseInt(document.getElementById('er-monthly-withdraw').value) || 150000;
+  const monthlyWithdrawNet = parseInt(document.getElementById('er-monthly-withdraw').value) || 100000;
 
   const totals = calculateCurrentTotals();
   const currentInvestTotal = totals.totalMarket;
