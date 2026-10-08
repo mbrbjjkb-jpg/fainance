@@ -431,7 +431,9 @@
 <!-- ★新設：早期退職時期シミュレーション ダッシュボードエリア -->
 <div id="earlyRetireDashboard" class="card" style="display: none; flex-direction: column; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; box-sizing: border-box;">
   <h3 style="margin-top: 0; font-size: 16px; color: #2c3e50; border-bottom: 2px solid #805ad5; padding-bottom: 8px;">🏖 早期退職・老後資産シミュレーション（投信3%運用・年金10万・温存プール資金別枠）</h3>
-  <p class="label-desc" style="margin-bottom: 15px;">※現在の投資信託残高および今後の積立額から、希望年数後に退職した場合の資産推移（85歳まで）と逃げ切り判定をシミュレートします。</p>
+    <p class="label-desc" id="er-main-subtitle" style="margin-bottom: 15px;">
+    ※現在の投資信託残高および今後の積立額から、希望年数後に退職した場合の資産推移（<span id="txt-sub-target-age">85</span>歳まで）と逃げ切り判定をシミュレートします。
+  </p>
 
   <!-- 操作コントロールパネル -->
   <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center; background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 15px;">
@@ -570,14 +572,14 @@
         </div>
       </div>
 
-      <!-- 結果サマリーカード -->
+<!-- 結果サマリーカード（判定年齢連動） -->
       <div class="st-result-card">
         <div class="st-result-item">
-          <span>85歳時点 投信残高:</span>
+          <span><span class="txt-target-age">85</span>歳時点 投信残高:</span>
           <span id="final-invest">0 円</span>
         </div>
         <div class="st-result-item">
-          <span>85歳時点 現金残高:</span>
+          <span><span class="txt-target-age">85</span>歳時点 現金残高:</span>
           <span id="final-cash">0 円</span>
         </div>
         <div class="st-result-item">
@@ -585,7 +587,7 @@
           <span id="depletion-age" style="color: #2b6cb0;">95歳以上持続</span>
         </div>
         <div class="st-result-item">
-          <span>85歳逃げ切り判定:</span>
+          <span><span class="txt-target-age">85</span>歳逃げ切り判定:</span>
           <span id="judge-status" style="color: #2f855a;">✅ 逃げ切り可能</span>
         </div>
       </div>
@@ -662,6 +664,69 @@
 </div>
 
 <script>
+
+
+// ==========================================
+// ★ 老後ストレステスト詳細設定（動的パラメータ）
+// ==========================================
+let stressTestConfig = {
+  bufferReplenishRate: 30, // 運用益の補充割合 (%)
+  fallbackReturnRate: 3.0, // 未登録年の想定実質利回り (%)
+  pensionMonthly: 100000,  // 公的年金手取り月額 (円)
+  cashCap: 6000000,        // 現金プール復元上限 (円)
+  targetAge: 85,           // 最終ゴール・判定年齢 (歳)
+  maxRetireYears: 6,       // 早期退職時期の選択肢最大年数 (0〜N年)
+  stockRatio: 60,          // ポートフォリオ配分比率：株式 (%)
+  bondRatio: 40            // ポートフォリオ配分比率：債券 (%)
+};
+
+// S&P500(株式) 実質トータルリターン履歴 (1900〜2024)
+const HISTORICAL_STOCK_RETURNS = {
+  1900: 0.231, 1901: 0.208, 1902: -0.012, 1903: -0.165, 1904: 0.354, 1905: 0.218, 1906: -0.021, 1907: -0.278, 1908: 0.435, 1909: 0.125,
+  1910: -0.054, 1911: 0.038, 1912: 0.046, 1913: -0.118, 1914: -0.092, 1915: 0.342, 1916: -0.058, 1917: -0.321, 1918: 0.048, 1919: 0.018,
+  1920: -0.145, 1921: 0.328, 1922: 0.264, 1923: 0.015, 1924: 0.252, 1925: 0.238, 1926: 0.138, 1927: 0.345, 1928: 0.384, 1929: -0.119,
+  1930: -0.215, 1931: -0.378, 1932: -0.054, 1933: 0.528, 1934: -0.065, 1935: 0.442, 1936: 0.338, 1937: -0.354, 1938: 0.285, 1939: -0.012,
+  1940: -0.098, 1941: -0.145, 1942: 0.185, 1943: 0.228, 1944: 0.178, 1945: 0.324, 1946: -0.198, 1947: -0.054, 1948: 0.032, 1949: 0.168,
+  1950: 0.285, 1951: 0.218, 1952: 0.138, 1953: -0.015, 1954: 0.485, 1955: 0.315, 1956: 0.048, 1957: -0.125, 1958: 0.395, 1959: 0.105,
+  1960: 0.024, 1961: 0.268, 1962: -0.098, 1963: 0.218, 1964: 0.154, 1965: 0.112, 1966: -0.125, 1967: 0.201, 1968: 0.082, 1969: -0.168,
+  1970: 0.028, 1971: 0.132, 1972: 0.145, 1973: -0.245, 1974: -0.348, 1975: 0.298, 1976: 0.218, 1977: -0.118, 1978: -0.048, 1979: 0.038,
+  1980: 0.125, 1981: -0.068, 1982: 0.301, 1983: 0.215, 1984: 0.112, 1985: 0.345, 1986: 0.234, 1987: 0.035, 1988: 0.148, 1989: 0.278,
+  1990: -0.082, 1991: 0.298, 1992: 0.081, 1993: 0.124, 1994: -0.062, 1995: 0.368, 1996: 0.218, 1997: 0.284, 1998: 0.278, 1999: 0.185,
+  2000: -0.118, 2001: -0.135, 2002: -0.228, 2003: 0.278, 2004: 0.118, 2005: 0.058, 2006: 0.138, 2007: 0.072, 2008: -0.368, 2009: 0.254,
+  2010: 0.148, 2011: 0.058, 2012: 0.154, 2013: 0.285, 2014: 0.125, 2015: -0.012, 2016: 0.118, 2017: 0.205, 2018: -0.072, 2019: 0.305,
+  2020: 0.182, 2021: 0.148, 2022: -0.254, 2023: 0.218, 2024: 0.198
+};
+
+// 米国10年国債 実質トータルリターン履歴 (1900〜2024)
+const HISTORICAL_BOND_RETURNS = {
+  1900: 0.058, 1901: 0.023, 1902: -0.019, 1903: -0.035, 1904: 0.046, 1905: 0.028, 1906: 0.002, 1907: -0.048, 1908: 0.060, 1909: 0.035,
+  1910: -0.014, 1911: 0.003, 1912: 0.008, 1913: -0.025, 1914: -0.024, 1915: 0.022, 1916: -0.018, 1917: -0.063, 1918: 0.005, 1919: 0.003,
+  1920: -0.027, 1921: 0.068, 1922: 0.066, 1923: 0.005, 1924: 0.057, 1925: 0.055, 1926: 0.038, 1927: 0.095, 1928: 0.109, 1929: -0.016,
+  1930: 0.025, 1931: 0.004, 1932: -0.129, 1933: 0.170, 1934: -0.005, 1935: 0.117, 1936: 0.113, 1937: -0.001, 1938: 0.040, 1939: 0.005,
+  1940: 0.002, 1941: 0.012, 1942: 0.032, 1943: 0.035, 1944: 0.028, 1945: 0.021, 1946: -0.038, 1947: 0.001, 1948: 0.004, 1949: 0.035,
+  1950: 0.032, 1951: 0.028, 1952: 0.015, 1953: 0.002, 1954: 0.087, 1955: 0.062, 1956: 0.008, 1957: 0.010, 1958: 0.040, 1959: 0.012,
+  1960: 0.001, 1961: 0.053, 1962: -0.013, 1963: 0.043, 1964: 0.024, 1965: 0.017, 1966: -0.007, 1967: 0.028, 1968: 0.012, 1969: -0.028,
+  1970: 0.003, 1971: 0.017, 1972: 0.012, 1973: -0.067, 1974: -0.113, 1975: 0.048, 1976: 0.028, 1977: -0.018, 1978: -0.008, 1979: 0.003,
+  1980: 0.007, 1981: -0.003, 1982: 0.061, 1983: 0.042, 1984: 0.017, 1985: 0.060, 1986: 0.044, 1987: 0.007, 1988: 0.023, 1989: 0.043,
+  1990: -0.007, 1991: 0.055, 1992: 0.013, 1993: 0.019, 1994: -0.009, 1995: 0.083, 1996: 0.043, 1997: 0.036, 1998: 0.063, 1999: 0.002,
+  2000: -0.003, 2001: -0.007, 2002: 0.047, 2003: 0.043, 2004: 0.018, 2005: 0.008, 2006: 0.023, 2007: 0.012, 2008: -0.001, 2009: 0.039,
+  2010: 0.063, 2011: 0.018, 2012: 0.039, 2013: 0.017, 2014: 0.017, 2015: -0.002, 2016: 0.018, 2017: 0.047, 2018: -0.012, 2019: 0.087,
+  2020: 0.072, 2021: 0.023, 2022: -0.054, 2023: 0.028, 2024: 0.023
+};
+
+// 設定された株式・債券比率から各年の合成実質リターンを取得する関数
+function getBlendedReturn(year) {
+  const stockRet = HISTORICAL_STOCK_RETURNS[year];
+  const bondRet = HISTORICAL_BOND_RETURNS[year];
+  if (stockRet !== undefined && bondRet !== undefined) {
+    const sWeight = stressTestConfig.stockRatio / 100;
+    const bWeight = stressTestConfig.bondRatio / 100;
+    return (stockRet * sWeight) + (bondRet * bWeight);
+  }
+  return stressTestConfig.fallbackReturnRate / 100;
+}
+
+
 
 // ==========================================
 // ★特定端末の認証記憶（パスワードレス化）用ロジック
@@ -994,6 +1059,16 @@ function loadUserConfigFromStorage() {
     portfolioHistory = savedHistory;
     writeLog("【ロード】ブラウザ内から時系列の口数・単価履歴を読み込みました。");
   }
+
+// loadUserConfigFromStorage 内に追加
+  const savedStress = JSON.parse(localStorage.getItem('portfolio_stress_config')) || null;
+  if (savedStress) {
+    stressTestConfig = Object.assign(stressTestConfig, savedStress);
+    writeLog("【ロード】ブラウザ内から老後ストレステスト詳細設定を復元しました。");
+  }
+
+
+
 }
 // ==========================================
 // 外部設定ファイル適用（クラウドの最新データを最優先に同期）
@@ -1050,6 +1125,13 @@ function applyConfigDataToStocks(configData) {
     writeLog("【成功】GitHubから最新の投信設定を同期・適用しました。");
   }
   
+// applyConfigDataToStocks 内に追加
+  if (configData.stressTestConfig) {
+    stressTestConfig = Object.assign(stressTestConfig, configData.stressTestConfig);
+    localStorage.setItem('portfolio_stress_config', JSON.stringify(stressTestConfig));
+    writeLog("【成功】GitHubから老後ストレステスト詳細設定を同期・適用しました。");
+  }
+
   initInputFields();
 }
 
@@ -2599,6 +2681,60 @@ function renderModalSettingsGrid() {
     </div>
   `;
 
+// renderModalSettingsGrid 内の末尾（gridEl.innerHTML = html; の直前）に追加
+html += `
+  <div style="grid-column: 1 / -1; margin: 20px 0 10px 0; border-top: 2px solid #805ad5; padding-top: 15px;">
+    <h3 style="margin: 0 0 5px 0; font-size: 14px; color: #553c9a;">■ 老後・早期退職ストレステスト詳細設定</h3>
+    <p style="font-size: 11px; color: #718096; margin: 0;">※ シミュレーションおよび歴史ストレステストの計算基準・判定基準・配分比率を設定します。</p>
+  </div>
+
+  <div class="setting-group" style="min-height: 180px;">
+    <div class="setting-group-title">🎯 判定基準・退職期間</div>
+    <div class="setting-item">
+      <span>① 最終ゴール・判定年齢:</span>
+      <input type="number" id="m-st-target-age" value="${stressTestConfig.targetAge}" style="width:70px;"> 歳
+    </div>
+    <div class="setting-item">
+      <span>② 早期退職 最大年数:</span>
+      <input type="number" id="m-st-max-retire-years" value="${stressTestConfig.maxRetireYears}" style="width:70px;"> 年後
+    </div>
+    <div class="setting-item">
+      <span>③ 公的年金 手取り額:</span>
+      <input type="number" step="10000" id="m-st-pension" value="${stressTestConfig.pensionMonthly}" style="width:70px;"> 円/月
+    </div>
+  </div>
+
+  <div class="setting-group" style="min-height: 180px;">
+    <div class="setting-group-title">🛡 現金プール・運用基準</div>
+    <div class="setting-item">
+      <span>④ プール復元上限額:</span>
+      <input type="number" step="100000" id="m-st-cash-cap" value="${stressTestConfig.cashCap}" style="width:80px;"> 円
+    </div>
+    <div class="setting-item">
+      <span>⑤ バッファー補充割合:</span>
+      <input type="number" step="1" id="m-st-replenish-rate" value="${stressTestConfig.bufferReplenishRate}" style="width:70px;"> %
+    </div>
+    <div class="setting-item">
+      <span>⑥ 未登録年の実質利回り:</span>
+      <input type="number" step="0.1" id="m-st-fallback-rate" value="${stressTestConfig.fallbackReturnRate}" style="width:70px;"> %
+    </div>
+  </div>
+
+  <div class="setting-group" style="min-height: 180px;">
+    <div class="setting-group-title">📊 資産ポートフォリオ比率</div>
+    <div class="setting-item">
+      <span>⑦ S&P500(株式) 比率:</span>
+      <input type="number" step="5" min="0" max="100" id="m-st-stock-ratio" value="${stressTestConfig.stockRatio}" style="width:60px;" oninput="document.getElementById('m-st-bond-ratio').value = Math.max(0, 100 - this.value)"> %
+    </div>
+    <div class="setting-item">
+      <span>⑧ 米国10年国債 比率:</span>
+      <input type="number" step="5" min="0" max="100" id="m-st-bond-ratio" value="${stressTestConfig.bondRatio}" style="width:60px;" oninput="document.getElementById('m-st-stock-ratio').value = Math.max(0, 100 - this.value)"> %
+    </div>
+    <p style="font-size:10px; color:#718096; margin-top:8px; line-height:1.4;">※合計100%になるように配分してください。歴史リターンが即時合成されます。</p>
+  </div>
+`;
+
+
   gridEl.innerHTML = html;
 
   // ★新規：現金の保存データをモーダル内の動的行として展開・再現
@@ -2754,6 +2890,32 @@ function applyModalSettings() {
   });
   
   localStorage.setItem('portfolio_config', JSON.stringify(savedSettings));
+
+
+// applyModalSettings() 内、localStorage.setItem('portfolio_config', ...) の後あたりに追加
+const elTargetAge = document.getElementById('m-st-target-age');
+const elMaxYears = document.getElementById('m-st-max-retire-years');
+const elPension = document.getElementById('m-st-pension');
+const elCashCap = document.getElementById('m-st-cash-cap');
+const elRepRate = document.getElementById('m-st-replenish-rate');
+const elFallRate = document.getElementById('m-st-fallback-rate');
+const elStockRatio = document.getElementById('m-st-stock-ratio');
+const elBondRatio = document.getElementById('m-st-bond-ratio');
+
+if (elTargetAge) stressTestConfig.targetAge = parseInt(elTargetAge.value) || 85;
+if (elMaxYears) stressTestConfig.maxRetireYears = parseInt(elMaxYears.value) || 6;
+if (elPension) stressTestConfig.pensionMonthly = parseInt(elPension.value) || 100000;
+if (elCashCap) stressTestConfig.cashCap = parseInt(elCashCap.value) || 6000000;
+if (elRepRate) stressTestConfig.bufferReplenishRate = parseFloat(elRepRate.value) || 30;
+if (elFallRate) stressTestConfig.fallbackReturnRate = parseFloat(elFallRate.value) || 3.0;
+if (elStockRatio) stressTestConfig.stockRatio = parseFloat(elStockRatio.value) || 60;
+if (elBondRatio) stressTestConfig.bondRatio = parseFloat(elBondRatio.value) || 40;
+
+localStorage.setItem('portfolio_stress_config', JSON.stringify(stressTestConfig));
+
+// GitHub同期の outputConfig にも含める
+// outputConfig = { activeSettings, history, otherAssets, stressTestConfig: stressTestConfig };
+
 
   // ★ 2. 修正：現金の複数行入力DOMが画面に存在する場合のみ、データを漏れなく回収します
   const cashContainer = document.getElementById('m-cash-rows-container');
@@ -3551,32 +3713,26 @@ function initEarlyRetireControls() {
   const withdrawSelect = document.getElementById('er-monthly-withdraw');
   const slider = document.getElementById('er-cash-use-slider');
 
-  // ★「投信を除く資産（現金＋米ドル＋仮想通貨）」の合計額を取得（約800万円強）
   const otherTotals = calculateOtherAssetsTotals();
   const totalOtherAssets = otherTotals.grandTotal || 0;
-  
-  // 100万円単位で丸めた上限値（最低でも800万円を担保）
   const maxStep = Math.max(8000000, Math.floor(totalOtherAssets / 1000000) * 1000000);
 
   if (slider) {
-    slider.min = 2000000; // 最低防衛ライン200万円（これ以上左には動かない）
-    slider.max = maxStep; // 800万円（手持ち他資産の最大値）
-    slider.step = 1000000; // 100万円刻み
-
+    slider.min = 2000000;
+    slider.max = maxStep;
+    slider.step = 1000000;
     if (!slider.dataset.initialized) {
-      slider.value = maxStep; // 初期値は温存（800万円）
+      slider.value = 4000000; // 初期値を400万に設定
       slider.dataset.initialized = "true";
     }
     const maxLabel = document.getElementById('er-cash-max-label');
     if (maxLabel) maxLabel.innerText = `${Math.round(maxStep / 10000)}万(全額温存)`;
-    
     updateCashSliderLabel(slider.value);
   }
 
-  if (!yearsSelect || yearsSelect.options.length > 0) return;
-
+  // ★ 設定された最大年数（0〜N年後）で動的生成
   let yHtml = '';
-  for (let y = 0; y <= 10; y++) {
+  for (let y = 0; y <= stressTestConfig.maxRetireYears; y++) {
     yHtml += `<option value="${y}" ${y === 0 ? 'selected' : ''}>${y === 0 ? '0年後（今すぐ退職）' : y + '年後に早期退職'}</option>`;
   }
   yearsSelect.innerHTML = yHtml;
@@ -3659,15 +3815,12 @@ function calculateEarlyRetireTable() {
   const otherTotals = calculateOtherAssetsTotals();
   const totalOtherAssets = otherTotals.grandTotal;
 
-  // ★ ⑤スライダー値を取得（死守ライン）
   const elSlider = document.getElementById('er-cash-use-slider');
   const stopThreshold = elSlider ? Math.max(2000000, parseInt(elSlider.value) || 4000000) : 4000000;
-  
-  // スライダーの金額まで先行生活費として消費
   const spendBudget = Math.max(0, totalOtherAssets - stopThreshold);
 
-  // 復元上限：400万円以下の場合は常に「600万円」まで復元
-  const restoreCap = Math.max(6000000, stopThreshold);
+  // 復元上限：設定された cashCap を適用
+  const restoreCap = Math.max(stressTestConfig.cashCap, stopThreshold);
 
   const scale = getDemoScale();
   let totalMonthlyInvest = 0;
@@ -3676,9 +3829,8 @@ function calculateEarlyRetireTable() {
   const ANNUAL_RATE = 0.03;
   const MONTHLY_RATE = ANNUAL_RATE / 12;
   const TAX_FRICTION = 1.08;
-  const PENSION_NET = 100000;
+  const PENSION_NET = stressTestConfig.pensionMonthly;
 
-  // 退職時投信残高（退職までは積立＆3%複利成長）
   let retireInvestBalance = currentInvestTotal;
   if (retireYears > 0) {
     const months = retireYears * 12;
@@ -3689,19 +3841,27 @@ function calculateEarlyRetireTable() {
 
   const retireAge = currentAge + retireYears;
 
-  // パラメータを更新
   currentSimParams = {
     initInvest: retireInvestBalance,
     initOtherTotal: totalOtherAssets,
-    cashFloor: stopThreshold, // スライダー値（死守ライン）
-    cashCap: restoreCap,       // 復元上限（600万円）
+    cashFloor: stopThreshold,
+    cashCap: restoreCap,
     baseExpenseMonthly: monthlyWithdrawNet,
     inflationActive: earlyRetireInflationActive,
     retireAge: retireAge,
     spendBudget: spendBudget
   };
 
-  // サマリーバナー描画
+  // サブタイトルの判定年齢を更新
+  const txtSubAge = document.getElementById('txt-sub-target-age');
+  if (txtSubAge) txtSubAge.innerText = stressTestConfig.targetAge;
+
+  // カード上の判定年齢を更新
+  document.querySelectorAll('.txt-target-age').forEach(el => {
+    el.innerText = stressTestConfig.targetAge;
+  });
+
+  // サマリーバナー描画（文章・内容は完全維持、数値のみ連動）
   const banner = document.getElementById('er-summary-banner');
   if (banner) {
     const timingText = (retireYears === 0) ? `今すぐ（${retireAge}歳時点）` : `${retireYears}年後（${retireAge}歳時点）`;
@@ -3756,7 +3916,8 @@ function calculateEarlyRetireTable() {
       ・退職年齢：${retireAge}歳（投信 ${Math.round(retireInvestBalance/10000)}万円、他資産 ${Math.round(totalOtherAssets/10000)}万円スタート）<br>
       ・手取り生活費：月 ${monthlyWithdrawNet/10000}万円 ${earlyRetireInflationActive ? '（年2%インフレ増額ON）' : '（インフレ増額なし）'}<br>
       ・現金プール：先行支出で<strong>${Math.round(stopThreshold/10000)}万円</strong>へ着地。好景気時は<strong>${Math.round(restoreCap/10000)}万円</strong>まで復元。<br>
-      ・65歳以降は年金10万円を控除した差額を取り崩します。
+      ・資産配分：S&P500 ${stressTestConfig.stockRatio}% ＋ 米国10年債 ${stressTestConfig.bondRatio}% 合成リターン<br>
+      ・65歳以降は年金${Math.round(stressTestConfig.pensionMonthly/10000)}万円を控除した差額を取り崩します。
     `;
   }
 
@@ -3769,22 +3930,25 @@ function simulatePlan(startYear, useBufferStrategy) {
   let initialSpendBudget = currentSimParams.spendBudget;
   let isInitialPhaseDone = (initialSpendBudget <= 0);
 
-  const cashFloor = currentSimParams.cashFloor; // スライダー指定の死守ライン
-  const cashCap = currentSimParams.cashCap;     // 復元上限（600万円）
+  const cashFloor = currentSimParams.cashFloor;
+  const cashCap = currentSimParams.cashCap;
   const baseExpenseMonthly = currentSimParams.baseExpenseMonthly;
   const inflationActive = currentSimParams.inflationActive;
   const retireAge = currentSimParams.retireAge;
-  const PENSION_BASE = 100000;
+  const targetAge = stressTestConfig.targetAge; // 設定された判定年齢
+  const PENSION_BASE = stressTestConfig.pensionMonthly; // 設定された年金額
   const TAX_FRICTION = 1.08;
+  const replenishRatio = stressTestConfig.bufferReplenishRate / 100; // 設定された補充率
 
   let depletionAge = null;
   const logs = [];
-  const retirePeriodYears = Math.max(1, 85 - retireAge);
+  const retirePeriodYears = Math.max(1, targetAge - retireAge);
 
   for (let y = 0; y <= retirePeriodYears; y++) {
     const age = retireAge + y;
     const historyYear = startYear + y;
-    const returnRate = HISTORICAL_REAL_RETURNS[historyYear] !== undefined ? HISTORICAL_REAL_RETURNS[historyYear] : 0.03;
+    // 設定された株式・債券比率でリターンを動的合成
+    const returnRate = getBlendedReturn(historyYear);
 
     if (y === 0) {
       logs.push({
@@ -3795,7 +3959,6 @@ function simulatePlan(startYear, useBufferStrategy) {
       continue;
     }
 
-    // 生活費計算（インフレON時は年2%増加）
     const inflatedMonthlyExpense = baseExpenseMonthly * Math.pow(inflationActive ? 1.02 : 1.0, y);
 
     let neededNet = 0;
@@ -3817,7 +3980,6 @@ function simulatePlan(startYear, useBufferStrategy) {
 
     // 2. 生活費拠出
     if (neededNet > 0) {
-      // 【先行貯金消費フェーズ】：スライダー指定額（cashFloor）になるまで他資産から優先支出
       if (!isInitialPhaseDone && initialSpendBudget > 0) {
         if (initialSpendBudget > neededNet) {
           initialSpendBudget -= neededNet;
@@ -3825,10 +3987,9 @@ function simulatePlan(startYear, useBufferStrategy) {
           cashWithdraw = neededNet;
           textWithdraw = `<span style="color:#2f855a; font-weight:bold;">💵 貯金より支出</span>`;
         } else {
-          // 先行枠を使い切ってスライダー指定額（cashFloor）に確実に着地
           const paidFromCash = initialSpendBudget;
           const remainFromInvest = neededNet - paidFromCash;
-          cash = cashFloor; // ★スライダーで指定した額にピタリと着地
+          cash = cashFloor;
           cashWithdraw = paidFromCash;
           initialSpendBudget = 0;
           isInitialPhaseDone = true;
@@ -3837,12 +3998,9 @@ function simulatePlan(startYear, useBufferStrategy) {
           invest -= investWithdraw;
           textWithdraw = `${Math.round(investWithdraw / 12).toLocaleString()} 円/月`;
         }
-      } 
-      // 【先行貯金完了後フェーズ】：指定額（cashFloor）を死守
-      else {
+      } else {
         if (useBufferStrategy) {
           const availableBuffer = Math.max(0, cash - cashFloor);
-          // 下落年はクッション（cashFloor超〜cashCap）から身代わり支出
           if (returnRate < 0 && availableBuffer > 0) {
             const payFromCash = Math.min(neededNet, availableBuffer);
             cash -= payFromCash;
@@ -3868,10 +4026,10 @@ function simulatePlan(startYear, useBufferStrategy) {
       textWithdraw = `<span style="color:#718096;">年金相殺</span>`;
     }
 
-    // 3. 【バッファー復元ロジック】：好景気時に指定上限（600万円）まで復元
+    // 3. バッファー復元ロジック（設定された補充割合を適用）
     if (useBufferStrategy && isInitialPhaseDone && gain > 0 && cash < cashCap && invest > 0) {
       const bufferRoom = cashCap - cash;
-      const replenishBudget = Math.min(gain * 0.30, bufferRoom);
+      const replenishBudget = Math.min(gain * replenishRatio, bufferRoom);
       const grossReplenish = replenishBudget * TAX_FRICTION;
       if (invest >= grossReplenish) {
         invest -= grossReplenish;
@@ -3912,11 +4070,12 @@ function runSimulation() {
   }
 
   const res = simulatePlan(startYear, useBuffer);
+  const targetAge = stressTestConfig.targetAge;
 
   let tbodyHtml = '';
   res.logs.forEach(log => {
     const isFirst = log.year === 0;
-    const isFinal = log.age >= 85;
+    const isFinal = log.age >= targetAge;
     const rateSign = (log.rate !== null && log.rate >= 0) ? '+' : '';
     const rateClass = (log.rate !== null && log.rate >= 0) ? 'st-plus' : 'st-minus';
     const rateText = log.rate !== null ? `<span class="${rateClass}">${rateSign}${(log.rate * 100).toFixed(1)}%</span>` : '---';
@@ -3932,7 +4091,7 @@ function runSimulation() {
 
     tbodyHtml += `
       <tr style="${rowBg}">
-        <td style="border: 1px solid #e2e8f0; padding: 6px 8px; text-align: center;">${isFirst ? `退職時 (${log.age}歳)` : (isFinal ? '85歳時点' : `${log.year}年目 (${log.age}歳)`)}</td>
+        <td style="border: 1px solid #e2e8f0; padding: 6px 8px; text-align: center;">${isFirst ? `退職時 (${log.age}歳)` : (isFinal ? `${targetAge}歳時点` : `${log.year}年目 (${log.age}歳)`)}</td>
         <td style="border: 1px solid #e2e8f0; padding: 6px 8px; text-align: center; font-family: monospace;">${log.historyYear}年</td>
         <td style="border: 1px solid #e2e8f0; padding: 6px 8px; text-align: center; font-family: monospace;">${rateText}</td>
         <td style="border: 1px solid #e2e8f0; padding: 6px 8px; text-align: right; font-family: monospace;">${log.textWithdraw}</td>
@@ -3960,13 +4119,13 @@ function runSimulation() {
 
   if (ageEl && judgeEl) {
     if (res.depletionAge === null) {
-      ageEl.innerText = "95歳以上持続";
+      ageEl.innerText = `${targetAge + 10}歳以上持続`;
       ageEl.style.color = "#2b6cb0";
       judgeEl.innerHTML = `<span style="color:#2f855a; font-weight:bold;">✅ 逃げ切り可能</span>`;
     } else {
       ageEl.innerText = `${res.depletionAge}歳で投信枯渇`;
       ageEl.style.color = "#e53e3e";
-      judgeEl.innerHTML = `<span style="color:#e53e3e; font-weight:bold;">🚨 85歳前枯渇</span>`;
+      judgeEl.innerHTML = `<span style="color:#e53e3e; font-weight:bold;">🚨 ${targetAge}歳前枯渇</span>`;
     }
   }
 }
