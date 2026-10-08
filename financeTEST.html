@@ -3595,7 +3595,7 @@ function initEarlyRetireControls() {
 }
 
 // ==========================================
-// ★ 歴史データ・ストレステスト統合ロジック（現金プール死守400万・上限600万版）
+// ★ 歴史データ・ストレステスト統合ロジック（スライダー連動＆600万復元版）
 // ==========================================
 const HISTORICAL_REAL_RETURNS = {
   1900: 0.162, 1901: 0.134, 1902: -0.015, 1903: -0.113, 1904: 0.231, 1905: 0.142, 1906: -0.012, 1907: -0.186, 1908: 0.285, 1909: 0.089,
@@ -3622,9 +3622,6 @@ const ERA_NOTES = {
   1982: "✨【黄金の強気相場】インフレ鎮静化とIT革命に向かう20年間のボーナス相場。"
 };
 
-const CASH_FLOOR = 4000000; // 死守下限400万円
-const CASH_CAP = 6000000;   // 上限600万円（クッション200万）
-
 function setSliderYear(y) {
   const el = document.getElementById('year-slider');
   if (el) el.value = y;
@@ -3638,9 +3635,12 @@ function stepYear(step) {
   setSliderYear(nextYear);
 }
 
+// シミュレーション計算パラメータ
 let currentSimParams = {
   initInvest: 0,
   initOtherTotal: 0,
+  cashFloor: 4000000, // スライダー連動の死守ライン
+  cashCap: 6000000,   // 復元上限（常に600万円以上をキープ）
   baseExpenseMonthly: 150000,
   inflationActive: false,
   retireAge: 54,
@@ -3659,8 +3659,15 @@ function calculateEarlyRetireTable() {
   const otherTotals = calculateOtherAssetsTotals();
   const totalOtherAssets = otherTotals.grandTotal;
 
-  // 先行支出枠：他資産から400万円（死守下限）を差し引いた全額を支出に充当
-  const spendBudget = Math.max(0, totalOtherAssets - CASH_FLOOR);
+  // ★ ⑤スライダー値を取得（死守ライン）
+  const elSlider = document.getElementById('er-cash-use-slider');
+  const stopThreshold = elSlider ? Math.max(2000000, parseInt(elSlider.value) || 4000000) : 4000000;
+  
+  // スライダーの金額まで先行生活費として消費
+  const spendBudget = Math.max(0, totalOtherAssets - stopThreshold);
+
+  // 復元上限：400万円以下の場合は常に「600万円」まで復元
+  const restoreCap = Math.max(6000000, stopThreshold);
 
   const scale = getDemoScale();
   let totalMonthlyInvest = 0;
@@ -3682,16 +3689,19 @@ function calculateEarlyRetireTable() {
 
   const retireAge = currentAge + retireYears;
 
+  // パラメータを更新
   currentSimParams = {
     initInvest: retireInvestBalance,
     initOtherTotal: totalOtherAssets,
+    cashFloor: stopThreshold, // スライダー値（死守ライン）
+    cashCap: restoreCap,       // 復元上限（600万円）
     baseExpenseMonthly: monthlyWithdrawNet,
     inflationActive: earlyRetireInflationActive,
     retireAge: retireAge,
     spendBudget: spendBudget
   };
 
-  // サマリーバナー
+  // サマリーバナー描画
   const banner = document.getElementById('er-summary-banner');
   if (banner) {
     const timingText = (retireYears === 0) ? `今すぐ（${retireAge}歳時点）` : `${retireYears}年後（${retireAge}歳時点）`;
@@ -3699,6 +3709,9 @@ function calculateEarlyRetireTable() {
     const post65Net = Math.max(0, monthlyWithdrawNet - PENSION_NET);
     const post65Gross = Math.round(post65Net * TAX_FRICTION);
     const inflText = earlyRetireInflationActive ? '<span style="color:#2f855a;">【インフレ2%加算中】</span>' : '<span style="color:#718096;">【インフレなし】</span>';
+
+    const cushionAmount = restoreCap - stopThreshold;
+    const cushionText = cushionAmount > 0 ? `（好景気時に${Math.round(restoreCap/10000)}万円へ復元・クッション${Math.round(cushionAmount/10000)}万円）` : '';
 
     banner.innerHTML = `
       <div style="flex: 1.2; min-width: 200px;">
@@ -3708,7 +3721,7 @@ function calculateEarlyRetireTable() {
         </div>
         <div style="font-size: 11px; color: #718096; margin-top: 4px;">
           退職時投信額面: <strong>${Math.round(retireInvestBalance).toLocaleString()} 円</strong><br>
-          <span style="color:#2f855a; font-weight:bold;">💵 400万円まで先行消費（支出可能枠: 約${Math.round(spendBudget/10000)}万円 / 消費中投信無傷）</span>
+          <span style="color:#2f855a; font-weight:bold;">💵 ${Math.round(stopThreshold/10000)}万円まで先行消費（支出枠: 約${Math.round(spendBudget/10000)}万円 / 消費中投信無傷）</span>
         </div>
       </div>
       <div style="flex: 1.5; min-width: 240px;">
@@ -3721,25 +3734,28 @@ function calculateEarlyRetireTable() {
       <div style="flex: 1.3; min-width: 200px;">
         <span style="color: #2f855a; font-weight: bold;">🛡 完全死守プール資金（緊急予備費）:</span>
         <div style="font-size: 13px; font-weight: bold; color: #2f855a; margin-top: 3px;">
-          死守残高: ${CASH_FLOOR.toLocaleString()} 円
+          死守残高: ${stopThreshold.toLocaleString()} 円
         </div>
-        <div style="font-size: 11px; color: #718096;">（他資産初期計 ${Math.round(totalOtherAssets).toLocaleString()}円 − 先行支出 ${Math.round(spendBudget).toLocaleString()}円）</div>
+        <div style="font-size: 11px; color: #718096;">${cushionText}</div>
       </div>
     `;
   }
 
+  // 補充スイッチの説明文を動的更新
   const bufferDesc = document.getElementById('chk-buffer-desc');
   if (bufferDesc) {
-    bufferDesc.innerText = `（死守400万＋クッション200万＝上限600万／暴落時はクッションから生活費捻出）`;
+    const cushion = restoreCap - stopThreshold;
+    bufferDesc.innerText = `（死守${Math.round(stopThreshold/10000)}万＋クッション${Math.round(cushion/10000)}万＝${Math.round(restoreCap/10000)}万へ復元／暴落時はクッションから生活費捻出）`;
   }
 
+  // ルール説明文の更新
   const ruleDesc = document.getElementById('st-rule-desc');
   if (ruleDesc) {
     ruleDesc.innerHTML = `
       🛡 <strong>適用中の設定条件:</strong><br>
       ・退職年齢：${retireAge}歳（投信 ${Math.round(retireInvestBalance/10000)}万円、他資産 ${Math.round(totalOtherAssets/10000)}万円スタート）<br>
       ・手取り生活費：月 ${monthlyWithdrawNet/10000}万円 ${earlyRetireInflationActive ? '（年2%インフレ増額ON）' : '（インフレ増額なし）'}<br>
-      ・現金プール：先行支出で<strong>400万円</strong>へ着地。好景気時は上限600万円まで補充。<br>
+      ・現金プール：先行支出で<strong>${Math.round(stopThreshold/10000)}万円</strong>へ着地。好景気時は<strong>${Math.round(restoreCap/10000)}万円</strong>まで復元。<br>
       ・65歳以降は年金10万円を控除した差額を取り崩します。
     `;
   }
@@ -3753,6 +3769,8 @@ function simulatePlan(startYear, useBufferStrategy) {
   let initialSpendBudget = currentSimParams.spendBudget;
   let isInitialPhaseDone = (initialSpendBudget <= 0);
 
+  const cashFloor = currentSimParams.cashFloor; // スライダー指定の死守ライン
+  const cashCap = currentSimParams.cashCap;     // 復元上限（600万円）
   const baseExpenseMonthly = currentSimParams.baseExpenseMonthly;
   const inflationActive = currentSimParams.inflationActive;
   const retireAge = currentSimParams.retireAge;
@@ -3777,7 +3795,7 @@ function simulatePlan(startYear, useBufferStrategy) {
       continue;
     }
 
-    // 生活費（インフレ設定連動）
+    // 生活費計算（インフレON時は年2%増加）
     const inflatedMonthlyExpense = baseExpenseMonthly * Math.pow(inflationActive ? 1.02 : 1.0, y);
 
     let neededNet = 0;
@@ -3799,7 +3817,7 @@ function simulatePlan(startYear, useBufferStrategy) {
 
     // 2. 生活費拠出
     if (neededNet > 0) {
-      // 【先行貯金消費フェーズ】：400万円になるまで他資産から優先支出
+      // 【先行貯金消費フェーズ】：スライダー指定額（cashFloor）になるまで他資産から優先支出
       if (!isInitialPhaseDone && initialSpendBudget > 0) {
         if (initialSpendBudget > neededNet) {
           initialSpendBudget -= neededNet;
@@ -3807,10 +3825,10 @@ function simulatePlan(startYear, useBufferStrategy) {
           cashWithdraw = neededNet;
           textWithdraw = `<span style="color:#2f855a; font-weight:bold;">💵 貯金より支出</span>`;
         } else {
-          // 先行枠を使い切って400万円に着地
+          // 先行枠を使い切ってスライダー指定額（cashFloor）に確実に着地
           const paidFromCash = initialSpendBudget;
           const remainFromInvest = neededNet - paidFromCash;
-          cash = CASH_FLOOR; // ★確実に死守下限400万円に着地
+          cash = cashFloor; // ★スライダーで指定した額にピタリと着地
           cashWithdraw = paidFromCash;
           initialSpendBudget = 0;
           isInitialPhaseDone = true;
@@ -3820,11 +3838,11 @@ function simulatePlan(startYear, useBufferStrategy) {
           textWithdraw = `${Math.round(investWithdraw / 12).toLocaleString()} 円/月`;
         }
       } 
-      // 【先行貯金完了後フェーズ】：400万円死守、下落年はクッション（400万超〜600万）から支出
+      // 【先行貯金完了後フェーズ】：指定額（cashFloor）を死守
       else {
         if (useBufferStrategy) {
-          const availableBuffer = Math.max(0, cash - CASH_FLOOR);
-          // 下落年はクッションから身代わり支出
+          const availableBuffer = Math.max(0, cash - cashFloor);
+          // 下落年はクッション（cashFloor超〜cashCap）から身代わり支出
           if (returnRate < 0 && availableBuffer > 0) {
             const payFromCash = Math.min(neededNet, availableBuffer);
             cash -= payFromCash;
@@ -3850,9 +3868,9 @@ function simulatePlan(startYear, useBufferStrategy) {
       textWithdraw = `<span style="color:#718096;">年金相殺</span>`;
     }
 
-    // 3. 【バッファー補充ロジック】：好景気時に上限600万円（クッション200万）まで補充
-    if (useBufferStrategy && isInitialPhaseDone && gain > 0 && cash < CASH_CAP && invest > 0) {
-      const bufferRoom = CASH_CAP - cash;
+    // 3. 【バッファー復元ロジック】：好景気時に指定上限（600万円）まで復元
+    if (useBufferStrategy && isInitialPhaseDone && gain > 0 && cash < cashCap && invest > 0) {
+      const bufferRoom = cashCap - cash;
       const replenishBudget = Math.min(gain * 0.30, bufferRoom);
       const grossReplenish = replenishBudget * TAX_FRICTION;
       if (invest >= grossReplenish) {
@@ -3918,7 +3936,7 @@ function runSimulation() {
         <td style="border: 1px solid #e2e8f0; padding: 6px 8px; text-align: center; font-family: monospace;">${log.historyYear}年</td>
         <td style="border: 1px solid #e2e8f0; padding: 6px 8px; text-align: center; font-family: monospace;">${rateText}</td>
         <td style="border: 1px solid #e2e8f0; padding: 6px 8px; text-align: right; font-family: monospace;">${log.textWithdraw}</td>
-        <td style="border: 1px solid #e2e8f0; padding: 6px 8px; text-align: right; font-family: monospace; color: ${log.cash >= CASH_CAP ? '#2f855a' : (log.cash <= CASH_FLOOR ? '#c53030' : '#2b6cb0')}; font-weight:bold;">
+        <td style="border: 1px solid #e2e8f0; padding: 6px 8px; text-align: right; font-family: monospace; color: ${log.cash >= currentSimParams.cashCap ? '#2f855a' : (log.cash <= currentSimParams.cashFloor ? '#c53030' : '#2b6cb0')}; font-weight:bold;">
           ${cashDisplay}
         </td>
         <td style="border: 1px solid #e2e8f0; padding: 6px 8px; text-align: right; font-family: monospace; font-weight:bold; color:${isDepleted ? '#e53e3e' : '#1a202c'};">
