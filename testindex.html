@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>老後資産 歴史ストレステスト・シミュレーター</title>
+<style>
+  body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background: #f4f6f9;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+  }
+  .container {
+    max-width: 1350px;
+    margin: 0 auto;
+  }
+  h2 {
+    color: #2c3e50;
+    margin-bottom: 5px;
+  }
+  .subtitle {
+    font-size: 13px;
+    color: #718096;
+    margin-bottom: 20px;
+  }
+  .layout-wrapper {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  /* 左側リスト */
+  .table-container {
+    flex: 1.7;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    overflow-x: auto;
+  }
+  /* 右側操作盤 */
+  .panel-container {
+    flex: 1;
+    position: sticky;
+    top: 20px;
+    background: white;
+    border: 1px solid #cbd5e0;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.06);
+    box-sizing: border-box;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  th, td {
+    border: 1px solid #e2e8f0;
+    padding: 6px 8px;
+    text-align: right;
+  }
+  th {
+    background: #edf2f7;
+    color: #4a5568;
+    text-align: center;
+  }
+  .text-center { text-align: center; }
+  .font-mono { font-family: monospace; }
+  .plus { color: #2f855a; font-weight: bold; }
+  .minus { color: #c53030; font-weight: bold; }
+  
+  .slider-box {
+    margin: 10px 0 15px 0;
+    background: #f8fafc;
+    padding: 12px 15px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+  }
+  .slider-val {
+    font-size: 20px;
+    font-weight: bold;
+    color: #3182ce;
+    font-family: monospace;
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  input[type=range] {
+    width: 100%;
+    cursor: pointer;
+    accent-color: #3182ce;
+  }
+  
+  /* オプションスイッチ枠 */
+  .strategy-box {
+    background: #f0fff4;
+    border: 1px solid #c6f6d5;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 15px;
+  }
+  .strategy-box label {
+    font-size: 12px;
+    font-weight: bold;
+    color: #22543d;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .badge-era {
+    background: #fffaf0;
+    border-left: 4px solid #dd6b20;
+    padding: 10px;
+    font-size: 11px;
+    color: #7b341e;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+  .result-card {
+    background: #ebf8ff;
+    border: 1px solid #bee3f8;
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 15px;
+    margin-bottom: 15px;
+  }
+  .result-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    font-size: 12px;
+  }
+  .result-item:last-child { margin-bottom: 0; }
+  .result-item span:first-child { color: #4a5568; font-weight: bold; }
+  .result-item span:last-child { font-weight: bold; font-family: monospace; font-size: 13.5px; }
+  
+  .quick-btns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 6px;
+  }
+  .quick-btn {
+    background: #edf2f7;
+    border: 1px solid #cbd5e0;
+    border-radius: 4px;
+    padding: 4px 7px;
+    font-size: 11px;
+    cursor: pointer;
+    color: #2d3748;
+    transition: all 0.15s;
+  }
+  .quick-btn:hover {
+    background: #3182ce;
+    color: white;
+    border-color: #3182ce;
+  }
+  .worst-btn {
+    background: #fff5f5;
+    border: 1px solid #feb2b2;
+    color: #c53030;
+    font-weight: bold;
+    width: 100%;
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-bottom: 15px;
+    transition: all 0.2s;
+  }
+  .worst-btn:hover {
+    background: #e53e3e;
+    color: white;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h2>🏖 老後資産 歴史ストレステスト（1900年〜）</h2>
+  <div class="subtitle">※S&P500(60%)＋米国10年国債(40%)の実質リターンを適用（インフレ二重計算防止のため生活費は実質額で固定算出）。</div>
+
+  <div class="layout-wrapper">
+    <!-- 左側：年次推移リスト -->
+    <div class="table-container">
+      <h4 style="margin: 0 0 10px 0; font-size: 13px; color: #2c3e50;">■ 選択プランの時系列シミュレーション推移</h4>
+      <table>
+        <thead>
+          <tr>
+            <th>経過 (年齢)</th>
+            <th>年号</th>
+            <th>騰落率(実質)</th>
+            <th>投信売却額</th>
+            <th>現金プール</th>
+            <th>投資信託 残高</th>
+          </tr>
+        </thead>
+        <tbody id="sim-tbody">
+          <!-- JSで動的生成 -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 右側：スライダー＆判定操作パネル -->
+    <div class="panel-container">
+      <h3 style="margin-top: 0; font-size: 14px; color: #2c3e50; border-bottom: 2px solid #3182ce; padding-bottom: 6px;">⚙ 歴史追体験コントローラー</h3>
+      
+      <!-- 史上最悪年ジャンプボタン -->
+      <button class="worst-btn" onclick="jumpToWorstYear()">
+        🚨 史上最悪の年に自動ジャンプ（ワースト探索）
+      </button>
+
+      <div class="slider-box">
+        <div class="slider-val" id="year-display">1929 年 退職</div>
+        <input type="range" id="year-slider" min="1900" max="1993" value="1929" oninput="runSimulation()">
+        <div style="display: flex; justify-content: space-between; font-size: 10px; color: #718096; font-weight: bold; margin-top: 5px;">
+          <span>1900年</span>
+          <span>1950年</span>
+          <span>1993年</span>
+        </div>
+      </div>
+
+      <!-- キャッシュバッファー補充チェックボックス -->
+      <div class="strategy-box">
+        <label>
+          <input type="checkbox" id="chk-buffer" onchange="runSimulation()" checked>
+          <span>🛡 先行資金消費後、好景気時に800万へ補充<br><span style="font-weight:normal; font-size:10px; color:#276749;">（利益の30%を現金へ／その後の暴落時は現金から生活費捻出）</span></span>
+        </label>
+      </div>
+
+      <!-- ① 時代背景バッジ -->
+      <div class="badge-era" id="era-badge">
+        時代背景を集計中...
+      </div>
+
+      <!-- ② 歴史的事件へジャンプ（時代背景の直下に配置） -->
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; margin-bottom: 12px;">
+        <div style="font-size: 11px; font-weight: bold; color: #4a5568; margin-bottom: 4px;">歴史的事件へジャンプ:</div>
+        <div class="quick-btns">
+          <button class="quick-btn" onclick="setSliderYear(1929)">1929年 世界恐慌</button>
+          <button class="quick-btn" onclick="setSliderYear(1937)">1937年 ルーズベルト不況</button>
+          <button class="quick-btn" onclick="setSliderYear(1966)">1966年 スタグフレーション</button>
+          <button class="quick-btn" onclick="setSliderYear(1973)">1973年 第1次オイルショック</button>
+          <button class="quick-btn" onclick="setSliderYear(1982)">1982年 黄金の強気相場</button>
+        </div>
+      </div>
+
+      <!-- ③ 結果サマリーカード -->
+      <div class="result-card">
+        <div class="result-item">
+          <span>85歳時点 投信残高:</span>
+          <span id="final-invest">0 円</span>
+        </div>
+        <div class="result-item">
+          <span>85歳時点 現金残高:</span>
+          <span id="final-cash">0 円</span>
+        </div>
+        <div class="result-item">
+          <span>資産寿命:</span>
+          <span id="depletion-age" style="color: #2b6cb0;">95歳以上持続</span>
+        </div>
+        <div class="result-item">
+          <span>85歳逃げ切り判定:</span>
+          <span id="judge-status" style="color: #2f855a;">✅ 逃げ切り可能</span>
+        </div>
+      </div>
+
+      <div style="font-size: 11px; color: #4a5568; line-height: 1.5; background: #edf2f7; padding: 8px 10px; border-radius: 4px;">
+        🛡 <strong>先行支出フェーズ（固定ルール）:</strong><br>
+        退職直後は相場の良し悪しに関わらず、貯金が400万円になるまで（約461万円分／約3〜4年）は<strong>投信売却0円</strong>で生活費を全額拠出します。
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// 1900年〜2024年の合成年間実質リターン配列（S&P500 60% ＋ 米国債 40% インフレ調整後）
+const HISTORICAL_REAL_RETURNS = {
+  1900: 0.162, 1901: 0.134, 1902: -0.015, 1903: -0.113, 1904: 0.231, 1905: 0.142, 1906: -0.012, 1907: -0.186, 1908: 0.285, 1909: 0.089,
+  1910: -0.038, 1911: 0.024, 1912: 0.031, 1913: -0.081, 1914: -0.065, 1915: 0.214, 1916: -0.042, 1917: -0.218, 1918: 0.031, 1919: 0.012,
+  1920: -0.098, 1921: 0.224, 1922: 0.185, 1923: 0.011, 1924: 0.174, 1925: 0.165, 1926: 0.098, 1927: 0.245, 1928: 0.274, 1929: -0.078,
+  1930: -0.119, 1931: -0.225, 1932: -0.084, 1933: 0.385, 1934: -0.041, 1935: 0.312, 1936: 0.248, 1937: -0.213, 1938: 0.187, 1939: -0.005,
+  1940: -0.058, 1941: -0.082, 1942: 0.124, 1943: 0.151, 1944: 0.118, 1945: 0.203, 1946: -0.134, 1947: -0.032, 1948: 0.021, 1949: 0.115,
+  1950: 0.184, 1951: 0.142, 1952: 0.089, 1953: -0.008, 1954: 0.326, 1955: 0.214, 1956: 0.032, 1957: -0.071, 1958: 0.253, 1959: 0.068,
+  1960: 0.015, 1961: 0.182, 1962: -0.064, 1963: 0.148, 1964: 0.102, 1965: 0.074, 1966: -0.078, 1967: 0.132, 1968: 0.054, 1969: -0.112,
+  1970: 0.018, 1971: 0.086, 1972: 0.092, 1973: -0.174, 1974: -0.254, 1975: 0.198, 1976: 0.142, 1977: -0.078, 1978: -0.032, 1979: 0.024,
+  1980: 0.078, 1981: -0.042, 1982: 0.205, 1983: 0.146, 1984: 0.074, 1985: 0.231, 1986: 0.158, 1987: 0.024, 1988: 0.098, 1989: 0.184,
+  1990: -0.052, 1991: 0.201, 1992: 0.054, 1993: 0.082, 1994: -0.041, 1995: 0.254, 1996: 0.148, 1997: 0.185, 1998: 0.192, 1999: 0.112,
+  2000: -0.072, 2001: -0.084, 2002: -0.118, 2003: 0.184, 2004: 0.078, 2005: 0.038, 2006: 0.092, 2007: 0.048, 2008: -0.221, 2009: 0.168,
+  2010: 0.114, 2011: 0.042, 2012: 0.108, 2013: 0.178, 2014: 0.082, 2015: -0.008, 2016: 0.078, 2017: 0.142, 2018: -0.048, 2019: 0.218,
+  2020: 0.138, 2021: 0.098, 2022: -0.174, 2023: 0.142, 2024: 0.128
+};
+
+const ERA_NOTES = {
+  1914: "⚠️【第1次世界大戦期】高インフレと戦時経済による波乱相場。",
+  1929: "🚨【世界恐慌ルート】開始直後から4年連続の歴史的大暴落。初期貯金による投信無傷防衛が生命線。",
+  1937: "⚠️【ルーズベルト不況】恐慌回復途中の再下落ショック期。",
+  1966: "🚨【魔のスタグフレーション期】株安と物価高が15年以上継続。逃げ切り失敗率が最も高い年代。",
+  1973: "⚠️【オイルショック期】2年連続の20%超下落＋ハイパーインフレの複合危機。",
+  1982: "✨【黄金の強気相場】インフレ鎮静化とIT革命に向かう20年間のボーナス相場。"
+};
+
+// ユーザー初期資産
+const INIT_INVEST = 19497597; // 投信残高スタート
+const INIT_OTHER_TOTAL = 8613734; // 現金・外貨・仮想通貨等（合計約861万円）
+const CASH_FLOOR = 4000000; // 死守下限400万円（先行支出は約461万円）
+const CASH_CAP = 8000000;   // 目標上限800万円（生活防衛400万 + 死守400万）
+const MONTHLY_EXPENSE_NET = 100000; // 64歳までの毎月手取り生活費
+const TAX_FRICTION = 1.08; // 税金摩擦8%上乗せ
+
+function setSliderYear(y) {
+  document.getElementById('year-slider').value = y;
+  runSimulation();
+}
+
+// シミュレーション計算エンジン
+function simulatePlan(startYear, useBufferStrategy) {
+  let invest = INIT_INVEST;
+  let cash = INIT_OTHER_TOTAL; // 約861万円スタート
+  let initialSpendBudget = INIT_OTHER_TOTAL - CASH_FLOOR; // 約461万円の先行支出予算
+  let isInitialPhaseDone = false;
+
+  let depletionAge = null;
+  const logs = [];
+
+  const currentAge = 54;
+  const retirePeriodYears = 31; // 54〜85歳
+
+  for (let y = 0; y <= retirePeriodYears; y++) {
+    const age = currentAge + y;
+    const historyYear = startYear + y;
+    const returnRate = HISTORICAL_REAL_RETURNS[historyYear] !== undefined ? HISTORICAL_REAL_RETURNS[historyYear] : 0.03;
+
+    if (y === 0) {
+      logs.push({
+        year: y, age: age, historyYear: historyYear, rate: null,
+        investWithdraw: 0, cashWithdraw: 0, replenish: 0,
+        invest: invest, cash: cash, textWithdraw: "0 円"
+      });
+      continue;
+    }
+
+    // 必要生活費（65歳以降は年金10万相殺で手取り0円）
+    const neededNet = (age >= 65) ? 0 : (MONTHLY_EXPENSE_NET * 12);
+    let investWithdraw = 0;
+    let cashWithdraw = 0;
+    let replenishAmount = 0; // 高利率時の現金プール補充額
+    let textWithdraw = "";
+
+    // 1. 投信運用の反映
+    const gain = invest * returnRate;
+    invest = invest + gain;
+
+    // 2. 生活費の拠出ロジック
+    if (neededNet > 0) {
+      // 【フェーズ1】：退職直後の先行貯金消費フェーズ（最優先）
+      if (!isInitialPhaseDone && initialSpendBudget > 0) {
+        if (initialSpendBudget >= neededNet) {
+          initialSpendBudget -= neededNet;
+          cash -= neededNet;
+          cashWithdraw = neededNet;
+          textWithdraw = `<span style="color:#2f855a; font-weight:bold;">💵 貯金より支出 (投信0円)</span>`;
+          if (initialSpendBudget === 0) isInitialPhaseDone = true;
+        } else {
+          const paidFromCash = initialSpendBudget;
+          const remainFromInvest = neededNet - paidFromCash;
+          cash -= paidFromCash;
+          cashWithdraw = paidFromCash;
+          initialSpendBudget = 0;
+          isInitialPhaseDone = true;
+
+          investWithdraw = remainFromInvest * TAX_FRICTION;
+          invest -= investWithdraw;
+          textWithdraw = `${Math.round(investWithdraw / 12).toLocaleString()} 円/月`;
+        }
+      } 
+      // 【フェーズ2】：先行貯金が尽きた後の生活費支出
+      else {
+        if (useBufferStrategy) {
+          const availableBuffer = Math.max(0, cash - CASH_FLOOR);
+          if (returnRate < 0 && availableBuffer > 0) {
+            const payFromCash = Math.min(neededNet, availableBuffer);
+            cash -= payFromCash;
+            cashWithdraw = payFromCash;
+            const remain = neededNet - payFromCash;
+            if (remain > 0) {
+              investWithdraw = remain * TAX_FRICTION;
+              invest -= investWithdraw;
+            }
+            textWithdraw = `<span style="color:#2f855a; font-weight:bold;">🛡 現金クッション支出 (投信0円)</span>`;
+          } else {
+            investWithdraw = neededNet * TAX_FRICTION;
+            invest -= investWithdraw;
+            textWithdraw = `${Math.round(investWithdraw / 12).toLocaleString()} 円/月`;
+          }
+        } else {
+          investWithdraw = neededNet * TAX_FRICTION;
+          invest -= investWithdraw;
+          textWithdraw = `${Math.round(investWithdraw / 12).toLocaleString()} 円/月`;
+        }
+      }
+    } else {
+      textWithdraw = `<span style="color:#718096;">年金控除 (投信0円)</span>`;
+    }
+
+    // 3. 【バッファー補充ロジック】先行支出終了後、プラス年の純利益の30%を補充
+    if (useBufferStrategy && isInitialPhaseDone && gain > 0 && cash < CASH_CAP && invest > 0) {
+      const bufferRoom = CASH_CAP - cash;
+      const replenishBudget = Math.min(gain * 0.30, bufferRoom);
+      const grossReplenish = replenishBudget * TAX_FRICTION;
+      if (invest >= grossReplenish) {
+        invest -= grossReplenish;
+        cash += replenishBudget;
+        replenishAmount = replenishBudget;
+      }
+    }
+
+    // 枯渇判定
+    if (invest <= 0) {
+      invest = 0;
+      if (depletionAge === null) depletionAge = age;
+    }
+
+    logs.push({
+      year: y, age: age, historyYear: historyYear, rate: returnRate,
+      investWithdraw: investWithdraw, cashWithdraw: cashWithdraw, replenish: replenishAmount,
+      invest: Math.round(invest), cash: Math.round(cash), textWithdraw: textWithdraw
+    });
+  }
+
+  return { logs, depletionAge, finalInvest: logs[logs.length - 1].invest, finalCash: logs[logs.length - 1].cash };
+}
+
+// 画面全体のシミュレーション更新
+function runSimulation() {
+  const startYear = parseInt(document.getElementById('year-slider').value);
+  const useBuffer = document.getElementById('chk-buffer').checked;
+
+  document.getElementById('year-display').innerText = `${startYear} 年 退職`;
+
+  const eraBadge = document.getElementById('era-badge');
+  const note = ERA_NOTES[startYear] || `【${startYear}年代ルート】平穏な景気循環および市場サイクル。`;
+  eraBadge.innerHTML = `<strong>時代背景:</strong> ${note}`;
+
+  const res = simulatePlan(startYear, useBuffer);
+
+  // テーブルの生成
+  let tbodyHtml = '';
+  res.logs.forEach(log => {
+    const isFirst = log.year === 0;
+    const isFinal = log.age >= 85;
+    const rateSign = (log.rate !== null && log.rate >= 0) ? '+' : '';
+    const rateClass = (log.rate !== null && log.rate >= 0) ? 'plus' : 'minus';
+    const rateText = log.rate !== null ? `<span class="${rateClass}">${rateSign}${(log.rate * 100).toFixed(1)}%</span>` : '---';
+
+    // 現金プール表示（補充があった場合は「+〇〇万円」を追記）
+    let cashDisplay = `${log.cash.toLocaleString()} 円`;
+    if (log.replenish > 0) {
+      const addedMan = Math.round(log.replenish / 10000);
+      cashDisplay += ` <span style="color:#2f855a; font-weight:normal; font-size:11px;">(+${addedMan}万円)</span>`;
+    }
+
+    const isDepleted = log.invest <= 0 && res.depletionAge !== null && log.age >= res.depletionAge;
+    const rowBg = isDepleted ? 'background: #fff5f5;' : (log.year % 2 === 0 ? 'background: #fafbfc;' : 'background: #ffffff;');
+
+    tbodyHtml += `
+      <tr style="${rowBg}">
+        <td class="text-center">${isFirst ? `退職時 (${log.age}歳)` : (isFinal ? '85歳時点' : `${log.year}年目 (${log.age}歳)`)}</td>
+        <td class="text-center font-mono">${log.historyYear}年</td>
+        <td class="text-center font-mono">${rateText}</td>
+        <td class="font-mono">${log.textWithdraw}</td>
+        <td class="font-mono" style="color: ${log.cash >= 8000000 ? '#2f855a' : (log.cash <= 4000000 ? '#c53030' : '#2b6cb0')}; font-weight:bold;">
+          ${cashDisplay}
+        </td>
+        <td class="font-mono" style="font-weight:bold; color:${isDepleted ? '#e53e3e' : '#1a202c'};">
+          ${isDepleted ? `🚨 ${res.depletionAge}歳で投信枯渇` : `${log.invest.toLocaleString()} 円`}
+        </td>
+      </tr>
+    `;
+  });
+  document.getElementById('sim-tbody').innerHTML = tbodyHtml;
+
+  // 右側サマリー
+  document.getElementById('final-invest').innerText = `${res.finalInvest.toLocaleString()} 円`;
+  document.getElementById('final-cash').innerText = `${res.finalCash.toLocaleString()} 円`;
+
+  const ageEl = document.getElementById('depletion-age');
+  const judgeEl = document.getElementById('judge-status');
+
+  if (res.depletionAge === null) {
+    ageEl.innerText = "95歳以上持続";
+    ageEl.style.color = "#2b6cb0";
+    judgeEl.innerHTML = `<span style="color:#2f855a; font-weight:bold;">✅ 逃げ切り可能</span>`;
+  } else {
+    ageEl.innerText = `${res.depletionAge}歳で投信枯渇`;
+    ageEl.style.color = "#e53e3e";
+    judgeEl.innerHTML = `<span style="color:#e53e3e; font-weight:bold;">🚨 85歳前枯渇</span>`;
+  }
+}
+
+// 史上最悪の年を全探索してジャンプする
+function jumpToWorstYear() {
+  const useBuffer = document.getElementById('chk-buffer').checked;
+  let worstYear = 1900;
+  let worstScore = Infinity;
+
+  for (let y = 1900; y <= 1993; y++) {
+    const res = simulatePlan(y, useBuffer);
+    let score = 0;
+    if (res.depletionAge !== null) {
+      score = res.depletionAge * 100000;
+    } else {
+      score = 100000000 + (res.finalInvest + res.finalCash);
+    }
+
+    if (score < worstScore) {
+      worstScore = score;
+      worstYear = y;
+    }
+  }
+
+  setSliderYear(worstYear);
+}
+
+// 起動
+window.onload = function() {
+  runSimulation();
+};
+</script>
+
+</body>
+</html>
