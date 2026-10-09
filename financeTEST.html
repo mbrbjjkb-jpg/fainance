@@ -3932,7 +3932,6 @@ function calculateEarlyRetireTable() {
   runSimulation();
 }
 
-// 引数に useSuperHarvest を追加
 function simulatePlan(startYear, useBufferStrategy, useSuperHarvest) {
   let invest = currentSimParams.initInvest;
   let cash = currentSimParams.initOtherTotal;
@@ -4077,16 +4076,22 @@ function runSimulation() {
   const startYear = parseInt(sliderEl.value);
   const chkBufferEl = document.getElementById('chk-buffer');
   const useBuffer = chkBufferEl ? chkBufferEl.checked : true;
-  // ▼ 追加：新チェックボックスの状態を取得 ▼
+
+  // 新設チェックボックス（未配置時でもエラーにならない安全ガード付き）
   const chkSuperEl = document.getElementById('chk-super-harvest');
   const useSuperHarvest = chkSuperEl ? chkSuperEl.checked : false;
 
   const yearDisplay = document.getElementById('year-display');
   if (yearDisplay) yearDisplay.innerText = `${startYear} 年 退職`;
-  ...
-  // ▼ simulatePlan 呼び出し時に useSuperHarvest を渡す ▼
+
+  const eraBadge = document.getElementById('era-badge');
+  if (eraBadge) {
+    const note = ERA_NOTES[startYear] || `【${startYear}年代ルート】平穏な景気循環および市場サイクル。`;
+    eraBadge.innerHTML = `<strong>時代背景:</strong> ${note}`;
+  }
+
   const res = simulatePlan(startYear, useBuffer, useSuperHarvest);
-  const targetAge = stressTestConfig.targetAge;
+  const targetAge = (typeof stressTestConfig !== 'undefined' && stressTestConfig.targetAge) ? stressTestConfig.targetAge : 85;
 
   let tbodyHtml = '';
   res.logs.forEach(log => {
@@ -4149,7 +4154,6 @@ function runSimulation() {
 function jumpToWorstYear() {
   const chkBufferEl = document.getElementById('chk-buffer');
   const useBuffer = chkBufferEl ? chkBufferEl.checked : true;
-  // ▼ 追加 ▼
   const chkSuperEl = document.getElementById('chk-super-harvest');
   const useSuperHarvest = chkSuperEl ? chkSuperEl.checked : false;
 
@@ -4157,7 +4161,6 @@ function jumpToWorstYear() {
   let worstScore = Infinity;
 
   for (let y = 1900; y <= 1993; y++) {
-    // ▼ 引数を追加 ▼
     const res = simulatePlan(y, useBuffer, useSuperHarvest);
     let score = 0;
     if (res.depletionAge !== null) {
