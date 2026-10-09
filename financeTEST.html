@@ -547,12 +547,20 @@
         </div>
       </div>
 
-      <!-- キャッシュバッファー補充チェックボックス -->
+      <!-- キャッシュバッファー補充チェックボックス枠 -->
       <div class="st-strategy-box">
         <label>
           <input type="checkbox" id="chk-buffer" onchange="runSimulation()" checked>
           <span>🛡 先行資金消費後、好景気時にプール補充<br><span id="chk-buffer-desc" style="font-weight:normal; font-size:10px; color:#276749;">（死守ライン＋クッション200万／暴落時はクッションから生活費捻出）</span></span>
         </label>
+        <!-- ▼ ここから追加 ▼ -->
+        <div style="border-top: 1px dashed #c6f6d5; margin: 8px 0; padding-top: 8px;">
+          <label style="font-size: 11.5px;">
+            <input type="checkbox" id="chk-super-harvest" onchange="runSimulation()" checked>
+            <span>🌾 騰落率(実質)+10%以上の時に年50万円を上限とする<br><span style="font-weight:normal; font-size:10px; color:#276749;">（小幅な好況では投信を削らず、大豊作年のみゆっくり補充）</span></span>
+          </label>
+        </div>
+        <!-- ▲ ここまで追加 ▲ -->
       </div>
 
       <!-- 時代背景バッジ -->
@@ -3924,7 +3932,8 @@ function calculateEarlyRetireTable() {
   runSimulation();
 }
 
-function simulatePlan(startYear, useBufferStrategy) {
+// 引数に useSuperHarvest を追加
+function simulatePlan(startYear, useBufferStrategy, useSuperHarvest) {
   let invest = currentSimParams.initInvest;
   let cash = currentSimParams.initOtherTotal;
   let initialSpendBudget = currentSimParams.spendBudget;
@@ -4026,15 +4035,24 @@ function simulatePlan(startYear, useBufferStrategy) {
       textWithdraw = `<span style="color:#718096;">年金相殺</span>`;
     }
 
-    // 3. バッファー復元ロジック（設定された補充割合を適用）
+    // 3. バッファー復元ロジック（+10%超・年50万上限オプション対応）
     if (useBufferStrategy && isInitialPhaseDone && gain > 0 && cash < cashCap && invest > 0) {
-      const bufferRoom = cashCap - cash;
-      const replenishBudget = Math.min(gain * replenishRatio, bufferRoom);
-      const grossReplenish = replenishBudget * TAX_FRICTION;
-      if (invest >= grossReplenish) {
-        invest -= grossReplenish;
-        cash += replenishBudget;
-        replenishAmount = replenishBudget;
+      // ★ +10%以上制限が有効な場合、実質リターンが10%未満の年は補充をスキップ（投信を削らない）
+      if (!useSuperHarvest || returnRate >= 0.10) {
+        const bufferRoom = cashCap - cash;
+        let replenishBudget = Math.min(gain * replenishRatio, bufferRoom);
+        
+        // ★ 年50万円上限キャップを適用
+        if (useSuperHarvest) {
+          replenishBudget = Math.min(replenishBudget, 500000);
+        }
+
+        const grossReplenish = replenishBudget * TAX_FRICTION;
+        if (invest >= grossReplenish) {
+          invest -= grossReplenish;
+          cash += replenishBudget;
+          replenishAmount = replenishBudget;
+        }
       }
     }
 
@@ -4059,17 +4077,15 @@ function runSimulation() {
   const startYear = parseInt(sliderEl.value);
   const chkBufferEl = document.getElementById('chk-buffer');
   const useBuffer = chkBufferEl ? chkBufferEl.checked : true;
+  // ▼ 追加：新チェックボックスの状態を取得 ▼
+  const chkSuperEl = document.getElementById('chk-super-harvest');
+  const useSuperHarvest = chkSuperEl ? chkSuperEl.checked : false;
 
   const yearDisplay = document.getElementById('year-display');
   if (yearDisplay) yearDisplay.innerText = `${startYear} 年 退職`;
-
-  const eraBadge = document.getElementById('era-badge');
-  if (eraBadge) {
-    const note = ERA_NOTES[startYear] || `【${startYear}年代ルート】平穏な景気循環および市場サイクル。`;
-    eraBadge.innerHTML = `<strong>時代背景:</strong> ${note}`;
-  }
-
-  const res = simulatePlan(startYear, useBuffer);
+  ...
+  // ▼ simulatePlan 呼び出し時に useSuperHarvest を渡す ▼
+  const res = simulatePlan(startYear, useBuffer, useSuperHarvest);
   const targetAge = stressTestConfig.targetAge;
 
   let tbodyHtml = '';
@@ -4133,11 +4149,16 @@ function runSimulation() {
 function jumpToWorstYear() {
   const chkBufferEl = document.getElementById('chk-buffer');
   const useBuffer = chkBufferEl ? chkBufferEl.checked : true;
+  // ▼ 追加 ▼
+  const chkSuperEl = document.getElementById('chk-super-harvest');
+  const useSuperHarvest = chkSuperEl ? chkSuperEl.checked : false;
+
   let worstYear = 1900;
   let worstScore = Infinity;
 
   for (let y = 1900; y <= 1993; y++) {
-    const res = simulatePlan(y, useBuffer);
+    // ▼ 引数を追加 ▼
+    const res = simulatePlan(y, useBuffer, useSuperHarvest);
     let score = 0;
     if (res.depletionAge !== null) {
       score = res.depletionAge * 100000;
