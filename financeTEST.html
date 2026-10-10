@@ -4026,25 +4026,15 @@ function simulatePlan(startYear, useBufferStrategy) {
       textWithdraw = `<span style="color:#718096;">年金相殺</span>`;
     }
 
-    // 3. 先取り利確・バッファー補充ロジック（現金生活中も好景気なら先取り補充）
-    if (useBufferStrategy && gain > 0 && invest > 0) {
-      // 現金プールの上限（cashCap）までの空き枠を計算
-      const bufferRoom = Math.max(0, cashCap - cash);
-      
-      if (bufferRoom > 0) {
-        const replenishBudget = Math.min(gain * replenishRatio, bufferRoom);
-        const grossReplenish = replenishBudget * TAX_FRICTION;
-
-        if (invest >= grossReplenish && replenishBudget > 0) {
-          invest -= grossReplenish;
-          cash += replenishBudget;
-          replenishAmount = replenishBudget;
-
-          // ★重要：初期の現金生活フェーズ中であれば、使える生活費枠もその分延長加算する
-          if (!isInitialPhaseDone) {
-            initialSpendBudget += replenishBudget;
-          }
-        }
+    // 3. バッファー復元ロジック（設定された補充割合を適用）
+    if (useBufferStrategy && isInitialPhaseDone && gain > 0 && cash < cashCap && invest > 0) {
+      const bufferRoom = cashCap - cash;
+      const replenishBudget = Math.min(gain * replenishRatio, bufferRoom);
+      const grossReplenish = replenishBudget * TAX_FRICTION;
+      if (invest >= grossReplenish) {
+        invest -= grossReplenish;
+        cash += replenishBudget;
+        replenishAmount = replenishBudget;
       }
     }
 
