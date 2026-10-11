@@ -547,13 +547,23 @@
         </div>
       </div>
 
-      <!-- キャッシュバッファー補充チェックボックス -->
+      <!-- キャッシュバッファー補充チェックボックス（既存） -->
       <div class="st-strategy-box">
         <label>
           <input type="checkbox" id="chk-buffer" onchange="runSimulation()" checked>
           <span>🛡 先行資金消費後、好景気時にプール補充<br><span id="chk-buffer-desc" style="font-weight:normal; font-size:10px; color:#276749;">（死守ライン＋クッション200万／暴落時はクッションから生活費捻出）</span></span>
         </label>
       </div>
+
+      <!-- ★ここを追加：相場回復待ちチェックボックス -->
+      <div class="st-strategy-box" style="background: #fffaf0; border-color: #feebc8; margin-top: -8px;">
+        <label style="color: #7b341e;">
+          <input type="checkbox" id="chk-wait-recovery" onchange="runSimulation()">
+          <span>⏳ 相場が戻るまで現金プールから生活費を使う<br><span style="font-weight:normal; font-size:10px; color:#9c4221;">（最高値を奪回するまで投信売却を停止／現金枯渇時は投信強制売却）</span></span>
+        </label>
+      </div>
+
+
 
       <!-- 時代背景バッジ -->
       <div class="st-badge-era" id="era-badge">
@@ -3924,21 +3934,25 @@ function calculateEarlyRetireTable() {
   runSimulation();
 }
 
-function simulatePlan(startYear, useBufferStrategy) {
+// 引数に useWaitRecovery を追加
+function simulatePlan(startYear, useBufferStrategy, useWaitRecovery = false) {
   let invest = currentSimParams.initInvest;
   let cash = currentSimParams.initOtherTotal;
   let initialSpendBudget = currentSimParams.spendBudget;
   let isInitialPhaseDone = (initialSpendBudget <= 0);
+
+  // ★追加：投信の最高値（ピーク）を追跡する変数
+  let peakInvest = invest;
 
   const cashFloor = currentSimParams.cashFloor;
   const cashCap = currentSimParams.cashCap;
   const baseExpenseMonthly = currentSimParams.baseExpenseMonthly;
   const inflationActive = currentSimParams.inflationActive;
   const retireAge = currentSimParams.retireAge;
-  const targetAge = stressTestConfig.targetAge; // 設定された判定年齢
-  const PENSION_BASE = stressTestConfig.pensionMonthly; // 設定された年金額
+  const targetAge = stressTestConfig.targetAge;
+  const PENSION_BASE = stressTestConfig.pensionMonthly;
   const TAX_FRICTION = 1.08;
-  const replenishRatio = stressTestConfig.bufferReplenishRate / 100; // 設定された補充率
+  const replenishRatio = stressTestConfig.bufferReplenishRate / 100;
 
   let depletionAge = null;
   const logs = [];
@@ -3947,7 +3961,6 @@ function simulatePlan(startYear, useBufferStrategy) {
   for (let y = 0; y <= retirePeriodYears; y++) {
     const age = retireAge + y;
     const historyYear = startYear + y;
-    // 設定された株式・債券比率でリターンを動的合成
     const returnRate = getBlendedReturn(historyYear);
 
     if (y === 0) {
@@ -3978,9 +3991,17 @@ function simulatePlan(startYear, useBufferStrategy) {
     const gain = invest * returnRate;
     invest = invest + gain;
 
+    // ★最高値の更新
+    if (invest > peakInvest) {
+      peakInvest = invest;
+    }
+    // 相場が元の高値に戻っていないか判定（ピークより5%以上安い状態）
+    const isBelowPeak = (invest < peakInvest * 0.95);
+
     // 2. 生活費拠出
     if (neededNet > 0) {
       if (!isInitialPhaseDone && initialSpendBudget > 0) {
+        // 【先行支出フェーズ】
         if (initialSpendBudget > neededNet) {
           initialSpendBudget -= neededNet;
           cash -= neededNet;
@@ -3999,10 +4020,34 @@ function simulatePlan(startYear, useBufferStrategy) {
           textWithdraw = `${Math.round(investWithdraw / 12).toLocaleString()} 円/月`;
         }
       } else {
-        if (useBufferStrategy) {
-          const availableBuffer = Math.max(0, cash - cashFloor);
-          if (returnRate < 0 && availableBuffer > 0) {
-            const payFromCash = Math.min(neededNet, availableBuffer);
+        // 【通常フェーズ】
+        const availableCash = Math.max(0, cash - cashFloor);
+
+        // ★新設：「相場が戻るまで現金を使う」がONで、相場が低迷中の場合
+        if (useWaitRecovery && isBelowPeak) {
+          if (availableCash >= neededNet) {
+            // 現金が足りているので投信は売らない
+            cash -= neededNet;
+            cashWithdraw = neededNet;
+            textWithdraw = `<span style="color:#d69e2e; font-weight:bold;">⏳ 回復待ち現金支出</span>`;
+          } else if (availableCash > 0) {
+            // 現金が一部足りない（現金枯渇寸前）
+            cash = cashFloor;
+            cashWithdraw = availableCash;
+            const shortage = neededNet - availableCash;
+            investWithdraw = shortage * TAX_FRICTION;
+            invest -= investWithdraw;
+            textWithdraw = `<span style="color:#e53e3e; font-weight:bold;">🚨 現金枯渇・投信売却</span>`;
+          } else {
+            // 現金ゼロのため全額投信売却
+            investWithdraw = neededNet * TAX_FRICTION;
+            invest -= investWithdraw;
+            textWithdraw = `${Math.round(investWithdraw / 12).toLocaleString()} 円/月`;
+          }
+        } else if (useBufferStrategy) {
+          // 従来のクッション戦略
+          if (returnRate < 0 && availableCash > 0) {
+            const payFromCash = Math.min(neededNet, availableCash);
             cash -= payFromCash;
             cashWithdraw = payFromCash;
             const remain = neededNet - payFromCash;
@@ -4026,7 +4071,7 @@ function simulatePlan(startYear, useBufferStrategy) {
       textWithdraw = `<span style="color:#718096;">年金相殺</span>`;
     }
 
-    // 3. バッファー復元ロジック（設定された補充割合を適用）
+    // 3. バッファー復元ロジック（好景気時にプール補充）
     if (useBufferStrategy && isInitialPhaseDone && gain > 0 && cash < cashCap && invest > 0) {
       const bufferRoom = cashCap - cash;
       const replenishBudget = Math.min(gain * replenishRatio, bufferRoom);
@@ -4059,6 +4104,11 @@ function runSimulation() {
   const startYear = parseInt(sliderEl.value);
   const chkBufferEl = document.getElementById('chk-buffer');
   const useBuffer = chkBufferEl ? chkBufferEl.checked : true;
+  // ★追加：新しいチェックボックスの状態を取得
+  const chkWaitEl = document.getElementById('chk-wait-recovery');
+  const useWait = chkWaitEl ? chkWaitEl.checked : false;
+
+  
 
   const yearDisplay = document.getElementById('year-display');
   if (yearDisplay) yearDisplay.innerText = `${startYear} 年 退職`;
@@ -4069,7 +4119,8 @@ function runSimulation() {
     eraBadge.innerHTML = `<strong>時代背景:</strong> ${note}`;
   }
 
-  const res = simulatePlan(startYear, useBuffer);
+  // 呼び出しに useWait を追加
+  const res = simulatePlan(startYear, useBuffer, useWait);
   const targetAge = stressTestConfig.targetAge;
 
   let tbodyHtml = '';
@@ -4133,11 +4184,13 @@ function runSimulation() {
 function jumpToWorstYear() {
   const chkBufferEl = document.getElementById('chk-buffer');
   const useBuffer = chkBufferEl ? chkBufferEl.checked : true;
-  let worstYear = 1900;
-  let worstScore = Infinity;
+  // ★追加
+  const chkWaitEl = document.getElementById('chk-wait-recovery');
+  const useWait = chkWaitEl ? chkWaitEl.checked : false;
 
   for (let y = 1900; y <= 1993; y++) {
-    const res = simulatePlan(y, useBuffer);
+    // 呼び出しに useWait を追加
+    const res = simulatePlan(y, useBuffer, useWait);
     let score = 0;
     if (res.depletionAge !== null) {
       score = res.depletionAge * 100000;
