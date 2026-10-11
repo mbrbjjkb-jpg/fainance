@@ -3984,7 +3984,7 @@ function simulatePlan(startYear, useBufferStrategy, useWaitRecovery = false) {
     let replenishAmount = 0;
     let textWithdraw = "";
 
-    // 1. 投信の運用（市場リターン反映）
+    // 1. 投信運用
     const gain = invest * returnRate;
     invest = invest + gain;
 
@@ -3993,52 +3993,47 @@ function simulatePlan(startYear, useBufferStrategy, useWaitRecovery = false) {
     if (marketIndex > peakMarketIndex) {
       peakMarketIndex = marketIndex;
     }
-    // 直近最高値より5%以上安いか（暴落・回復途上か）
     const isBelowPeak = (marketIndex < peakMarketIndex * 0.95);
 
-    // 3. 生活費の支払い（明確な優先順位で排他処理）
+    // 3. 生活費の支払い（簡潔な短縮テキスト＆動的フォント対応）
     if (neededNet > 0) {
-      // 判定①：相場回復待ちがONで、かつ相場が戻っていない（最優先で現金を使う）
+      // 判定①：相場回復待ちがONで、相場が低迷中
       if (useWaitRecovery && isBelowPeak) {
         if (cash >= neededNet) {
-          // 現金だけで足りる
           cash -= neededNet;
           cashWithdraw = neededNet;
-          textWithdraw = `<span style="color:#d69e2e; font-weight:bold;">⏳ 回復待ち現金支出</span>`;
+          textWithdraw = `<span style="color:#d69e2e; font-weight:bold; font-size:11px;">⏳ 回復待ち</span>`;
         } else if (cash > 0) {
-          // 現金が途中で尽きる
           const payCash = cash;
           const remain = neededNet - payCash;
           cash = 0;
           cashWithdraw = payCash;
           investWithdraw = remain * TAX_FRICTION;
           invest -= investWithdraw;
-          textWithdraw = `<span style="color:#e53e3e; font-weight:bold;">🚨 現金枯渇・投信売却</span>`;
+          textWithdraw = `<span style="color:#e53e3e; font-weight:bold; font-size:10px;">🚨 現金切れ売却</span>`;
         } else {
-          // 現金がすでにゼロ
           investWithdraw = neededNet * TAX_FRICTION;
           invest -= investWithdraw;
-          textWithdraw = `<span style="color:#e53e3e; font-weight:bold;">🚨 現金枯渇・投信売却</span>`;
+          textWithdraw = `<span style="color:#e53e3e; font-weight:bold; font-size:10px;">🚨 現金切れ売却</span>`;
         }
       }
-      // 判定②：退職直後の先行資金（死守ラインを超える余剰現金がある期間）
+      // 判定②：先行現金生活（死守ライン超過分を使用）
       else if (cash > cashFloor) {
         const surplusCash = cash - cashFloor;
         if (surplusCash >= neededNet) {
           cash -= neededNet;
           cashWithdraw = neededNet;
-          textWithdraw = `<span style="color:#2f855a; font-weight:bold;">💵 貯金より支出</span>`;
+          textWithdraw = `<span style="color:#2f855a; font-weight:bold; font-size:11px;">💵 貯金支出</span>`;
         } else {
-          // 余剰現金を使い切り、死守ラインに着地
           cash = cashFloor;
           cashWithdraw = surplusCash;
           const remain = neededNet - surplusCash;
           investWithdraw = remain * TAX_FRICTION;
           invest -= investWithdraw;
-          textWithdraw = `${Math.round(investWithdraw / 12).toLocaleString()} 円/月`;
+          textWithdraw = `${Math.round(investWithdraw / 12).toLocaleString()}円/月`;
         }
       }
-      // 判定③：従来のバッファー戦略（単年マイナスで死守ライン超えのクッションがある場合）
+      // 判定③：従来のクッション戦略
       else if (useBufferStrategy && returnRate < 0 && (cash - cashFloor) > 0) {
         const cushion = cash - cashFloor;
         const payCash = Math.min(neededNet, cushion);
@@ -4049,23 +4044,21 @@ function simulatePlan(startYear, useBufferStrategy, useWaitRecovery = false) {
           investWithdraw = remain * TAX_FRICTION;
           invest -= investWithdraw;
         }
-        textWithdraw = `<span style="color:#2f855a; font-weight:bold;">🛡 現金クッション支出</span>`;
+        textWithdraw = `<span style="color:#2f855a; font-weight:bold; font-size:11px;">🛡 クッション</span>`;
       }
-      // 判定④：通常時（相場が高値圏にあるため、投信を売却して現金は温存）
+      // 判定④：通常時（投信から売却）
       else {
         investWithdraw = neededNet * TAX_FRICTION;
         invest -= investWithdraw;
-        // 相場回復待ちONで現金0のまま売却している場合は警告色を維持
         textWithdraw = (useWaitRecovery && isBelowPeak && cash <= 0)
-          ? `<span style="color:#e53e3e; font-weight:bold;">🚨 現金枯渇・投信売却</span>`
-          : `${Math.round(investWithdraw / 12).toLocaleString()} 円/月`;
+          ? `<span style="color:#e53e3e; font-weight:bold; font-size:10px;">🚨 現金切れ売却</span>`
+          : `${Math.round(investWithdraw / 12).toLocaleString()}円/月`;
       }
     } else {
-      textWithdraw = `<span style="color:#718096;">年金相殺</span>`;
+      textWithdraw = `<span style="color:#718096; font-size:11px;">年金相殺</span>`;
     }
 
-    // 4. 現金プールの補充（★相場が過去最高値を奪回した好景気年のみ！）
-    // 相場が低迷中（isBelowPeak）は絶対に補充のための売却を行わない
+    // 4. 現金プールの補充（好景気で過去最高値を奪回した年のみ）
     const canReplenish = useWaitRecovery ? (!isBelowPeak) : true;
 
     if (useBufferStrategy && canReplenish && gain > 0 && cash < cashCap && invest > 0) {
@@ -4080,7 +4073,6 @@ function simulatePlan(startYear, useBufferStrategy, useWaitRecovery = false) {
       }
     }
 
-    // 投信枯渇の判定
     if (invest <= 0) {
       invest = 0;
       if (depletionAge === null) depletionAge = age;
@@ -4134,26 +4126,28 @@ function runSimulation() {
     const rateClass = (log.rate !== null && log.rate >= 0) ? 'st-plus' : 'st-minus';
     const rateText = log.rate !== null ? `<span class="${rateClass}">${rateSign}${(log.rate * 100).toFixed(1)}%</span>` : '---';
 
+    // 現金表示（文字数を短縮：+〇〇万）
     let cashDisplay = `${log.cash.toLocaleString()} 円`;
     if (log.replenish > 0) {
       const addedMan = Math.round(log.replenish / 10000);
-      cashDisplay += ` <span style="color:#2f855a; font-weight:normal; font-size:11px;">(+${addedMan}万円)</span>`;
+      cashDisplay += ` <span style="color:#2f855a; font-weight:normal; font-size:10px;">(+${addedMan}万)</span>`;
     }
 
     const isDepleted = log.invest <= 0 && res.depletionAge !== null && log.age >= res.depletionAge;
     const rowBg = isDepleted ? 'background: #fff5f5;' : (log.year % 2 === 0 ? 'background: #fafbfc;' : 'background: #ffffff;');
 
+    // ★すべてのセルに white-space: nowrap と固定の高さを指定して改行を物理的に禁止
     tbodyHtml += `
-      <tr style="${rowBg}">
-        <td style="border: 1px solid #e2e8f0; padding: 6px 8px; text-align: center;">${isFirst ? `退職時 (${log.age}歳)` : (isFinal ? `${targetAge}歳時点` : `${log.year}年目 (${log.age}歳)`)}</td>
-        <td style="border: 1px solid #e2e8f0; padding: 6px 8px; text-align: center; font-family: monospace;">${log.historyYear}年</td>
-        <td style="border: 1px solid #e2e8f0; padding: 6px 8px; text-align: center; font-family: monospace;">${rateText}</td>
-        <td style="border: 1px solid #e2e8f0; padding: 6px 8px; text-align: right; font-family: monospace;">${log.textWithdraw}</td>
-        <td style="border: 1px solid #e2e8f0; padding: 6px 8px; text-align: right; font-family: monospace; color: ${log.cash >= currentSimParams.cashCap ? '#2f855a' : (log.cash <= currentSimParams.cashFloor ? '#c53030' : '#2b6cb0')}; font-weight:bold;">
+      <tr style="${rowBg} height: 26px;">
+        <td style="border: 1px solid #e2e8f0; padding: 4px 6px; text-align: center; white-space: nowrap; font-size: 11px;">${isFirst ? `退職時 (${log.age}歳)` : (isFinal ? `${targetAge}歳時点` : `${log.year}年目 (${log.age}歳)`)}</td>
+        <td style="border: 1px solid #e2e8f0; padding: 4px 6px; text-align: center; font-family: monospace; white-space: nowrap; font-size: 11px;">${log.historyYear}年</td>
+        <td style="border: 1px solid #e2e8f0; padding: 4px 6px; text-align: center; font-family: monospace; white-space: nowrap; font-size: 11px;">${rateText}</td>
+        <td style="border: 1px solid #e2e8f0; padding: 4px 6px; text-align: right; font-family: monospace; white-space: nowrap; font-size: 11px;">${log.textWithdraw}</td>
+        <td style="border: 1px solid #e2e8f0; padding: 4px 6px; text-align: right; font-family: monospace; color: ${log.cash >= currentSimParams.cashCap ? '#2f855a' : (log.cash <= currentSimParams.cashFloor ? '#c53030' : '#2b6cb0')}; font-weight:bold; white-space: nowrap; font-size: 11px;">
           ${cashDisplay}
         </td>
-        <td style="border: 1px solid #e2e8f0; padding: 6px 8px; text-align: right; font-family: monospace; font-weight:bold; color:${isDepleted ? '#e53e3e' : '#1a202c'};">
-          ${isDepleted ? `🚨 ${res.depletionAge}歳で投信枯渇` : `${log.invest.toLocaleString()} 円`}
+        <td style="border: 1px solid #e2e8f0; padding: 4px 6px; text-align: right; font-family: monospace; font-weight:bold; color:${isDepleted ? '#e53e3e' : '#1a202c'}; white-space: nowrap; font-size: 11px;">
+          ${isDepleted ? `🚨 ${res.depletionAge}歳枯渇` : `${log.invest.toLocaleString()} 円`}
         </td>
       </tr>
     `;
