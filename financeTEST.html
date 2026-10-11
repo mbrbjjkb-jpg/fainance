@@ -3940,7 +3940,7 @@ function simulatePlan(startYear, useBufferStrategy, useWaitRecovery = false) {
   let invest = currentSimParams.initInvest;
   let cash = currentSimParams.initOtherTotal;
 
-  // 相場そのものの累積指数（1.0スタート）と最高値
+  // 相場インデックス（市場価格そのものの推移：初期値1.0）
   let marketIndex = 1.0;
   let peakMarketIndex = 1.0;
 
@@ -3963,6 +3963,7 @@ function simulatePlan(startYear, useBufferStrategy, useWaitRecovery = false) {
     const historyYear = startYear + y;
     const returnRate = getBlendedReturn(historyYear);
 
+    // 0年目（退職時点の初期状態）
     if (y === 0) {
       logs.push({
         year: y, age: age, historyYear: historyYear, rate: null,
@@ -3972,7 +3973,7 @@ function simulatePlan(startYear, useBufferStrategy, useWaitRecovery = false) {
       continue;
     }
 
-    // 今年の生活費不足額（65歳以降は年金を控除）
+    // 今年の年間必要生活費（65歳以降は年金を控除）
     const inflatedMonthlyExpense = baseExpenseMonthly * Math.pow(inflationActive ? 1.02 : 1.0, y);
     let neededNet = (age < 65) 
       ? inflatedMonthlyExpense * 12 
@@ -3983,11 +3984,11 @@ function simulatePlan(startYear, useBufferStrategy, useWaitRecovery = false) {
     let replenishAmount = 0;
     let textWithdraw = "";
 
-    // 1. 投信運用
+    // 1. 投信の運用（市場リターン反映）
     const gain = invest * returnRate;
     invest = invest + gain;
 
-    // 2. 相場インデックスの更新と最高値判定
+    // 2. 市場価格の最高値と回復判定
     marketIndex = marketIndex * (1 + returnRate);
     if (marketIndex > peakMarketIndex) {
       peakMarketIndex = marketIndex;
@@ -3995,66 +3996,76 @@ function simulatePlan(startYear, useBufferStrategy, useWaitRecovery = false) {
     // 直近最高値より5%以上安いか（暴落・回復途上か）
     const isBelowPeak = (marketIndex < peakMarketIndex * 0.95);
 
-    // 3. 生活費の支払い（どこから出すか？）
+    // 3. 生活費の支払い（明確な優先順位で排他処理）
     if (neededNet > 0) {
-      // 現金から出すべきかの判定
-      let payFromCashTarget = false;
-      let reasonType = "";
-
+      // 判定①：相場回復待ちがONで、かつ相場が戻っていない（最優先で現金を使う）
       if (useWaitRecovery && isBelowPeak) {
-        // ① 相場回復待ち：相場が戻っていないので現金最優先
-        payFromCashTarget = true;
-        reasonType = "wait";
-      } else if (cash > cashFloor) {
-        // ② 初期・通常の余剰現金がある：死守ラインを超える現金を使う
-        payFromCashTarget = true;
-        reasonType = "surplus";
-      } else if (useBufferStrategy && returnRate < 0 && (cash - cashFloor) > 0) {
-        // ③ クッション戦略：単年マイナスでバッファーがある
-        payFromCashTarget = true;
-        reasonType = "cushion";
-      }
-
-      if (payFromCashTarget && cash > 0) {
-        // 現金から払える限界額（絶対にマイナスにしない）
-        const maxSpendableCash = (reasonType === "wait") ? cash : Math.max(0, cash - cashFloor);
-        const actualCashPay = Math.min(neededNet, maxSpendableCash);
-
-        if (actualCashPay >= neededNet) {
-          // 現金だけで全額足りた
+        if (cash >= neededNet) {
+          // 現金だけで足りる
           cash -= neededNet;
           cashWithdraw = neededNet;
-          textWithdraw = (reasonType === "wait") 
-            ? `<span style="color:#d69e2e; font-weight:bold;">⏳ 回復待ち現金支出</span>` 
-            : `<span style="color:#2f855a; font-weight:bold;">💵 貯金より支出</span>`;
-        } else if (actualCashPay > 0) {
-          // 現金が一部だけ足りた（残りは投信を売却）
-          cash -= actualCashPay;
-          cashWithdraw = actualCashPay;
-          const shortage = neededNet - actualCashPay;
-          investWithdraw = shortage * TAX_FRICTION;
+          textWithdraw = `<span style="color:#d69e2e; font-weight:bold;">⏳ 回復待ち現金支出</span>`;
+        } else if (cash > 0) {
+          // 現金が途中で尽きる
+          const payCash = cash;
+          const remain = neededNet - payCash;
+          cash = 0;
+          cashWithdraw = payCash;
+          investWithdraw = remain * TAX_FRICTION;
           invest -= investWithdraw;
           textWithdraw = `<span style="color:#e53e3e; font-weight:bold;">🚨 現金枯渇・投信売却</span>`;
         } else {
-          // 現金が使えない（全額投信売却）
+          // 現金がすでにゼロ
           investWithdraw = neededNet * TAX_FRICTION;
           invest -= investWithdraw;
-          textWithdraw = (reasonType === "wait")
-            ? `<span style="color:#e53e3e; font-weight:bold;">🚨 現金枯渇・投信売却</span>`
-            : `${Math.round(investWithdraw / 12).toLocaleString()} 円/月`;
+          textWithdraw = `<span style="color:#e53e3e; font-weight:bold;">🚨 現金枯渇・投信売却</span>`;
         }
-      } else {
-        // 通常の投信売却
+      }
+      // 判定②：退職直後の先行資金（死守ラインを超える余剰現金がある期間）
+      else if (cash > cashFloor) {
+        const surplusCash = cash - cashFloor;
+        if (surplusCash >= neededNet) {
+          cash -= neededNet;
+          cashWithdraw = neededNet;
+          textWithdraw = `<span style="color:#2f855a; font-weight:bold;">💵 貯金より支出</span>`;
+        } else {
+          // 余剰現金を使い切り、死守ラインに着地
+          cash = cashFloor;
+          cashWithdraw = surplusCash;
+          const remain = neededNet - surplusCash;
+          investWithdraw = remain * TAX_FRICTION;
+          invest -= investWithdraw;
+          textWithdraw = `${Math.round(investWithdraw / 12).toLocaleString()} 円/月`;
+        }
+      }
+      // 判定③：従来のバッファー戦略（単年マイナスで死守ライン超えのクッションがある場合）
+      else if (useBufferStrategy && returnRate < 0 && (cash - cashFloor) > 0) {
+        const cushion = cash - cashFloor;
+        const payCash = Math.min(neededNet, cushion);
+        cash -= payCash;
+        cashWithdraw = payCash;
+        const remain = neededNet - payCash;
+        if (remain > 0) {
+          investWithdraw = remain * TAX_FRICTION;
+          invest -= investWithdraw;
+        }
+        textWithdraw = `<span style="color:#2f855a; font-weight:bold;">🛡 現金クッション支出</span>`;
+      }
+      // 判定④：通常時（相場が高値圏にあるため、投信を売却して現金は温存）
+      else {
         investWithdraw = neededNet * TAX_FRICTION;
         invest -= investWithdraw;
-        textWithdraw = `${Math.round(investWithdraw / 12).toLocaleString()} 円/月`;
+        // 相場回復待ちONで現金0のまま売却している場合は警告色を維持
+        textWithdraw = (useWaitRecovery && isBelowPeak && cash <= 0)
+          ? `<span style="color:#e53e3e; font-weight:bold;">🚨 現金枯渇・投信売却</span>`
+          : `${Math.round(investWithdraw / 12).toLocaleString()} 円/月`;
       }
     } else {
       textWithdraw = `<span style="color:#718096;">年金相殺</span>`;
     }
 
-    // 4. 現金プールの補充（好景気時のみ）
-    // ★鉄則：相場回復待ち中（isBelowPeak）は絶対に補充（投信売却）を行わない
+    // 4. 現金プールの補充（★相場が過去最高値を奪回した好景気年のみ！）
+    // 相場が低迷中（isBelowPeak）は絶対に補充のための売却を行わない
     const canReplenish = useWaitRecovery ? (!isBelowPeak) : true;
 
     if (useBufferStrategy && canReplenish && gain > 0 && cash < cashCap && invest > 0) {
@@ -4182,15 +4193,16 @@ function jumpToWorstYear() {
   let worstYear = 1929;
   let worstScore = Infinity;
 
+  // 1900年から1993年まで全年代をテスト
   for (let y = 1900; y <= 1993; y++) {
     const res = simulatePlan(y, useBuffer, useWait);
     let score = 0;
 
     if (res.depletionAge !== null) {
-      // 枯渇した場合：より早く枯渇した年をワーストとする
+      // 枯渇した場合：より若い年齢で枯渇した年が最悪（スコア極小）
       score = res.depletionAge;
     } else {
-      // 枯渇しなかった場合：85歳時点の総資産が一番少ない年をワーストとする
+      // 枯渇しなかった場合：85歳時点の総資産が最も少なかった年が最悪
       score = 1000 + (res.finalInvest + res.finalCash) / 1000000;
     }
 
@@ -4200,7 +4212,7 @@ function jumpToWorstYear() {
     }
   }
 
-  // スライダーを動かしてシミュレーションを実行
+  // スライダーをワースト年にセットして再描画
   const slider = document.getElementById('year-slider');
   if (slider) {
     slider.value = worstYear;
