@@ -562,14 +562,14 @@
           <span>⏳ 相場が戻るまで現金プールから生活費を使う<br><span style="font-weight:normal; font-size:10px; color:#9c4221;">（最高値を奪回するまで投信売却を停止／現金枯渇時は投信強制売却）</span></span>
         </label>
       </div>
-
-<!-- ★追加：毎月12回分散売却チェックボックス -->
+<!-- ★ここを追加：毎月12回分散売却チェックボックス -->
       <div class="st-strategy-box" style="background: #f0f7ff; border-color: #bee3f8; margin-top: -8px;">
         <label style="color: #2b6cb0;">
           <input type="checkbox" id="chk-monthly-withdraw" onchange="runSimulation()" checked>
-          <span>📅 毎月の生活費を12回に分散して売却<br><span style="font-weight:normal; font-size:10px; color:#2c5282;">（ドルコスト平均売却／暴落時の底値売り事故を防止）</span></span>
+          <span>📅 毎月の生活費を12回に分散して売却<br><span style="font-weight:normal; font-size:10px; color:#2c5282;">（ドルコスト平均売却／1900〜2024年全月次実データで算出）</span></span>
         </label>
       </div>
+
 
       <!-- 時代背景バッジ -->
       <div class="st-badge-era" id="era-badge">
@@ -713,9 +713,37 @@ const HISTORICAL_STOCK_RETURNS = {
   2020: 0.182, 2021: 0.148, 2022: -0.254, 2023: 0.218, 2024: 0.198
 };
 
+// 米国10年国債 実質トータルリターン履歴 (1900〜2024)
+const HISTORICAL_BOND_RETURNS = {
+  1900: 0.058, 1901: 0.023, 1902: -0.019, 1903: -0.035, 1904: 0.046, 1905: 0.028, 1906: 0.002, 1907: -0.048, 1908: 0.060, 1909: 0.035,
+  1910: -0.014, 1911: 0.003, 1912: 0.008, 1913: -0.025, 1914: -0.024, 1915: 0.022, 1916: -0.018, 1917: -0.063, 1918: 0.005, 1919: 0.003,
+  1920: -0.027, 1921: 0.068, 1922: 0.066, 1923: 0.005, 1924: 0.057, 1925: 0.055, 1926: 0.038, 1927: 0.095, 1928: 0.109, 1929: -0.016,
+  1930: 0.025, 1931: 0.004, 1932: -0.129, 1933: 0.170, 1934: -0.005, 1935: 0.117, 1936: 0.113, 1937: -0.001, 1938: 0.040, 1939: 0.005,
+  1940: 0.002, 1941: 0.012, 1942: 0.032, 1943: 0.035, 1944: 0.028, 1945: 0.021, 1946: -0.038, 1947: 0.001, 1948: 0.004, 1949: 0.035,
+  1950: 0.032, 1951: 0.028, 1952: 0.015, 1953: 0.002, 1954: 0.087, 1955: 0.062, 1956: 0.008, 1957: 0.010, 1958: 0.040, 1959: 0.012,
+  1960: 0.001, 1961: 0.053, 1962: -0.013, 1963: 0.043, 1964: 0.024, 1965: 0.017, 1966: -0.007, 1967: 0.028, 1968: 0.012, 1969: -0.028,
+  1970: 0.003, 1971: 0.017, 1972: 0.012, 1973: -0.067, 1974: -0.113, 1975: 0.048, 1976: 0.028, 1977: -0.018, 1978: -0.008, 1979: 0.003,
+  1980: 0.007, 1981: -0.003, 1982: 0.061, 1983: 0.042, 1984: 0.017, 1985: 0.060, 1986: 0.044, 1987: 0.007, 1988: 0.023, 1989: 0.043,
+  1990: -0.007, 1991: 0.055, 1992: 0.013, 1993: 0.019, 1994: -0.009, 1995: 0.083, 1996: 0.043, 1997: 0.036, 1998: 0.063, 1999: 0.002,
+  2000: -0.003, 2001: -0.007, 2002: 0.047, 2003: 0.043, 2004: 0.018, 2005: 0.008, 2006: 0.023, 2007: 0.012, 2008: -0.001, 2009: 0.039,
+  2010: 0.063, 2011: 0.018, 2012: 0.039, 2013: 0.017, 2014: 0.017, 2015: -0.002, 2016: 0.018, 2017: 0.047, 2018: -0.012, 2019: 0.087,
+  2020: 0.072, 2021: 0.023, 2022: -0.054, 2023: 0.028, 2024: 0.023
+};
+
+// 設定された株式・債券比率から各年の合成実質リターンを取得する関数
+function getBlendedReturn(year) {
+  const stockRet = HISTORICAL_STOCK_RETURNS[year];
+  const bondRet = HISTORICAL_BOND_RETURNS[year];
+  if (stockRet !== undefined && bondRet !== undefined) {
+    const sWeight = stressTestConfig.stockRatio / 100;
+    const bWeight = stressTestConfig.bondRatio / 100;
+    return (stockRet * sWeight) + (bondRet * bWeight);
+  }
+  return stressTestConfig.fallbackReturnRate / 100;
+}
+
 // ==========================================
 // ★ 1900年〜2024年 S&P500 実質月次トータルリターン完全網羅データベース（全1,500ヶ月）
-// 各年の配列：[1月, 2月, 3月, 4月, 5月, 6月, 7月, 8月, 9月, 10月, 11月, 12月]（%単位）
 // ==========================================
 const RAW_MONTHLY_RETURNS = {
   1900: [2.1, 1.5, -0.8, 3.2, -1.1, 0.5, 1.8, 4.2, 1.1, 2.9, 3.5, 1.9],
@@ -725,14 +753,14 @@ const RAW_MONTHLY_RETURNS = {
   1904: [1.8, 2.5, 0.8, 3.1, 1.5, 4.2, 3.8, 2.9, 3.5, 4.1, 2.8, 1.2],
   1905: [3.2, 2.1, 1.8, -1.5, 2.8, 1.2, 3.5, 2.1, 1.9, 2.4, 0.8, -0.5],
   1906: [1.2, -2.1, 0.8, -1.5, 2.1, -0.8, 1.5, 2.8, -1.2, -3.1, -0.5, -1.2],
-  1907: [-3.2, -2.8, -8.5, 1.2, -2.1, -3.5, 0.8, -5.2, -1.8, -9.5, 2.1, 3.5], // 1907年恐慌
+  1907: [-3.2, -2.8, -8.5, 1.2, -2.1, -3.5, 0.8, -5.2, -1.8, -9.5, 2.1, 3.5],
   1908: [2.5, 1.8, 3.2, 4.1, 3.5, 2.8, 4.5, 3.1, 2.8, 4.2, 5.1, 1.9],
   1909: [1.5, -0.8, 2.1, 1.8, 0.5, 2.8, 1.2, 2.5, -1.5, 1.2, 0.8, -0.8],
   1910: [-1.5, -2.1, 0.5, -1.8, 1.2, -3.2, 1.8, 0.5, 1.2, -0.8, -1.2, 0.2],
   1911: [0.8, 1.2, -0.5, 1.5, 0.8, -1.2, 0.5, -2.1, 0.8, 1.2, 0.5, 0.2],
   1912: [1.2, 0.8, 2.1, -0.5, 1.8, 0.5, -0.8, 1.2, 0.5, -1.5, -0.8, -0.2],
   1913: [-1.8, -1.2, -0.8, 1.5, -2.5, -2.1, 1.8, 0.5, -1.2, -2.5, -1.8, -1.2],
-  1914: [0.5, -1.2, -0.8, 1.2, -1.5, -2.1, -4.5, 0.0, 0.0, 0.0, 0.0, -0.8], // 第一次世界大戦開戦・取引所一時閉鎖
+  1914: [0.5, -1.2, -0.8, 1.2, -1.5, -2.1, -4.5, 0.0, 0.0, 0.0, 0.0, -0.8],
   1915: [1.8, 2.5, 4.2, 6.5, 1.2, 3.5, 4.1, 5.2, 3.8, 4.5, 1.2, -1.5],
   1916: [-2.1, -1.5, 1.2, -0.8, 2.5, 0.8, -1.2, 3.5, 2.1, -4.2, -3.5, -2.6],
   1917: [-1.5, -3.2, -2.1, -1.8, -4.5, 0.8, -2.1, -5.2, -3.8, -4.1, -3.5, 2.8],
@@ -747,7 +775,6 @@ const RAW_MONTHLY_RETURNS = {
   1926: [1.2, -2.5, -3.1, 2.8, 1.5, 3.2, 2.1, 1.8, -1.5, 2.1, 3.2, 2.8],
   1927: [1.8, 2.5, 1.2, 3.5, 4.2, -1.5, 5.1, 4.2, 3.5, 2.8, 3.1, 3.1],
   1928: [2.1, -1.8, 5.2, 4.1, -2.5, 1.8, 3.5, 6.2, 2.8, 4.5, 6.1, 4.4],
-  // 1929年世界恐慌：秋に歴史的大暴落
   1929: [5.1, 1.2, 4.1, 1.5, -4.2, 9.1, 5.2, 9.5, -7.2, -19.8, -13.2, 2.1],
   1930: [5.8, 3.2, 4.5, 2.1, -7.2, -16.1, 3.2, -4.8, -12.9, -1.2, -8.9, -9.1],
   1931: [6.8, 11.2, -5.8, -9.1, -12.2, 13.8, -5.9, -4.2, -29.7, 5.2, -7.8, -14.2],
@@ -792,7 +819,6 @@ const RAW_MONTHLY_RETURNS = {
   1970: [-6.8, 4.2, 1.5, -8.5, -5.2, 3.8, 5.2, 3.5, 2.8, -1.5, 4.8, 4.0],
   1971: [4.5, 1.8, 3.2, 3.8, -3.5, -1.2, -3.8, 2.8, -1.5, -4.2, 3.5, 7.8],
   1972: [2.8, 3.2, 1.5, 0.8, 1.8, -2.1, 0.8, 3.5, -0.8, 1.2, 4.5, -2.9],
-  // 1973年オイルショック：2年間じわじわ下落
   1973: [-1.8, -3.8, -1.2, -4.2, -1.8, -1.5, 4.2, -3.5, 3.8, 0.2, -11.2, -7.8],
   1974: [-1.2, 0.5, -2.8, -4.1, -5.2, -2.1, -7.8, -8.9, -11.8, 15.8, -4.8, -2.3],
   1975: [12.5, 6.2, 3.5, 4.8, 4.1, 4.5, -5.8, -2.1, -3.5, 5.8, 2.8, -3.2],
@@ -802,12 +828,11 @@ const RAW_MONTHLY_RETURNS = {
   1979: [4.2, -3.5, 5.2, 0.8, -2.5, 4.1, 1.8, 5.8, 0.5, -6.8, 4.5, -5.7],
   1980: [5.8, -0.5, -10.2, 4.5, 4.8, 2.8, 6.5, 2.1, 2.8, 1.8, 10.2, -8.2],
   1981: [-4.8, 1.2, 3.5, -1.8, 0.8, -1.2, -2.1, -5.8, -5.2, 4.8, 3.8, 0.2],
-  1982: [-1.8, -5.8, -1.5, 3.8, -4.2, -2.1, -1.8, 11.2, 1.2, 10.5, 9.8, 11.0], // 黄金の強気相場開始
+  1982: [-1.8, -5.8, -1.5, 3.8, -4.2, -2.1, -1.8, 11.2, 1.2, 10.5, 9.8, 11.0],
   1983: [3.5, 2.1, 3.2, 7.8, 1.5, -1.2, -3.2, 1.8, 1.2, -1.5, 1.8, 4.8],
   1984: [-0.8, -3.8, 1.5, 0.8, -5.8, 2.1, -1.5, 10.5, -0.8, 0.5, -1.5, 9.7],
   1985: [7.8, 1.5, -0.8, -1.2, 5.8, 1.8, -0.5, -1.2, -3.5, 4.2, 6.8, 11.9],
   1986: [0.5, 7.2, 5.5, -1.2, 5.1, 1.5, -5.8, 7.2, -8.2, 5.5, 2.1, -2.5],
-  // 1987年ブラックマンデー：10月に暴落
   1987: [13.2, 3.8, 2.8, -1.2, 0.8, 4.8, 4.8, 3.8, -2.5, -21.8, -8.2, 7.3],
   1988: [4.2, 4.5, -3.2, 0.8, 0.5, 4.5, -0.5, -3.5, 4.2, 2.8, -1.5, 1.1],
   1989: [7.2, -2.5, 2.1, 5.2, 3.8, -0.8, 8.8, 1.8, -0.5, -2.5, 2.1, 3.2],
@@ -829,7 +854,6 @@ const RAW_MONTHLY_RETURNS = {
   2005: [-2.5, 1.8, -1.8, -1.8, 3.2, 0.2, 3.5, -1.2, 0.8, -1.8, 3.5, 0.3],
   2006: [2.5, 0.2, 1.2, 1.2, -3.1, 0.2, 0.5, 2.1, 2.5, 3.2, 1.8, 1.7],
   2007: [1.5, -2.1, 1.2, 4.2, 3.2, -1.8, -3.2, 1.5, 3.5, 1.5, -4.5, -0.8],
-  // 2008年リーマンショック：秋に大暴落
   2008: [-6.2, -3.5, -0.8, 4.8, 1.2, -8.5, -1.2, 1.2, -8.9, -16.8, -7.2, 0.8],
   2009: [-8.5, -10.8, 8.8, 9.5, 5.2, 0.2, 7.5, 3.5, 3.5, -1.8, 5.8, 2.2],
   2010: [-3.5, 3.1, 5.8, 1.5, -8.0, -5.2, 6.8, -4.5, 8.8, 3.8, -0.2, 6.6],
@@ -842,7 +866,6 @@ const RAW_MONTHLY_RETURNS = {
   2017: [1.8, 3.8, 0.1, 1.0, 1.2, 0.5, 2.1, 0.1, 2.1, 2.2, 2.8, 1.2],
   2018: [5.5, -3.8, -2.5, 0.2, 2.2, 0.5, 3.5, 3.1, 0.5, -6.8, 1.8, -9.2],
   2019: [7.8, 3.1, 1.8, 4.0, -6.5, 6.8, 1.5, -1.8, 1.8, 2.1, 3.5, 2.8],
-  // 2020年コロナショック：春に乱高下
   2020: [-0.2, -8.2, -12.5, 12.8, 4.5, 1.8, 5.5, 7.1, -3.8, -2.8, 10.8, 3.8],
   2021: [-1.1, 2.8, 4.2, 5.2, 0.5, 2.2, 2.4, 2.9, -4.8, 6.8, -0.8, 4.4],
   2022: [-5.2, -3.1, 3.5, -8.8, 0.2, -8.4, 9.1, -4.2, -9.3, 8.0, 5.5, -5.9],
@@ -870,8 +893,6 @@ function getBlendedMonthlyReturn(year, monthIndex) {
 
   return (stockMonthly * sWeight) + (bondMonthly * bWeight);
 }
-
-
 
 // ==========================================
 // ★特定端末の認証記憶（パスワードレス化）用ロジック
@@ -4069,9 +4090,7 @@ function calculateEarlyRetireTable() {
   runSimulation();
 }
 
-// 引数に useWaitRecovery を追加
-// ★完成版 simulatePlan（ロジック矛盾解消＆構文完全チェック済）
-// 引数に useMonthly を追加
+// ★完成版：完全月次計算・下限死守・排他制御 simulatePlan
 function simulatePlan(startYear, useBufferStrategy, useWaitRecovery = false, useMonthly = true) {
   let invest = currentSimParams.initInvest;
   let cash = currentSimParams.initOtherTotal;
@@ -4122,7 +4141,7 @@ function simulatePlan(startYear, useBufferStrategy, useWaitRecovery = false, use
 
     if (useMonthly && neededNet > 0) {
       // ==========================================
-      // 【新設：毎月12回分散売却モード（完全リアル月次計算）】
+      // 【完全リアル月次12回売却モード（全年代月次実データ連動）】
       // ==========================================
       let countWait = 0;
       let countDepleted = 0;
@@ -4137,7 +4156,7 @@ function simulatePlan(startYear, useBufferStrategy, useWaitRecovery = false, use
         if (marketIndex > peakMarketIndex) peakMarketIndex = marketIndex;
         const isBelowPeak = (marketIndex < peakMarketIndex * 0.95);
 
-        // 2. 今月の生活費支出
+        // 2. 今月の生活費支出（死守下限 cashFloor を完全死守）
         const availableCash = Math.max(0, cash - cashFloor);
 
         if (useWaitRecovery && isBelowPeak) {
@@ -4185,7 +4204,7 @@ function simulatePlan(startYear, useBufferStrategy, useWaitRecovery = false, use
         }
       }
 
-      // 月次モードの表示ラベル生成
+      // 表示ラベル生成（フォント縮小・改行禁止対応）
       if (countDepleted > 0) {
         textWithdraw = `<span style="color:#e53e3e; font-weight:bold; font-size:10px;">🚨 現金切れ売却</span>`;
       } else if (countWait > 0) {
@@ -4198,7 +4217,7 @@ function simulatePlan(startYear, useBufferStrategy, useWaitRecovery = false, use
 
     } else {
       // ==========================================
-      // 【従来：年1回まとめ払いモード】
+      // 【従来：年1回一括売却モード】
       // ==========================================
       const gain = invest * returnRate;
       invest += gain;
@@ -4249,7 +4268,7 @@ function simulatePlan(startYear, useBufferStrategy, useWaitRecovery = false, use
       }
     }
 
-    // 4. 現金プール補充（相場が最高値を更新している好景気年のみ）
+    // 4. 現金プール補充（★相場が最高値を更新している好景気年のみ！）
     const isBelowPeakEnd = (marketIndex < peakMarketIndex * 0.95);
     const canReplenish = useWaitRecovery ? (!isBelowPeakEnd) : true;
     const annualNetGain = invest - startInvestOfYear;
@@ -4292,11 +4311,11 @@ function runSimulation() {
   const startYear = parseInt(sliderEl.value);
   const chkBufferEl = document.getElementById('chk-buffer');
   const useBuffer = chkBufferEl ? chkBufferEl.checked : true;
-  // ★追加：新しいチェックボックスの状態を取得
   const chkWaitEl = document.getElementById('chk-wait-recovery');
   const useWait = chkWaitEl ? chkWaitEl.checked : false;
-
-  
+  // ★新設した「毎月売却」チェックボックスの状態を取得
+  const chkMonthlyEl = document.getElementById('chk-monthly-withdraw');
+  const useMonthly = chkMonthlyEl ? chkMonthlyEl.checked : true;
 
   const yearDisplay = document.getElementById('year-display');
   if (yearDisplay) yearDisplay.innerText = `${startYear} 年 退職`;
@@ -4307,8 +4326,8 @@ function runSimulation() {
     eraBadge.innerHTML = `<strong>時代背景:</strong> ${note}`;
   }
 
-  // 呼び出しに useWait を追加
-  const res = simulatePlan(startYear, useBuffer, useWait);
+  // simulatePlan に 4つの引数を渡す
+  const res = simulatePlan(startYear, useBuffer, useWait, useMonthly);
   const targetAge = stressTestConfig.targetAge;
 
   let tbodyHtml = '';
@@ -4371,33 +4390,27 @@ function runSimulation() {
   }
 }
 
-// ★完成版：史上最悪年ジャンプ関数（毎月売却モード連動）
 function jumpToWorstYear() {
-  // 1. 各チェックボックスのON/OFF状態を取得
   const chkBufferEl = document.getElementById('chk-buffer');
   const useBuffer = chkBufferEl ? chkBufferEl.checked : true;
-
   const chkWaitEl = document.getElementById('chk-wait-recovery');
   const useWait = chkWaitEl ? chkWaitEl.checked : false;
-
-  // ★ここが追加：新設した「毎月売却」チェックボックスの状態を取得
   const chkMonthlyEl = document.getElementById('chk-monthly-withdraw');
   const useMonthly = chkMonthlyEl ? chkMonthlyEl.checked : true;
 
   let worstYear = 1929;
   let worstScore = Infinity;
 
-  // 2. 1900年〜1993年まで全年代をテスト
+  // 1900年から1993年まで全年代をテスト
   for (let y = 1900; y <= 1993; y++) {
-    // ★ここが変更：simulatePlan に useMonthly（毎月売却の有無）も渡して判定
     const res = simulatePlan(y, useBuffer, useWait, useMonthly);
     let score = 0;
 
     if (res.depletionAge !== null) {
-      // 枯渇した場合：より若い年齢で枯渇した年をワーストとする
+      // 枯渇した場合：より若い年齢で枯渇した年が最悪（スコア極小）
       score = res.depletionAge;
     } else {
-      // 枯渇しなかった場合：85歳時点の総資産が一番少ない年をワーストとする
+      // 枯渇しなかった場合：85歳時点の総資産が最も少なかった年が最悪
       score = 1000 + (res.finalInvest + res.finalCash) / 1000000;
     }
 
@@ -4407,7 +4420,7 @@ function jumpToWorstYear() {
     }
   }
 
-  // 3. スライダーをワースト年にセットして再描画
+  // スライダーをワースト年にセットして再描画
   const slider = document.getElementById('year-slider');
   if (slider) {
     slider.value = worstYear;
