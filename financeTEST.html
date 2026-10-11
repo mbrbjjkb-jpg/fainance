@@ -3935,14 +3935,16 @@ function calculateEarlyRetireTable() {
 }
 
 // 引数に useWaitRecovery を追加
+// ★完成版 simulatePlan（ロジック矛盾解消＆構文完全チェック済）
 function simulatePlan(startYear, useBufferStrategy, useWaitRecovery = false) {
   let invest = currentSimParams.initInvest;
   let cash = currentSimParams.initOtherTotal;
   let initialSpendBudget = currentSimParams.spendBudget;
   let isInitialPhaseDone = (initialSpendBudget <= 0);
 
-  // ★追加：投信の最高値（ピーク）を追跡する変数
-  let peakInvest = invest;
+  // 相場そのものの累積指数（1.0スタート）と最高値
+  let marketIndex = 1.0;
+  let peakMarketIndex = 1.0;
 
   const cashFloor = currentSimParams.cashFloor;
   const cashCap = currentSimParams.cashCap;
@@ -3991,17 +3993,35 @@ function simulatePlan(startYear, useBufferStrategy, useWaitRecovery = false) {
     const gain = invest * returnRate;
     invest = invest + gain;
 
-    // ★最高値の更新
-    if (invest > peakInvest) {
-      peakInvest = invest;
+    // 2. 相場インデックスの更新と最高値判定
+    marketIndex = marketIndex * (1 + returnRate);
+    if (marketIndex > peakMarketIndex) {
+      peakMarketIndex = marketIndex;
     }
-    // 相場が元の高値に戻っていないか判定（ピークより5%以上安い状態）
-    const isBelowPeak = (invest < peakInvest * 0.95);
+    // 相場が直近ピークより5%以上安いかを正確に判定
+    const isBelowPeak = (marketIndex < peakMarketIndex * 0.95);
 
-    // 2. 生活費拠出
+    // 3. 生活費拠出（先行フェーズと回復待ちを完全統合）
     if (neededNet > 0) {
-      if (!isInitialPhaseDone && initialSpendBudget > 0) {
-        // 【先行支出フェーズ】
+      // ★相場回復待ちがONで、相場が低迷中の場合：手元の現金が尽きるまで最優先で使う
+      if (useWaitRecovery && isBelowPeak && cash > 0) {
+        if (cash >= neededNet) {
+          cash -= neededNet;
+          cashWithdraw = neededNet;
+          textWithdraw = `<span style="color:#d69e2e; font-weight:bold;">⏳ 回復待ち現金支出</span>`;
+        } else {
+          // 現金が途中で尽きた（枯渇）➔ 残りを投信から売却
+          const paidFromCash = cash;
+          const remainFromInvest = neededNet - paidFromCash;
+          cash = 0;
+          cashWithdraw = paidFromCash;
+          investWithdraw = remainFromInvest * TAX_FRICTION;
+          invest -= investWithdraw;
+          textWithdraw = `<span style="color:#e53e3e; font-weight:bold;">🚨 現金枯渇・投信売却</span>`;
+        }
+      } 
+      // 【通常の生活費支出】
+      else if (!isInitialPhaseDone && initialSpendBudget > 0) {
         if (initialSpendBudget > neededNet) {
           initialSpendBudget -= neededNet;
           cash -= neededNet;
@@ -4020,47 +4040,17 @@ function simulatePlan(startYear, useBufferStrategy, useWaitRecovery = false) {
           textWithdraw = `${Math.round(investWithdraw / 12).toLocaleString()} 円/月`;
         }
       } else {
-        // 【通常フェーズ】
         const availableCash = Math.max(0, cash - cashFloor);
-
-        // ★新設：「相場が戻るまで現金を使う」がONで、相場が低迷中の場合
-        if (useWaitRecovery && isBelowPeak) {
-          if (availableCash >= neededNet) {
-            // 現金が足りているので投信は売らない
-            cash -= neededNet;
-            cashWithdraw = neededNet;
-            textWithdraw = `<span style="color:#d69e2e; font-weight:bold;">⏳ 回復待ち現金支出</span>`;
-          } else if (availableCash > 0) {
-            // 現金が一部足りない（現金枯渇寸前）
-            cash = cashFloor;
-            cashWithdraw = availableCash;
-            const shortage = neededNet - availableCash;
-            investWithdraw = shortage * TAX_FRICTION;
+        if (useBufferStrategy && returnRate < 0 && availableCash > 0) {
+          const payFromCash = Math.min(neededNet, availableCash);
+          cash -= payFromCash;
+          cashWithdraw = payFromCash;
+          const remain = neededNet - payFromCash;
+          if (remain > 0) {
+            investWithdraw = remain * TAX_FRICTION;
             invest -= investWithdraw;
-            textWithdraw = `<span style="color:#e53e3e; font-weight:bold;">🚨 現金枯渇・投信売却</span>`;
-          } else {
-            // 現金ゼロのため全額投信売却
-            investWithdraw = neededNet * TAX_FRICTION;
-            invest -= investWithdraw;
-            textWithdraw = `${Math.round(investWithdraw / 12).toLocaleString()} 円/月`;
           }
-        } else if (useBufferStrategy) {
-          // 従来のクッション戦略
-          if (returnRate < 0 && availableCash > 0) {
-            const payFromCash = Math.min(neededNet, availableCash);
-            cash -= payFromCash;
-            cashWithdraw = payFromCash;
-            const remain = neededNet - payFromCash;
-            if (remain > 0) {
-              investWithdraw = remain * TAX_FRICTION;
-              invest -= investWithdraw;
-            }
-            textWithdraw = `<span style="color:#2f855a; font-weight:bold;">🛡 現金クッション支出</span>`;
-          } else {
-            investWithdraw = neededNet * TAX_FRICTION;
-            invest -= investWithdraw;
-            textWithdraw = `${Math.round(investWithdraw / 12).toLocaleString()} 円/月`;
-          }
+          textWithdraw = `<span style="color:#2f855a; font-weight:bold;">🛡 現金クッション支出</span>`;
         } else {
           investWithdraw = neededNet * TAX_FRICTION;
           invest -= investWithdraw;
@@ -4071,7 +4061,7 @@ function simulatePlan(startYear, useBufferStrategy, useWaitRecovery = false) {
       textWithdraw = `<span style="color:#718096;">年金相殺</span>`;
     }
 
-    // 3. バッファー復元ロジック（好景気時にプール補充）
+    // 4. バッファー復元ロジック（好景気時にプール補充）
     if (useBufferStrategy && isInitialPhaseDone && gain > 0 && cash < cashCap && invest > 0) {
       const bufferRoom = cashCap - cash;
       const replenishBudget = Math.min(gain * replenishRatio, bufferRoom);
