@@ -3995,23 +3995,27 @@ function simulatePlan(startYear, useBufferStrategy, useWaitRecovery = false) {
     }
     const isBelowPeak = (marketIndex < peakMarketIndex * 0.95);
 
-    // 3. 生活費の支払い（簡潔な短縮テキスト＆動的フォント対応）
+    // 3. 生活費の支払い（下限ライン cashFloor を完全死守）
     if (neededNet > 0) {
-      // 判定①：相場回復待ちがONで、相場が低迷中
+      // 判定①：相場回復待ちがONで、相場が低迷中（下限ラインを守りつつ現金優先）
       if (useWaitRecovery && isBelowPeak) {
-        if (cash >= neededNet) {
+        const availableCash = Math.max(0, cash - cashFloor);
+
+        if (availableCash >= neededNet) {
+          // 下限を守った上で、現金だけで足りる
           cash -= neededNet;
           cashWithdraw = neededNet;
           textWithdraw = `<span style="color:#d69e2e; font-weight:bold; font-size:11px;">⏳ 回復待ち</span>`;
-        } else if (cash > 0) {
-          const payCash = cash;
-          const remain = neededNet - payCash;
-          cash = 0;
-          cashWithdraw = payCash;
+        } else if (availableCash > 0) {
+          // 下限ライン（200万等）に達するまで現金を使用、残りは投信を売却
+          cash = cashFloor;
+          cashWithdraw = availableCash;
+          const remain = neededNet - availableCash;
           investWithdraw = remain * TAX_FRICTION;
           invest -= investWithdraw;
           textWithdraw = `<span style="color:#e53e3e; font-weight:bold; font-size:10px;">🚨 現金切れ売却</span>`;
         } else {
+          // すでに下限ラインに達しているため、全額投信から売却
           investWithdraw = neededNet * TAX_FRICTION;
           invest -= investWithdraw;
           textWithdraw = `<span style="color:#e53e3e; font-weight:bold; font-size:10px;">🚨 現金切れ売却</span>`;
@@ -4050,7 +4054,7 @@ function simulatePlan(startYear, useBufferStrategy, useWaitRecovery = false) {
       else {
         investWithdraw = neededNet * TAX_FRICTION;
         invest -= investWithdraw;
-        textWithdraw = (useWaitRecovery && isBelowPeak && cash <= 0)
+        textWithdraw = (useWaitRecovery && isBelowPeak && (cash <= cashFloor))
           ? `<span style="color:#e53e3e; font-weight:bold; font-size:10px;">🚨 現金切れ売却</span>`
           : `${Math.round(investWithdraw / 12).toLocaleString()}円/月`;
       }
