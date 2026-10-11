@@ -3998,29 +3998,35 @@ function simulatePlan(startYear, useBufferStrategy, useWaitRecovery = false) {
     if (marketIndex > peakMarketIndex) {
       peakMarketIndex = marketIndex;
     }
-    // 相場が直近ピークより5%以上安いかを正確に判定
+    // 相場が直近ピークより5%以上安いか（暴落・低迷中か）
     const isBelowPeak = (marketIndex < peakMarketIndex * 0.95);
 
-    // 3. 生活費拠出（先行フェーズと回復待ちを完全統合）
+    // 3. 生活費拠出
     if (neededNet > 0) {
-      // ★相場回復待ちがONで、相場が低迷中の場合：手元の現金が尽きるまで最優先で使う
-      if (useWaitRecovery && isBelowPeak && cash > 0) {
+      // 【A：相場回復待ち戦略がONで、かつ相場が戻っていない場合】
+      if (useWaitRecovery && isBelowPeak) {
         if (cash >= neededNet) {
+          // 手元の現金プールから全額支払う（投信売却ゼロ）
           cash -= neededNet;
           cashWithdraw = neededNet;
           textWithdraw = `<span style="color:#d69e2e; font-weight:bold;">⏳ 回復待ち現金支出</span>`;
-        } else {
-          // 現金が途中で尽きた（枯渇）➔ 残りを投信から売却
+        } else if (cash > 0) {
+          // 現金が途中で尽きた ➔ 残りだけ投信を売却
           const paidFromCash = cash;
-          const remainFromInvest = neededNet - paidFromCash;
+          const remain = neededNet - paidFromCash;
           cash = 0;
           cashWithdraw = paidFromCash;
-          investWithdraw = remainFromInvest * TAX_FRICTION;
+          investWithdraw = remain * TAX_FRICTION;
+          invest -= investWithdraw;
+          textWithdraw = `<span style="color:#e53e3e; font-weight:bold;">🚨 現金枯渇・投信売却</span>`;
+        } else {
+          // すでに現金ゼロ
+          investWithdraw = neededNet * TAX_FRICTION;
           invest -= investWithdraw;
           textWithdraw = `<span style="color:#e53e3e; font-weight:bold;">🚨 現金枯渇・投信売却</span>`;
         }
-      } 
-      // 【通常の生活費支出】
+      }
+      // 【B：先行現金生活フェーズ】
       else if (!isInitialPhaseDone && initialSpendBudget > 0) {
         if (initialSpendBudget > neededNet) {
           initialSpendBudget -= neededNet;
@@ -4029,17 +4035,19 @@ function simulatePlan(startYear, useBufferStrategy, useWaitRecovery = false) {
           textWithdraw = `<span style="color:#2f855a; font-weight:bold;">💵 貯金より支出</span>`;
         } else {
           const paidFromCash = initialSpendBudget;
-          const remainFromInvest = neededNet - paidFromCash;
+          const remain = neededNet - paidFromCash;
           cash = cashFloor;
           cashWithdraw = paidFromCash;
           initialSpendBudget = 0;
           isInitialPhaseDone = true;
 
-          investWithdraw = remainFromInvest * TAX_FRICTION;
+          investWithdraw = remain * TAX_FRICTION;
           invest -= investWithdraw;
           textWithdraw = `${Math.round(investWithdraw / 12).toLocaleString()} 円/月`;
         }
-      } else {
+      } 
+      // 【C：通常フェーズ（相場が戻っている時、または回復待ちOFF時）】
+      else {
         const availableCash = Math.max(0, cash - cashFloor);
         if (useBufferStrategy && returnRate < 0 && availableCash > 0) {
           const payFromCash = Math.min(neededNet, availableCash);
@@ -4061,12 +4069,15 @@ function simulatePlan(startYear, useBufferStrategy, useWaitRecovery = false) {
       textWithdraw = `<span style="color:#718096;">年金相殺</span>`;
     }
 
-    // 4. バッファー復元ロジック（好景気時にプール補充）
-    if (useBufferStrategy && isInitialPhaseDone && gain > 0 && cash < cashCap && invest > 0) {
+    // 4. バッファー復元ロジック（★重要：相場が完全復活している時のみ実行！）
+    // 回復待ち期間中（isBelowPeak）は絶対に投信から現金を補充させない
+    const canReplenish = useWaitRecovery ? (!isBelowPeak) : true;
+
+    if (useBufferStrategy && isInitialPhaseDone && canReplenish && gain > 0 && cash < cashCap && invest > 0) {
       const bufferRoom = cashCap - cash;
       const replenishBudget = Math.min(gain * replenishRatio, bufferRoom);
       const grossReplenish = replenishBudget * TAX_FRICTION;
-      if (invest >= grossReplenish) {
+      if (invest >= grossReplenish && replenishBudget > 0) {
         invest -= grossReplenish;
         cash += replenishBudget;
         replenishAmount = replenishBudget;
@@ -4174,18 +4185,23 @@ function runSimulation() {
 function jumpToWorstYear() {
   const chkBufferEl = document.getElementById('chk-buffer');
   const useBuffer = chkBufferEl ? chkBufferEl.checked : true;
-  // ★追加
   const chkWaitEl = document.getElementById('chk-wait-recovery');
   const useWait = chkWaitEl ? chkWaitEl.checked : false;
 
+  let worstYear = 1929;
+  let worstScore = Infinity;
+
+  // 1900年から1993年までの全歴史ルートをシミュレート
   for (let y = 1900; y <= 1993; y++) {
-    // 呼び出しに useWait を追加
     const res = simulatePlan(y, useBuffer, useWait);
     let score = 0;
+    
     if (res.depletionAge !== null) {
-      score = res.depletionAge * 100000;
+      // 枯渇した年がある場合：早く枯渇した年ほどスコアが極小（最悪）
+      score = res.depletionAge * 10000;
     } else {
-      score = 100000000 + (res.finalInvest + res.finalCash);
+      // 枯渇しなかった場合：85歳時点の総資産が最も少なかった年を最悪とする
+      score = 1000000000 + (res.finalInvest + res.finalCash);
     }
 
     if (score < worstScore) {
@@ -4194,7 +4210,13 @@ function jumpToWorstYear() {
     }
   }
 
-  setSliderYear(worstYear);
+  // スライダーと表示をワースト年に更新して再描画
+  const slider = document.getElementById('year-slider');
+  if (slider) {
+    slider.value = worstYear;
+  }
+  runSimulation();
+  writeLog(`【ワースト探索】史上最悪の退職年（${worstYear}年）を検出し、自動ジャンプしました。`);
 }
 
 </script></body></html>
