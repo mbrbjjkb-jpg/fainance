@@ -13,8 +13,8 @@
       "periodText": "2017/05-"
     },
     "vti_new": {
-      "units": 34.8,
-      "purchasePrice": 34649,
+      "units": 36.6,
+      "purchasePrice": 35188,
       "monthlyInvest": 83000,
       "periodText": "2024/01-"
     },
@@ -108,8 +108,8 @@
         "purchasePrice": 16882
       },
       "vti_new": {
-        "units": 34.8,
-        "purchasePrice": 34649
+        "units": 36.6,
+        "purchasePrice": 35188
       },
       "ishares": {
         "units": 70.3,
@@ -125,7 +125,7 @@
     "cash": [
       {
         "name": "普通預金",
-        "amount": 2949735
+        "amount": 3034270
       },
       {
         "name": "封筒",
