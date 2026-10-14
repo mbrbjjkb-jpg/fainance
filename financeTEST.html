@@ -478,23 +478,37 @@
       padding: 4px 1px !important;
     }
 
-    /* ★金額3列（国債残高・投信残高・合計総資産）：前後に1文字分のゆとりを持たせて右揃え */
+    /* ★金額3列（国債残高・投信残高・合計総資産）：パディングを少なめにして幅を確保 */
     #sim-table th:nth-child(5),
     #sim-table td:nth-child(5),
     #sim-table th:nth-child(6),
     #sim-table td:nth-child(6),
     #sim-table th:nth-child(7),
     #sim-table td:nth-child(7) {
-      padding: 4px 0.8em !important;
+      padding: 4px 2px !important;
       text-align: right;
       font-variant-numeric: tabular-nums;
     }
 
-    /* ★右端（8列目・国債化チェック）：余白ゼロで中央揃え */
+    /* ★右端（8列目・国債化チェック＆プルダウン）：横並び配置 */
     #sim-table th:nth-child(8),
     #sim-table td:nth-child(8) {
-      padding: 4px 2px !important;
+      padding: 4px 3px !important;
       text-align: center;
+      white-space: nowrap;
+    }
+
+    /* 国債化プルダウン（文字サイズを通常11pxより2pt小さい9pxに設定） */
+    .convert-select {
+      font-size: 9px !important;
+      padding: 1px 2px;
+      border: 1px solid #cbd5e0;
+      border-radius: 3px;
+      background: #ffffff;
+      color: #2d3748;
+      font-family: monospace;
+      cursor: pointer;
+      vertical-align: middle;
     }
   </style>
 
@@ -3838,9 +3852,9 @@ function removeCashInputRow(btn) {
 }
 
 // ==========================================
-// ★新設：二刀流リタイアシミュレーション（国債防衛 ＋ 投信放置・マクロ経済スライド反映版）
+// ★新設：二刀流リタイアシミュレーション（国債防衛 ＋ 投信部分利確モデル）
 // ==========================================
-let convertedTargetYear = null; // ユーザーが「国債化」チェックを入れた年号
+let convertedPlan = {}; // 年ごとの国債化指定額を保持 { 1935: 2000000, 1940: 'ALL' }
 
 // 時代背景データ
 const ERA_NOTES = {
@@ -3946,12 +3960,25 @@ function initEarlyRetireControls() {
   }
 }
 
-// ユーザーが表の「🎯 国債化」チェックを押したときのトグル処理
-function toggleConvertYear(year) {
-  if (convertedTargetYear === year) {
-    convertedTargetYear = null;
+// パターンA（プルダウン主導型）：プルダウン選択時の処理
+function onConvertAmountChange(year, val) {
+  if (val === '0') {
+    delete convertedPlan[year];
+  } else if (val === 'ALL') {
+    convertedPlan[year] = 'ALL';
   } else {
-    convertedTargetYear = year;
+    convertedPlan[year] = parseInt(val, 10);
+  }
+  runSimulation();
+}
+
+// チェックボックストグル時の連動処理
+function onConvertCheckToggle(year, isChecked) {
+  if (isChecked) {
+    // チェックを付けた場合は「全額」をデフォルトとする
+    convertedPlan[year] = 'ALL';
+  } else {
+    delete convertedPlan[year];
   }
   runSimulation();
 }
@@ -3986,6 +4013,9 @@ function calculateEarlyRetireTable() {
       ? '65歳受給（手取り年120万／マクロ経済スライド1.6%増）' 
       : '70歳繰り下げ（手取り年170.4万・42%増／マクロ経済スライド1.6%増）';
 
+    const planCount = Object.keys(convertedPlan).length;
+    const planText = planCount > 0 ? `${planCount}箇所で利確設定中` : '未利確（表の右端で選択可能）';
+
     banner.innerHTML = `
       <div style="flex: 1.2; min-width: 200px;">
         <span style="color: #718096; font-weight: bold;">退職時期 / 配分:</span>
@@ -4008,10 +4038,10 @@ function calculateEarlyRetireTable() {
       </div>
       <div style="flex: 1; min-width: 180px;">
         <span style="color: #2f855a; font-weight: bold;">🎯 投信の国債化ステータス:</span>
-        <div style="font-size: 13px; font-weight: bold; color: ${convertedTargetYear ? '#2f855a' : '#dd6b20'}; margin-top: 3px;">
-          ${convertedTargetYear ? `${convertedTargetYear}年に利確完了` : '未利確（表の右端で選択可能）'}
+        <div style="font-size: 13px; font-weight: bold; color: ${planCount > 0 ? '#2f855a' : '#dd6b20'}; margin-top: 3px;">
+          ${planText}
         </div>
-        <div style="font-size: 11px; color: #718096;">表右端の🎯チェックで好きな年に利確</div>
+        <div style="font-size: 11px; color: #718096;">右端のプルダウンから100万円単位で利確</div>
       </div>
     `;
   }
@@ -4023,15 +4053,15 @@ function calculateEarlyRetireTable() {
       🛡 <strong>適用中のリアル老後ルール:</strong><br>
       ・生活費：初年度 ${(monthlyWithdraw / 10000)}万円（毎年2.0%インフレ増額）<br>
       ・公的年金：マクロ経済スライドを適用し、改定率を年1.6%に抑制（実質目減りを再現）<br>
-      ・生活費は全額「国債＋利息（1.0%）」から支払い、投信は1円も売りません。<br>
-      ・表の右端にある「🎯国債化」チェックを押すと、その年の投信残高が全額国債に合流します。
+      ・生活費は全額「国債＋利息（1.0%）」から支払い、投信は原則売りません。<br>
+      ・表の右端にあるプルダウンから任意の金額（100万円単位〜全額）を安全な国債へ移動できます。
     `;
   }
 
   runSimulation();
 }
 
-// 二刀流シミュレーション実行エンジン（マクロ経済スライド反映版）
+// 二刀流シミュレーション実行エンジン（100万円単位・動的プルダウン生成版）
 function runSimulation() {
   const sliderEl = document.getElementById('year-slider');
   if (!sliderEl) return;
@@ -4066,7 +4096,6 @@ function runSimulation() {
   }
 
   const logs = [];
-  let isInvestConverted = false;
   let depletionAge = null;
   const targetAge = 85;
   const loopYears = Math.max(1, targetAge - retireAge);
@@ -4082,7 +4111,8 @@ function runSimulation() {
         year: y, age: age, historyYear: historyYear, rate: null,
         expenseText: "0 円", bondInterest: 0,
         bond: Math.round(bond), invest: Math.round(invest),
-        total: Math.round(bond + invest), isConverted: false
+        availableInvest: Math.round(invest), convertedAmount: 0,
+        total: Math.round(bond + invest)
       });
       continue;
     }
@@ -4092,38 +4122,39 @@ function runSimulation() {
     const annualExpense = inflatedMonthly * 12;
     const expenseText = `${Math.round(annualExpense / 10000)}万円/年`;
 
-    // 2. 年金（★マクロ経済スライド適用：物価2.0%に対し改定率は年1.6%）
+    // 2. 年金（マクロ経済スライド適用：改定率年1.6%）
     let pensionAnnual = 0;
     if (age >= pensionStartAge) {
       const basePension = (pensionStartAge === 65) ? 1200000 : 1704000;
-      pensionAnnual = basePension * Math.pow(1.016, y); // スライド抑制（1.6%）
+      pensionAnnual = basePension * Math.pow(1.016, y);
     }
-
-    // 正味の生活費持ち出し額（年金との差額）
     const netWithdraw = annualExpense - pensionAnnual;
 
-    // 3. 投信の運用（未利確の場合）
-    if (!isInvestConverted) {
-      invest += invest * returnRate;
-    }
+    // 3. 投信の年間運用損益を反映
+    invest += invest * returnRate;
+    const availableInvest = Math.max(0, Math.round(invest));
 
-    // 4. 国債化チェックの判定
-    let justConvertedThisYear = false;
-    if (!isInvestConverted && convertedTargetYear !== null && historyYear >= convertedTargetYear) {
-      bond += invest;
-      invest = 0;
-      isInvestConverted = true;
-      justConvertedThisYear = true;
+    // 4. 国債化（利確）プランの判定と実行
+    let convertedAmount = 0;
+    if (convertedPlan[historyYear] !== undefined && availableInvest > 0) {
+      const planVal = convertedPlan[historyYear];
+      if (planVal === 'ALL') {
+        convertedAmount = availableInvest;
+      } else {
+        convertedAmount = Math.min(parseInt(planVal, 10), availableInvest);
+      }
+      invest -= convertedAmount;
+      bond += convertedAmount;
     }
 
     // 5. 国債利息の発生（年1.0%）
     const bondInterest = Math.round(bond * BOND_RATE);
     bond += bondInterest;
 
-    // 6. 生活費の支払い（国債から引く）
+    // 6. 生活費の支払い（国債から引き去り）
     bond -= netWithdraw;
 
-    // 枯渇判定
+    // 枯渇判定（国債が底をついた場合は投信を取り崩し）
     if (bond < 0) {
       if (invest > 0) {
         invest += bond;
@@ -4142,8 +4173,8 @@ function runSimulation() {
       year: y, age: age, historyYear: historyYear, rate: returnRate,
       expenseText: expenseText, bondInterest: bondInterest,
       bond: Math.round(bond), invest: Math.round(invest),
-      total: Math.round(bond + invest), isConverted: isInvestConverted,
-      justConverted: justConvertedThisYear
+      availableInvest: availableInvest, convertedAmount: convertedAmount,
+      total: Math.round(bond + invest)
     });
   }
 
@@ -4156,17 +4187,35 @@ function runSimulation() {
     const rateClass = (log.rate !== null && log.rate >= 0) ? 'st-plus' : 'st-minus';
     const rateText = log.rate !== null ? `<span class="${rateClass}">${rateSign}${(log.rate * 100).toFixed(1)}%</span>` : '---';
 
-    let convertCheckHtml = '---';
+    let convertCellHtml = '---';
     if (!isFirst) {
-      const isChecked = (convertedTargetYear === log.historyYear);
-      convertCheckHtml = `
-        <label style="cursor: pointer; display: inline-flex; align-items: center; justify-content: center;">
-          <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleConvertYear(${log.historyYear})" style="transform: scale(1.1); cursor: pointer; accent-color: #805ad5;">
-        </label>
+      const activeVal = convertedPlan[log.historyYear];
+      const isChecked = (activeVal !== undefined && activeVal !== 0);
+
+      // 動的な100万円単位プルダウンの選択肢生成
+      let optionsHtml = `<option value="0">利確なし</option>`;
+      if (log.availableInvest > 0) {
+        const maxMillions = Math.floor(log.availableInvest / 1000000);
+        for (let m = 1; m <= maxMillions; m++) {
+          const valYen = m * 1000000;
+          const isSelected = (activeVal === valYen);
+          optionsHtml += `<option value="${valYen}" ${isSelected ? 'selected' : ''}>${m * 100}万円</option>`;
+        }
+        const isAllSelected = (activeVal === 'ALL');
+        optionsHtml += `<option value="ALL" ${isAllSelected ? 'selected' : ''}>全額 (${Math.round(log.availableInvest / 10000)}万)</option>`;
+      }
+
+      convertCellHtml = `
+        <div style="display:inline-flex; align-items:center; gap:3px;">
+          <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="onConvertCheckToggle(${log.historyYear}, this.checked)" style="transform: scale(0.95); cursor: pointer; accent-color: #805ad5; margin: 0;">
+          <select class="convert-select" onchange="onConvertAmountChange(${log.historyYear}, this.value)">
+            ${optionsHtml}
+          </select>
+        </div>
       `;
     }
 
-    const rowBg = log.justConverted 
+    const rowBg = log.convertedAmount > 0 
       ? 'background: #faf5ff;' 
       : (log.year % 2 === 0 ? 'background: #fafbfc;' : 'background: #ffffff;');
 
@@ -4176,16 +4225,16 @@ function runSimulation() {
         <td style="border: 1px solid #e2e8f0; padding: 4px 1px; text-align: center; font-family: monospace; white-space: nowrap;">${log.historyYear}年</td>
         <td style="border: 1px solid #e2e8f0; padding: 4px 1px; text-align: center; font-family: monospace; white-space: nowrap;">${rateText}</td>
         <td style="border: 1px solid #e2e8f0; padding: 4px 1px; text-align: right; font-family: monospace; white-space: nowrap;">${log.expenseText}</td>
-        <td style="border: 1px solid #e2e8f0; padding: 4px 0.8em; text-align: right; font-family: monospace; font-weight: bold; color: #2b6cb0; white-space: nowrap;">
-          ${log.bond.toLocaleString()} 円 <span style="font-size: 9.5px; color: #718096; font-weight: normal;">(+${Math.round(log.bondInterest / 10000)}万)</span>
+        <td style="border: 1px solid #e2e8f0; padding: 4px 2px; text-align: right; font-family: monospace; font-weight: bold; color: #2b6cb0; white-space: nowrap;">
+          ${log.bond.toLocaleString()} 円 <span style="font-size: 8.5px; color: #718096; font-weight: normal;">(+${Math.round(log.bondInterest / 10000)}万)</span>
         </td>
-        <td style="border: 1px solid #e2e8f0; padding: 4px 0.8em; text-align: right; font-family: monospace; font-weight: bold; color: ${log.invest > 0 ? '#1a202c' : '#a0aec0'}; white-space: nowrap;">
-          ${log.invest > 0 ? `${log.invest.toLocaleString()} 円` : '<span style="color:#805ad5; font-size:10px;">🎯 国債へ移行済</span>'}
+        <td style="border: 1px solid #e2e8f0; padding: 4px 2px; text-align: right; font-family: monospace; font-weight: bold; color: ${log.invest > 0 ? '#1a202c' : '#a0aec0'}; white-space: nowrap;">
+          ${log.invest.toLocaleString()} 円
         </td>
-        <td style="border: 1px solid #e2e8f0; padding: 4px 0.8em; text-align: right; font-family: monospace; font-weight: bold; color: #2d3748; white-space: nowrap;">
+        <td style="border: 1px solid #e2e8f0; padding: 4px 2px; text-align: right; font-family: monospace; font-weight: bold; color: #2d3748; white-space: nowrap;">
           ${log.total.toLocaleString()} 円
         </td>
-        <td style="border: 1px solid #e2e8f0; padding: 4px 2px; text-align: center; white-space: nowrap;">${convertCheckHtml}</td>
+        <td style="border: 1px solid #e2e8f0; padding: 4px 3px; text-align: center; white-space: nowrap;">${convertCellHtml}</td>
       </tr>
     `;
   });
