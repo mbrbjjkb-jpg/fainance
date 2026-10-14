@@ -3855,21 +3855,18 @@ function removeCashInputRow(btn) {
 // ★新設：二刀流リタイアシミュレーション（国債防衛 ＋ 投信部分利確モデル）
 // ==========================================
 let convertedPlan = {}; // 年ごとの国債化指定額を保持 { 1935: 2000000, 1940: 'ALL' }
+let lastSelectedStartYear = null; // 前回の退職開始年を記録（年変更検知用）
 
-// 時代背景データ
-const ERA_NOTES = {
-  1914: "⚠️【第1次世界大戦期】高インフレと戦時経済による波乱相場。",
-  1929: "🚨【世界恐慌ルート】開始直後から4年連続の歴史的大暴落。守りの国債があるため投信は底値売りを完全回避。",
-  1937: "⚠️【ルーズベルト不況】恐慌回復途中の再下落ショック期。",
-  1966: "🚨【魔のスタグフレーション期】株安と物価高が15年以上継続。",
-  1973: "⚠️【オイルショック期】2年連続の20%超下落＋ハイパーインフレの複合危機。",
-  1982: "✨【黄金の強気相場】インフレ鎮静化とIT革命に向かう20年間のボーナス相場。"
-};
+// 年が切り替わった際に利確チェックとプランを全初期化する関数
+function resetConvertedPlan() {
+  convertedPlan = {};
+}
 
 function setSliderYear(y) {
   const el = document.getElementById('year-slider');
   if (el) el.value = y;
-  runSimulation();
+  resetConvertedPlan(); // 年変更時に利確設定をリセット
+  calculateEarlyRetireTable(); // バナー等の表示も含めて再集計
 }
 
 function stepYear(step) {
@@ -3970,17 +3967,28 @@ function onConvertAmountChange(year, val) {
     convertedPlan[year] = parseInt(val, 10);
   }
   runSimulation();
+  updatePlanBannerStatus(); // サマリーバナーの利確件数を同期
 }
 
 // チェックボックストグル時の連動処理
 function onConvertCheckToggle(year, isChecked) {
   if (isChecked) {
-    // チェックを付けた場合は「全額」をデフォルトとする
-    convertedPlan[year] = 'ALL';
+    convertedPlan[year] = 'ALL'; // チェックONで全額利確
   } else {
     delete convertedPlan[year];
   }
   runSimulation();
+  updatePlanBannerStatus(); // サマリーバナーの利確件数を同期
+}
+
+// サマリーバナー内の「利確ステータス」部分のみを即時更新する関数
+function updatePlanBannerStatus() {
+  const planCount = Object.keys(convertedPlan).length;
+  const statusEl = document.getElementById('er-plan-status-text');
+  if (statusEl) {
+    statusEl.innerText = planCount > 0 ? `${planCount}箇所で利確設定中` : '未利確（表の右端で選択可能）';
+    statusEl.style.color = planCount > 0 ? '#2f855a' : '#dd6b20';
+  }
 }
 
 function calculateEarlyRetireTable() {
@@ -4014,7 +4022,6 @@ function calculateEarlyRetireTable() {
       : '70歳繰り下げ（手取り年170.4万・42%増／マクロ経済スライド1.6%増）';
 
     const planCount = Object.keys(convertedPlan).length;
-    const planText = planCount > 0 ? `${planCount}箇所で利確設定中` : '未利確（表の右端で選択可能）';
 
     banner.innerHTML = `
       <div style="flex: 1.2; min-width: 200px;">
@@ -4038,8 +4045,8 @@ function calculateEarlyRetireTable() {
       </div>
       <div style="flex: 1; min-width: 180px;">
         <span style="color: #2f855a; font-weight: bold;">🎯 投信の国債化ステータス:</span>
-        <div style="font-size: 13px; font-weight: bold; color: ${planCount > 0 ? '#2f855a' : '#dd6b20'}; margin-top: 3px;">
-          ${planText}
+        <div id="er-plan-status-text" style="font-size: 13px; font-weight: bold; color: ${planCount > 0 ? '#2f855a' : '#dd6b20'}; margin-top: 3px;">
+          ${planCount > 0 ? `${planCount}箇所で利確設定中` : '未利確（表の右端で選択可能）'}
         </div>
         <div style="font-size: 11px; color: #718096;">右端のプルダウンから100万円単位で利確</div>
       </div>
@@ -4061,11 +4068,18 @@ function calculateEarlyRetireTable() {
   runSimulation();
 }
 
-// 二刀流シミュレーション実行エンジン（100万円単位・動的プルダウン生成版）
+// 二刀流シミュレーション実行エンジン（年変更の自動検知＆初期化付き）
 function runSimulation() {
   const sliderEl = document.getElementById('year-slider');
   if (!sliderEl) return;
   const startYear = parseInt(sliderEl.value) || 1929;
+
+  // ★スライダー手動ドラッグ時も含め、年が切り替わった瞬間に利確チェックを自動クリア
+  if (lastSelectedStartYear !== null && lastSelectedStartYear !== startYear) {
+    resetConvertedPlan();
+    updatePlanBannerStatus();
+  }
+  lastSelectedStartYear = startYear;
 
   const elAge = document.getElementById('er-current-age');
   const elYears = document.getElementById('er-retire-years');
@@ -4154,7 +4168,7 @@ function runSimulation() {
     // 6. 生活費の支払い（国債から引き去り）
     bond -= netWithdraw;
 
-    // 枯渇判定（国債が底をついた場合は投信を取り崩し）
+    // 枯渇判定
     if (bond < 0) {
       if (invest > 0) {
         invest += bond;
