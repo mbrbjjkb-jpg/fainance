@@ -3838,7 +3838,7 @@ function removeCashInputRow(btn) {
 }
 
 // ==========================================
-// ★新設：二刀流リタイアシミュレーション（国債防衛 ＋ 投信放置＆利確モデル・生活費単体表示版）
+// ★新設：二刀流リタイアシミュレーション（国債防衛 ＋ 投信放置・マクロ経済スライド反映版）
 // ==========================================
 let convertedTargetYear = null; // ユーザーが「国債化」チェックを入れた年号
 
@@ -3983,14 +3983,14 @@ function calculateEarlyRetireTable() {
   if (banner) {
     const timingText = (retireYears === 0) ? `今すぐ（${retireAge}歳時点）` : `${retireYears}年後（${retireAge}歳時点）`;
     const pensionText = (pensionStartAge === 65) 
-      ? '65歳受給（手取り年120万・月10万）' 
-      : '70歳繰り下げ（手取り年170.4万・月14.2万・42%増額）';
+      ? '65歳受給（手取り年120万／マクロ経済スライド1.6%増）' 
+      : '70歳繰り下げ（手取り年170.4万・42%増／マクロ経済スライド1.6%増）';
 
     banner.innerHTML = `
       <div style="flex: 1.2; min-width: 200px;">
         <span style="color: #718096; font-weight: bold;">退職時期 / 配分:</span>
         <div style="font-size: 14px; font-weight: bold; color: #2d3748; margin-top: 3px;">
-          ${timingText} <span style="color: #2f855a;">【インフレ年2%常時適用】</span>
+          ${timingText} <span style="color: #2f855a;">【インフレ2%・年金スライド1.6%】</span>
         </div>
         <div style="font-size: 11px; color: #718096; margin-top: 4px;">
           🛡 守りの国債：<strong>${Math.round(bondInit / 10000).toLocaleString()} 万円</strong>（利息年1.0%固定）<br>
@@ -4003,7 +4003,7 @@ function calculateEarlyRetireTable() {
           ${pensionText}
         </div>
         <div style="font-size: 11px; color: #718096; margin-top: 4px;">
-          ※${pensionStartAge}歳までは国債から支出。${pensionStartAge}歳以降は年金と生活費を自動相殺。
+          ※${pensionStartAge}歳までは全額国債。${pensionStartAge}歳以降はマクロ経済スライドによる差額を国債から支出。
         </div>
       </div>
       <div style="flex: 1; min-width: 180px;">
@@ -4020,18 +4020,18 @@ function calculateEarlyRetireTable() {
   const ruleDesc = document.getElementById('st-rule-desc');
   if (ruleDesc) {
     ruleDesc.innerHTML = `
-      🛡 <strong>適用中の二刀流ルール:</strong><br>
-      ・手取り生活費：初年度 ${(monthlyWithdraw / 10000)}万円（毎年2%インフレ増額）<br>
-      ・生活費は全額「国債＋その利息（1.0%）」から支払い、投信は1円も売りません。<br>
-      ・表の右端にある「🎯国債化」チェックを押すと、その年の投信残高が全額国債に合流します。<br>
-      ・${pensionStartAge}歳以降は年金を差し引いた差額を取り崩します。
+      🛡 <strong>適用中のリアル老後ルール:</strong><br>
+      ・生活費：初年度 ${(monthlyWithdraw / 10000)}万円（毎年2.0%インフレ増額）<br>
+      ・公的年金：マクロ経済スライドを適用し、改定率を年1.6%に抑制（実質目減りを再現）<br>
+      ・生活費は全額「国債＋利息（1.0%）」から支払い、投信は1円も売りません。<br>
+      ・表の右端にある「🎯国債化」チェックを押すと、その年の投信残高が全額国債に合流します。
     `;
   }
 
   runSimulation();
 }
 
-// 二刀流シミュレーション実行エンジン
+// 二刀流シミュレーション実行エンジン（マクロ経済スライド反映版）
 function runSimulation() {
   const sliderEl = document.getElementById('year-slider');
   if (!sliderEl) return;
@@ -4070,7 +4070,7 @@ function runSimulation() {
   let depletionAge = null;
   const targetAge = 85;
   const loopYears = Math.max(1, targetAge - retireAge);
-  const BOND_RATE = 0.01;
+  const BOND_RATE = 0.01; // 国債利息：1.0%
 
   for (let y = 0; y <= loopYears; y++) {
     const age = retireAge + y;
@@ -4087,19 +4087,19 @@ function runSimulation() {
       continue;
     }
 
-    // 1. その年の生活費（インフレ年2%・表示用にはこの金額のみを使用）
+    // 1. その年の生活費（インフレ年2.0%増額）
     const inflatedMonthly = baseExpenseMonthly * Math.pow(1.02, y);
     const annualExpense = inflatedMonthly * 12;
     const expenseText = `${Math.round(annualExpense / 10000)}万円/年`;
 
-    // 2. 年金
+    // 2. 年金（★マクロ経済スライド適用：物価2.0%に対し改定率は年1.6%）
     let pensionAnnual = 0;
     if (age >= pensionStartAge) {
       const basePension = (pensionStartAge === 65) ? 1200000 : 1704000;
-      pensionAnnual = basePension * Math.pow(1.02, y);
+      pensionAnnual = basePension * Math.pow(1.016, y); // スライド抑制（1.6%）
     }
 
-    // 正味の生活費持ち出し額（国債から引く差額）
+    // 正味の生活費持ち出し額（年金との差額）
     const netWithdraw = annualExpense - pensionAnnual;
 
     // 3. 投信の運用（未利確の場合）
@@ -4116,11 +4116,11 @@ function runSimulation() {
       justConvertedThisYear = true;
     }
 
-    // 5. 国債利息の発生
+    // 5. 国債利息の発生（年1.0%）
     const bondInterest = Math.round(bond * BOND_RATE);
     bond += bondInterest;
 
-    // 6. 生活費の支払い（年金相殺後の差額を引く）
+    // 6. 生活費の支払い（国債から引く）
     bond -= netWithdraw;
 
     // 枯渇判定
@@ -4156,7 +4156,6 @@ function runSimulation() {
     const rateClass = (log.rate !== null && log.rate >= 0) ? 'st-plus' : 'st-minus';
     const rateText = log.rate !== null ? `<span class="${rateClass}">${rateSign}${(log.rate * 100).toFixed(1)}%</span>` : '---';
 
-    // 国債化チェックボックスHTML（右端列用）
     let convertCheckHtml = '---';
     if (!isFirst) {
       const isChecked = (convertedTargetYear === log.historyYear);
