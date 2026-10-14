@@ -431,13 +431,13 @@
 <!-- ★新設：早期退職時期シミュレーション ダッシュボードエリア（二刀流・国債防衛＆投信利確モデル） -->
 <div id="earlyRetireDashboard" class="card" style="display: none; flex-direction: column; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; box-sizing: border-box; width: 100%;">
   <style>
-    /* 二刀流シミュレーション専用スタイル（前後1文字分パディング＆動的オートフィット版） */
-    .st-layout-wrapper { display: flex; gap: 15px; align-items: flex-start; margin-top: 15px; width: 100%; }
+    /* 二刀流シミュレーション専用スタイル（右端国債化＆生活費スリム化版） */
+    .st-layout-wrapper { display: flex; gap: 12px; align-items: flex-start; margin-top: 15px; width: 100%; }
     
-    /* 左側：画面幅に合わせて動的に伸縮するテーブルコンテナ */
-    .st-table-container { flex: 1; min-width: 0; background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow-x: auto; box-sizing: border-box; }
+    /* 左側：テーブルコンテナ */
+    .st-table-container { flex: 1; min-width: 0; background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow-x: auto; box-sizing: border-box; }
     
-    /* 右側：見やすさと操作性を確保した適正幅（320px固定） */
+    /* 右側：適正サイズ（320px）の操作パネル */
     .st-panel-container { flex: 0 0 320px; width: 320px; position: sticky; top: 15px; background: white; border: 1px solid #cbd5e0; border-radius: 8px; padding: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.06); box-sizing: border-box; }
     
     .st-slider-box { margin: 8px 0 12px 0; background: #f8fafc; padding: 10px 12px; border-radius: 6px; border: 1px solid #e2e8f0; }
@@ -456,23 +456,45 @@
     .st-plus { color: #2f855a; font-weight: bold; }
     .st-minus { color: #c53030; font-weight: bold; }
 
-    /* ★表スタイル：文字の前後にきっちり1文字分（1em）の余白を動的確保 */
+    /* ★表の全体定義 */
     #sim-table { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: auto; }
-    #sim-table th { 
-      border: 1px solid #e2e8f0; 
-      padding: 5px 1em !important; /* 左右に1文字分の余白 */
-      text-align: center; 
-      background: #edf2f7; 
-      color: #4a5568; 
-      white-space: nowrap; 
-      font-size: 10.5px; 
+    #sim-table th, #sim-table td {
+      border: 1px solid #e2e8f0;
+      white-space: nowrap;
+      line-height: 1.25;
     }
-    #sim-table td { 
-      border: 1px solid #e2e8f0; 
-      padding: 4px 1em !important; /* 左右に1文字分の余白 */
-      white-space: nowrap; 
-      line-height: 1.3; 
-      font-variant-numeric: tabular-nums; /* 数字の横幅を揃えて美しく表示 */
+    #sim-table th { background: #edf2f7; color: #4a5568; font-size: 10.5px; }
+
+    /* ★前半4列（経過、年号、騰落率、生活費）：余白をゼロ（枠ピッタリ）に */
+    #sim-table th:nth-child(-n+4),
+    #sim-table td:nth-child(-n+4) {
+      padding: 4px 1px !important;
+      text-align: center;
+    }
+    /* 4列目（生活費）：右揃えで余白ゼロ */
+    #sim-table th:nth-child(4),
+    #sim-table td:nth-child(4) {
+      text-align: right;
+      padding: 4px 1px !important;
+    }
+
+    /* ★金額3列（国債残高・投信残高・合計総資産）：前後に1文字分のゆとりを持たせて右揃え */
+    #sim-table th:nth-child(5),
+    #sim-table td:nth-child(5),
+    #sim-table th:nth-child(6),
+    #sim-table td:nth-child(6),
+    #sim-table th:nth-child(7),
+    #sim-table td:nth-child(7) {
+      padding: 4px 0.8em !important;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ★右端（8列目・国債化チェック）：余白ゼロで中央揃え */
+    #sim-table th:nth-child(8),
+    #sim-table td:nth-child(8) {
+      padding: 4px 2px !important;
+      text-align: center;
     }
   </style>
 
@@ -480,7 +502,7 @@
     🏖 早期退職・老後資産シミュレーション（守りの国債 ＋ 攻めの投信・インフレ2%前提）
   </h3>
   <p class="label-desc" id="er-main-subtitle" style="margin-bottom: 12px;">
-    ※生活費は元本保証の「国債（利息1.0%）」から支払い、投信は完全放置で運用。相場が良い年に「🎯国債化チェック」を入れて勝ち逃げを確定させます。
+    ※生活費は元本保証の「国債（利息1.0%）」から支払い、投信は完全放置で運用。相場が良い年に一番右端の「🎯国債化」を押して勝ち逃げを確定させます。
   </p>
 
   <!-- 操作コントロールパネル -->
@@ -527,7 +549,7 @@
 
   <!-- 時系列テーブル＆操作パネル -->
   <div class="st-layout-wrapper">
-    <!-- 左側：前後1文字分の余白で美しく自動フィットするテーブル -->
+    <!-- 左側：生活費スリム化＆右端国債化テーブル -->
     <div class="st-table-container">
       <h4 style="margin: 0 0 6px 0; font-size: 12px; color: #2c3e50;">
         ■ 時系列シミュレーション推移（国債取り崩し＆投信放置・利確追体験）
@@ -538,11 +560,11 @@
             <th>経過 (年齢)</th>
             <th>年号</th>
             <th>投信騰落率</th>
+            <th>生活費</th>
+            <th>【守り】国債残高 (年利息)</th>
+            <th>【攻め】投資信託残高</th>
+            <th>合計総資産</th>
             <th style="color: #805ad5;">🎯国債化</th>
-            <th style="text-align: right;">生活費・年金収支</th>
-            <th style="text-align: right;">【守り】国債残高 (年利息)</th>
-            <th style="text-align: right;">【攻め】投資信託残高</th>
-            <th style="text-align: right;">合計総資産</th>
           </tr>
         </thead>
         <tbody id="sim-tbody"></tbody>
@@ -3816,11 +3838,11 @@ function removeCashInputRow(btn) {
 }
 
 // ==========================================
-// ★新設：二刀流リタイアシミュレーション（国債防衛 ＋ 投信放置＆利確モデル・完全修復版）
+// ★新設：二刀流リタイアシミュレーション（国債防衛 ＋ 投信放置＆利確モデル・生活費単体表示版）
 // ==========================================
 let convertedTargetYear = null; // ユーザーが「国債化」チェックを入れた年号
 
-// 時代背景データ（復元）
+// 時代背景データ
 const ERA_NOTES = {
   1914: "⚠️【第1次世界大戦期】高インフレと戦時経済による波乱相場。",
   1929: "🚨【世界恐慌ルート】開始直後から4年連続の歴史的大暴落。守りの国債があるため投信は底値売りを完全回避。",
@@ -3987,9 +4009,9 @@ function calculateEarlyRetireTable() {
       <div style="flex: 1; min-width: 180px;">
         <span style="color: #2f855a; font-weight: bold;">🎯 投信の国債化ステータス:</span>
         <div style="font-size: 13px; font-weight: bold; color: ${convertedTargetYear ? '#2f855a' : '#dd6b20'}; margin-top: 3px;">
-          ${convertedTargetYear ? `${convertedTargetYear}年に利確完了` : '未利確（表で選択可能）'}
+          ${convertedTargetYear ? `${convertedTargetYear}年に利確完了` : '未利確（表の右端で選択可能）'}
         </div>
-        <div style="font-size: 11px; color: #718096;">表の🎯チェックで好きな年に利確</div>
+        <div style="font-size: 11px; color: #718096;">表右端の🎯チェックで好きな年に利確</div>
       </div>
     `;
   }
@@ -4001,7 +4023,7 @@ function calculateEarlyRetireTable() {
       🛡 <strong>適用中の二刀流ルール:</strong><br>
       ・手取り生活費：初年度 ${(monthlyWithdraw / 10000)}万円（毎年2%インフレ増額）<br>
       ・生活費は全額「国債＋その利息（1.0%）」から支払い、投信は1円も売りません。<br>
-      ・表の「🎯国債化」チェックを押すと、その年の投信残高が全額国債に合流します。<br>
+      ・表の右端にある「🎯国債化」チェックを押すと、その年の投信残高が全額国債に合流します。<br>
       ・${pensionStartAge}歳以降は年金を差し引いた差額を取り崩します。
     `;
   }
@@ -4065,9 +4087,10 @@ function runSimulation() {
       continue;
     }
 
-    // 1. その年の生活費（インフレ年2%）
+    // 1. その年の生活費（インフレ年2%・表示用にはこの金額のみを使用）
     const inflatedMonthly = baseExpenseMonthly * Math.pow(1.02, y);
     const annualExpense = inflatedMonthly * 12;
+    const expenseText = `${Math.round(annualExpense / 10000)}万円/年`;
 
     // 2. 年金
     let pensionAnnual = 0;
@@ -4076,15 +4099,8 @@ function runSimulation() {
       pensionAnnual = basePension * Math.pow(1.02, y);
     }
 
+    // 正味の生活費持ち出し額（国債から引く差額）
     const netWithdraw = annualExpense - pensionAnnual;
-    let expenseText = "";
-    if (age < pensionStartAge) {
-      expenseText = `-${Math.round(netWithdraw / 10000)}万円/年`;
-    } else if (netWithdraw > 0) {
-      expenseText = `-${Math.round(netWithdraw / 10000)}万円 (年金差額)`;
-    } else {
-      expenseText = `<span style="color:#2f855a; font-weight:bold;">+${Math.round(Math.abs(netWithdraw) / 10000)}万 (年金黒字)</span>`;
-    }
 
     // 3. 投信の運用（未利確の場合）
     if (!isInvestConverted) {
@@ -4104,7 +4120,7 @@ function runSimulation() {
     const bondInterest = Math.round(bond * BOND_RATE);
     bond += bondInterest;
 
-    // 6. 生活費の支払い
+    // 6. 生活費の支払い（年金相殺後の差額を引く）
     bond -= netWithdraw;
 
     // 枯渇判定
@@ -4140,6 +4156,7 @@ function runSimulation() {
     const rateClass = (log.rate !== null && log.rate >= 0) ? 'st-plus' : 'st-minus';
     const rateText = log.rate !== null ? `<span class="${rateClass}">${rateSign}${(log.rate * 100).toFixed(1)}%</span>` : '---';
 
+    // 国債化チェックボックスHTML（右端列用）
     let convertCheckHtml = '---';
     if (!isFirst) {
       const isChecked = (convertedTargetYear === log.historyYear);
@@ -4156,20 +4173,20 @@ function runSimulation() {
 
     tbodyHtml += `
       <tr style="${rowBg} height: 26px;">
-        <td style="border: 1px solid #e2e8f0; padding: 4px 6px; text-align: center; white-space: nowrap;">${isFirst ? `退職時 (${log.age}歳)` : (isFinal ? `${targetAge}歳時点` : `${log.year}年目 (${log.age}歳)`)}</td>
-        <td style="border: 1px solid #e2e8f0; padding: 4px 6px; text-align: center; font-family: monospace; white-space: nowrap;">${log.historyYear}年</td>
-        <td style="border: 1px solid #e2e8f0; padding: 4px 6px; text-align: center; font-family: monospace; white-space: nowrap;">${rateText}</td>
-        <td style="border: 1px solid #e2e8f0; padding: 4px 6px; text-align: center; white-space: nowrap;">${convertCheckHtml}</td>
-        <td style="border: 1px solid #e2e8f0; padding: 4px 6px; text-align: right; font-family: monospace; white-space: nowrap;">${log.expenseText}</td>
-        <td style="border: 1px solid #e2e8f0; padding: 4px 6px; text-align: right; font-family: monospace; font-weight: bold; color: #2b6cb0; white-space: nowrap;">
+        <td style="border: 1px solid #e2e8f0; padding: 4px 1px; text-align: center; white-space: nowrap;">${isFirst ? `退職時 (${log.age}歳)` : (isFinal ? `${targetAge}歳時点` : `${log.year}年目 (${log.age}歳)`)}</td>
+        <td style="border: 1px solid #e2e8f0; padding: 4px 1px; text-align: center; font-family: monospace; white-space: nowrap;">${log.historyYear}年</td>
+        <td style="border: 1px solid #e2e8f0; padding: 4px 1px; text-align: center; font-family: monospace; white-space: nowrap;">${rateText}</td>
+        <td style="border: 1px solid #e2e8f0; padding: 4px 1px; text-align: right; font-family: monospace; white-space: nowrap;">${log.expenseText}</td>
+        <td style="border: 1px solid #e2e8f0; padding: 4px 0.8em; text-align: right; font-family: monospace; font-weight: bold; color: #2b6cb0; white-space: nowrap;">
           ${log.bond.toLocaleString()} 円 <span style="font-size: 9.5px; color: #718096; font-weight: normal;">(+${Math.round(log.bondInterest / 10000)}万)</span>
         </td>
-        <td style="border: 1px solid #e2e8f0; padding: 4px 6px; text-align: right; font-family: monospace; font-weight: bold; color: ${log.invest > 0 ? '#1a202c' : '#a0aec0'}; white-space: nowrap;">
+        <td style="border: 1px solid #e2e8f0; padding: 4px 0.8em; text-align: right; font-family: monospace; font-weight: bold; color: ${log.invest > 0 ? '#1a202c' : '#a0aec0'}; white-space: nowrap;">
           ${log.invest > 0 ? `${log.invest.toLocaleString()} 円` : '<span style="color:#805ad5; font-size:10px;">🎯 国債へ移行済</span>'}
         </td>
-        <td style="border: 1px solid #e2e8f0; padding: 4px 6px; text-align: right; font-family: monospace; font-weight: bold; color: #2d3748; white-space: nowrap;">
+        <td style="border: 1px solid #e2e8f0; padding: 4px 0.8em; text-align: right; font-family: monospace; font-weight: bold; color: #2d3748; white-space: nowrap;">
           ${log.total.toLocaleString()} 円
         </td>
+        <td style="border: 1px solid #e2e8f0; padding: 4px 2px; text-align: center; white-space: nowrap;">${convertCheckHtml}</td>
       </tr>
     `;
   });
