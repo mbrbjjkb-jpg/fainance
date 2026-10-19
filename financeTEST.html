@@ -519,7 +519,7 @@
     ※生活費は元本保証の「国債（利息1.0%）」から支払い、投信は完全放置で運用。相場が良い年に一番右端の「🎯国債化」を押して勝ち逃げを確定させます。
   </p>
 
-  <!-- 操作コントロールパネル -->
+  <!-- 操作コントロールパネル（手元現金スライダー追加版） -->
   <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center; background: #f8fafc; padding: 12px 15px; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 15px;">
     <div style="display: flex; flex-direction: column; gap: 3px;">
       <span style="font-size: 11px; font-weight: bold; color: #4a5568;">① 現在の年齢</span>
@@ -541,19 +541,35 @@
       </select>
     </div>
 
-    <!-- 資産振り分けスライダー -->
-    <div style="display: flex; flex-direction: column; gap: 3px; min-width: 280px; flex: 1;">
+    <!-- ⑤ 手元現金保有スライダー -->
+    <div style="display: flex; flex-direction: column; gap: 3px; min-width: 230px; flex: 1;">
       <div style="display: flex; justify-content: space-between; align-items: baseline;">
-        <span style="font-size: 11px; font-weight: bold; color: #4a5568;">⑤ 資産配分（守りの国債 ⇆ 攻めの投信）</span>
+        <span style="font-size: 11px; font-weight: bold; color: #4a5568;">⑤ 手元現金保有（別枠プール）</span>
+        <span id="er-cash-hold-label" style="font-size: 12px; font-weight: bold; color: #805ad5; font-family: monospace;">0 万円</span>
+      </div>
+      <input type="range" id="er-cash-hold-slider" min="0" max="25000000" step="1000000" value="0" 
+             style="cursor: pointer; width: 100%; accent-color: #805ad5;" 
+             oninput="onCashHoldSliderChange(this.value)">
+      <div style="display: flex; justify-content: space-between; font-size: 9px; color: #718096; font-weight: bold; padding: 0 2px;">
+        <span>0円（全額運用）</span>
+        <span>手元に完全温存（100万刻み）</span>
+        <span>全額現金</span>
+      </div>
+    </div>
+
+    <!-- ⑥ 資産振り分けスライダー -->
+    <div style="display: flex; flex-direction: column; gap: 3px; min-width: 260px; flex: 1;">
+      <div style="display: flex; justify-content: space-between; align-items: baseline;">
+        <span style="font-size: 11px; font-weight: bold; color: #4a5568;">⑥ 運用資産配分（守りの国債 ⇆ 攻めの投信）</span>
         <span id="er-alloc-label" style="font-size: 12px; font-weight: bold; color: #2b6cb0; font-family: monospace;">国債 1,500万 / 投信 1,100万</span>
       </div>
-      <input type="range" id="er-bond-alloc-slider" min="5000000" max="25000000" step="1000000" value="15000000" 
+      <input type="range" id="er-bond-alloc-slider" min="0" max="25000000" step="1000000" value="15000000" 
              style="cursor: pointer; width: 100%; accent-color: #3182ce;" 
              oninput="updateAllocSliderLabel(this.value); calculateEarlyRetireTable();">
       <div style="display: flex; justify-content: space-between; font-size: 9px; color: #718096; font-weight: bold; padding: 0 2px;">
-        <span>国債500万（投信強気）</span>
-        <span>国債1,500万（黄金比）</span>
-        <span>国債2,500万（全額安全）</span>
+        <span>国債0万（投信全振り）</span>
+        <span>運用原資内で配分</span>
+        <span>国債全額</span>
       </div>
     </div>
   </div>
@@ -3852,7 +3868,7 @@ function removeCashInputRow(btn) {
 }
 
 // ==========================================
-// ★新設：二刀流リタイアシミュレーション（国債防衛 ＋ 投信部分利確モデル）
+// ★新設：二刀流リタイアシミュレーション（国債防衛 ＋ 投信部分利確 ＋ 手元現金プールモデル）
 // ==========================================
 let convertedPlan = {}; // 年ごとの国債化指定額を保持 { 1935: 2000000, 1940: 'ALL' }
 let lastSelectedStartYear = null; // 前回の退職開始年を記録（年変更検知用）
@@ -3865,8 +3881,8 @@ function resetConvertedPlan() {
 function setSliderYear(y) {
   const el = document.getElementById('year-slider');
   if (el) el.value = y;
-  resetConvertedPlan(); // 年変更時に利確設定をリセット
-  calculateEarlyRetireTable(); // バナー等の表示も含めて再集計
+  resetConvertedPlan();
+  calculateEarlyRetireTable();
 }
 
 function stepYear(step) {
@@ -3876,13 +3892,41 @@ function stepYear(step) {
   setSliderYear(nextYear);
 }
 
-// 資産配分スライダーのラベル表示更新
-function updateAllocSliderLabel(val) {
-  const bondVal = parseInt(val) || 15000000;
+// 手元現金保有スライダー変更時の連動処理
+function onCashHoldSliderChange(val) {
+  const cashVal = parseInt(val) || 0;
+  const elLabel = document.getElementById('er-cash-hold-label');
+  if (elLabel) elLabel.innerText = `${Math.round(cashVal / 10000).toLocaleString()} 万円`;
+
   const totals = calculateCurrentTotals();
   const otherTotals = calculateOtherAssetsTotals();
   const totalWealth = Math.round(totals.afterTaxMarket + otherTotals.grandTotal);
-  const investVal = Math.max(0, totalWealth - bondVal);
+  
+  // 運用原資（総資産 - 手元現金）
+  const investableWealth = Math.max(0, totalWealth - cashVal);
+  const allocSlider = document.getElementById('er-bond-alloc-slider');
+  if (allocSlider) {
+    allocSlider.max = investableWealth;
+    if (parseInt(allocSlider.value) > investableWealth) {
+      allocSlider.value = investableWealth;
+    }
+    updateAllocSliderLabel(allocSlider.value);
+  }
+  calculateEarlyRetireTable();
+}
+
+// 資産配分スライダーのラベル表示更新（手元現金を差し引いた運用原資内で配分）
+function updateAllocSliderLabel(val) {
+  const totals = calculateCurrentTotals();
+  const otherTotals = calculateOtherAssetsTotals();
+  const totalWealth = Math.round(totals.afterTaxMarket + otherTotals.grandTotal);
+
+  const cashSlider = document.getElementById('er-cash-hold-slider');
+  const cashVal = cashSlider ? (parseInt(cashSlider.value) || 0) : 0;
+  const investableWealth = Math.max(0, totalWealth - cashVal);
+
+  const bondVal = Math.min(parseInt(val) || 0, investableWealth);
+  const investVal = Math.max(0, investableWealth - bondVal);
 
   const el = document.getElementById('er-alloc-label');
   if (el) {
@@ -3918,13 +3962,24 @@ function initEarlyRetireControls() {
   const yearsSelect = document.getElementById('er-retire-years');
   const withdrawSelect = document.getElementById('er-monthly-withdraw');
   const allocSlider = document.getElementById('er-bond-alloc-slider');
+  const cashSlider = document.getElementById('er-cash-hold-slider');
 
   const totals = calculateCurrentTotals();
   const otherTotals = calculateOtherAssetsTotals();
   const totalWealth = Math.round(totals.afterTaxMarket + otherTotals.grandTotal);
 
+  // 手元現金保有スライダーの最大値を総資産額（100万単位）に設定
+  if (cashSlider) {
+    cashSlider.max = Math.floor(totalWealth / 1000000) * 1000000;
+    const elCashLabel = document.getElementById('er-cash-hold-label');
+    if (elCashLabel) elCashLabel.innerText = `${Math.round((parseInt(cashSlider.value) || 0) / 10000).toLocaleString()} 万円`;
+  }
+
+  const cashVal = cashSlider ? (parseInt(cashSlider.value) || 0) : 0;
+  const investableWealth = Math.max(0, totalWealth - cashVal);
+
   if (allocSlider) {
-    allocSlider.max = Math.max(5000000, Math.floor(totalWealth / 1000000) * 1000000);
+    allocSlider.max = investableWealth;
     if (!allocSlider.dataset.initialized) {
       allocSlider.value = Math.min(15000000, allocSlider.max);
       allocSlider.dataset.initialized = "true";
@@ -3957,7 +4012,7 @@ function initEarlyRetireControls() {
   }
 }
 
-// パターンA（プルダウン主導型）：プルダウン選択時の処理
+// プルダウン選択時の処理
 function onConvertAmountChange(year, val) {
   if (val === '0') {
     delete convertedPlan[year];
@@ -3967,30 +4022,19 @@ function onConvertAmountChange(year, val) {
     convertedPlan[year] = parseInt(val, 10);
   }
   runSimulation();
-  updatePlanBannerStatus(); // サマリーバナーの利確件数を同期
 }
 
 // チェックボックストグル時の連動処理
 function onConvertCheckToggle(year, isChecked) {
   if (isChecked) {
-    convertedPlan[year] = 'ALL'; // チェックONで全額利確
+    convertedPlan[year] = 'ALL';
   } else {
     delete convertedPlan[year];
   }
   runSimulation();
-  updatePlanBannerStatus(); // サマリーバナーの利確件数を同期
 }
 
-// サマリーバナー内の「利確ステータス」部分のみを即時更新する関数
-function updatePlanBannerStatus() {
-  const planCount = Object.keys(convertedPlan).length;
-  const statusEl = document.getElementById('er-plan-status-text');
-  if (statusEl) {
-    statusEl.innerText = planCount > 0 ? `${planCount}箇所で利確設定中` : '未利確（表の右端で選択可能）';
-    statusEl.style.color = planCount > 0 ? '#2f855a' : '#dd6b20';
-  }
-}
-
+// シミュレーション計算およびサマリーバナー描画
 function calculateEarlyRetireTable() {
   initEarlyRetireControls();
 
@@ -3999,6 +4043,7 @@ function calculateEarlyRetireTable() {
   const elWithdraw = document.getElementById('er-monthly-withdraw');
   const elPension = document.getElementById('er-pension-plan');
   const elSlider = document.getElementById('er-bond-alloc-slider');
+  const elCashSlider = document.getElementById('er-cash-hold-slider');
 
   const retireYears = elYears && elYears.value ? parseInt(elYears.value) : 0;
   const currentAge = elAge && elAge.value ? parseInt(elAge.value) : 54;
@@ -4009,11 +4054,15 @@ function calculateEarlyRetireTable() {
   const otherTotals = calculateOtherAssetsTotals();
   const totalWealth = Math.round(totals.afterTaxMarket + otherTotals.grandTotal);
 
-  const bondInit = elSlider ? Math.min(parseInt(elSlider.value), totalWealth) : 15000000;
-  const investInit = Math.max(0, totalWealth - bondInit);
+  // 手元現金を隔離した残りが運用原資
+  const cashHold = elCashSlider ? (parseInt(elCashSlider.value) || 0) : 0;
+  const investableWealth = Math.max(0, totalWealth - cashHold);
+
+  const bondInit = elSlider ? Math.min(parseInt(elSlider.value), investableWealth) : Math.min(15000000, investableWealth);
+  const investInit = Math.max(0, investableWealth - bondInit);
   const retireAge = currentAge + retireYears;
 
-  // サマリーバナー描画
+  // サマリーバナー描画（右端を手元現金保有額の表示に変更）
   const banner = document.getElementById('er-summary-banner');
   if (banner) {
     const timingText = (retireYears === 0) ? `今すぐ（${retireAge}歳時点）` : `${retireYears}年後（${retireAge}歳時点）`;
@@ -4021,13 +4070,13 @@ function calculateEarlyRetireTable() {
       ? '65歳受給（手取り年120万／マクロ経済スライド1.6%増）' 
       : '70歳繰り下げ（手取り年170.4万・42%増／マクロ経済スライド1.6%増）';
 
-    const planCount = Object.keys(convertedPlan).length;
+    const cashRatio = totalWealth > 0 ? ((cashHold / totalWealth) * 100).toFixed(1) : '0.0';
 
     banner.innerHTML = `
       <div style="flex: 1.2; min-width: 200px;">
-        <span style="color: #718096; font-weight: bold;">退職時期 / 配分:</span>
+        <span style="color: #718096; font-weight: bold;">退職時期 / 運用原資:</span>
         <div style="font-size: 14px; font-weight: bold; color: #2d3748; margin-top: 3px;">
-          ${timingText} <span style="color: #2f855a;">【インフレ2%・年金スライド1.6%】</span>
+          ${timingText} <span style="color: #2f855a;">【運用原資: ${Math.round(investableWealth / 10000).toLocaleString()}万円】</span>
         </div>
         <div style="font-size: 11px; color: #718096; margin-top: 4px;">
           🛡 守りの国債：<strong>${Math.round(bondInit / 10000).toLocaleString()} 万円</strong>（利息年1.0%固定）<br>
@@ -4043,12 +4092,15 @@ function calculateEarlyRetireTable() {
           ※${pensionStartAge}歳までは全額国債。${pensionStartAge}歳以降はマクロ経済スライドによる差額を国債から支出。
         </div>
       </div>
+      <!-- ★右端：手元現金保有額の表示枠（利確ステータスから置き換え） -->
       <div style="flex: 1; min-width: 180px;">
-        <span style="color: #2f855a; font-weight: bold;">🎯 投信の国債化ステータス:</span>
-        <div id="er-plan-status-text" style="font-size: 13px; font-weight: bold; color: ${planCount > 0 ? '#2f855a' : '#dd6b20'}; margin-top: 3px;">
-          ${planCount > 0 ? `${planCount}箇所で利確設定中` : '未利確（表の右端で選択可能）'}
+        <span style="color: #805ad5; font-weight: bold;">💵 手元現金保有（別枠プール）:</span>
+        <div style="font-size: 15px; font-weight: bold; color: #2d3748; margin-top: 3px;">
+          ${Math.round(cashHold / 10000).toLocaleString()} 万円
         </div>
-        <div style="font-size: 11px; color: #718096;">右端のプルダウンから100万円単位で利確</div>
+        <div style="font-size: 11px; color: #718096; margin-top: 2px;">
+          ※運用・生活費の対象外として手元に温存（総資産比 ${cashRatio}%）
+        </div>
       </div>
     `;
   }
@@ -4058,26 +4110,25 @@ function calculateEarlyRetireTable() {
   if (ruleDesc) {
     ruleDesc.innerHTML = `
       🛡 <strong>適用中のリアル老後ルール:</strong><br>
+      ・手元現金：設定額を完全温存し、運用の引き去り・合計総資産から除外します。<br>
       ・生活費：初年度 ${(monthlyWithdraw / 10000)}万円（毎年2.0%インフレ増額）<br>
-      ・公的年金：マクロ経済スライドを適用し、改定率を年1.6%に抑制（実質目減りを再現）<br>
+      ・公的年金：マクロ経済スライド（改定率年1.6%）による目減りを反映。<br>
       ・生活費は全額「国債＋利息（1.0%）」から支払い、投信は原則売りません。<br>
-      ・表の右端にあるプルダウンから任意の金額（100万円単位〜全額）を安全な国債へ移動できます。
+      ・表の右端プルダウンから任意の金額（100万円単位〜全額）を安全な国債へ利確できます。
     `;
   }
 
   runSimulation();
 }
 
-// 二刀流シミュレーション実行エンジン（年変更の自動検知＆初期化付き）
+// 二刀流シミュレーション実行エンジン
 function runSimulation() {
   const sliderEl = document.getElementById('year-slider');
   if (!sliderEl) return;
   const startYear = parseInt(sliderEl.value) || 1929;
 
-  // ★スライダー手動ドラッグ時も含め、年が切り替わった瞬間に利確チェックを自動クリア
   if (lastSelectedStartYear !== null && lastSelectedStartYear !== startYear) {
     resetConvertedPlan();
-    updatePlanBannerStatus();
   }
   lastSelectedStartYear = startYear;
 
@@ -4086,6 +4137,7 @@ function runSimulation() {
   const elWithdraw = document.getElementById('er-monthly-withdraw');
   const elPension = document.getElementById('er-pension-plan');
   const elSlider = document.getElementById('er-bond-alloc-slider');
+  const elCashSlider = document.getElementById('er-cash-hold-slider');
 
   const currentAge = elAge && elAge.value ? parseInt(elAge.value) : 54;
   const retireYears = elYears && elYears.value ? parseInt(elYears.value) : 0;
@@ -4097,8 +4149,12 @@ function runSimulation() {
   const otherTotals = calculateOtherAssetsTotals();
   const totalWealth = Math.round(totals.afterTaxMarket + otherTotals.grandTotal);
 
-  let bond = elSlider ? Math.min(parseInt(elSlider.value), totalWealth) : 15000000;
-  let invest = Math.max(0, totalWealth - bond);
+  // 手元現金を差し引いた運用原資を国債と投信に配分
+  const cashHold = elCashSlider ? (parseInt(elCashSlider.value) || 0) : 0;
+  const investableWealth = Math.max(0, totalWealth - cashHold);
+
+  let bond = elSlider ? Math.min(parseInt(elSlider.value), investableWealth) : Math.min(15000000, investableWealth);
+  let invest = Math.max(0, investableWealth - bond);
 
   const yearDisplay = document.getElementById('year-display');
   if (yearDisplay) yearDisplay.innerText = `${startYear} 年 退職`;
@@ -4126,7 +4182,7 @@ function runSimulation() {
         expenseText: "0 円", bondInterest: 0,
         bond: Math.round(bond), invest: Math.round(invest),
         availableInvest: Math.round(invest), convertedAmount: 0,
-        total: Math.round(bond + invest)
+        total: Math.round(bond + invest) // ★手元現金は含めず、国債+投信のみ
       });
       continue;
     }
@@ -4168,7 +4224,7 @@ function runSimulation() {
     // 6. 生活費の支払い（国債から引き去り）
     bond -= netWithdraw;
 
-    // 枯渇判定
+    // 枯渇判定（国債が底をついた場合のみ投信から穴埋め）
     if (bond < 0) {
       if (invest > 0) {
         invest += bond;
@@ -4188,11 +4244,11 @@ function runSimulation() {
       expenseText: expenseText, bondInterest: bondInterest,
       bond: Math.round(bond), invest: Math.round(invest),
       availableInvest: availableInvest, convertedAmount: convertedAmount,
-      total: Math.round(bond + invest)
+      total: Math.round(bond + invest) // ★手元現金は含めず、国債+投信のみ
     });
   }
 
-  // 表のレンダリング
+  // 表（tbody）のレンダリング
   let tbodyHtml = '';
   logs.forEach(log => {
     const isFirst = log.year === 0;
@@ -4206,7 +4262,6 @@ function runSimulation() {
       const activeVal = convertedPlan[log.historyYear];
       const isChecked = (activeVal !== undefined && activeVal !== 0);
 
-      // 動的な100万円単位プルダウンの選択肢生成
       let optionsHtml = `<option value="0">利確なし</option>`;
       if (log.availableInvest > 0) {
         const maxMillions = Math.floor(log.availableInvest / 1000000);
@@ -4256,7 +4311,7 @@ function runSimulation() {
   const tbodyEl = document.getElementById('sim-tbody');
   if (tbodyEl) tbodyEl.innerHTML = tbodyHtml;
 
-  // 結果サマリーカードの更新
+  // 右側パネル：結果サマリーカードの更新
   if (logs.length > 0) {
     const lastLog = logs[logs.length - 1];
     const elCash = document.getElementById('final-cash');
@@ -4270,9 +4325,9 @@ function runSimulation() {
   const judgeEl = document.getElementById('judge-status');
   if (judgeEl) {
     if (depletionAge === null) {
-      judgeEl.innerHTML = `<span style="color: #2f855a; font-weight: bold;">✅ 完全逃げ切り成功</span>`;
+      judgeEl.innerHTML = `<span style="color: #2f855a; font-weight: bold;">✅ 運用資産のみで逃げ切り成功</span>`;
     } else {
-      judgeEl.innerHTML = `<span style="color: #e53e3e; font-weight: bold;">🚨 ${depletionAge}歳で資産枯渇</span>`;
+      judgeEl.innerHTML = `<span style="color: #e53e3e; font-weight: bold;">🚨 ${depletionAge}歳で運用資産枯渇</span>`;
     }
   }
 }
