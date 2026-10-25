@@ -7,8 +7,8 @@
       "periodText": "2016/06-2026/06"
     },
     "saison": {
-      "units": 84.7,
-      "purchasePrice": 16882,
+      "units": 85.3,
+      "purchasePrice": 16993,
       "monthlyInvest": 10000,
       "periodText": "2017/05-"
     },
@@ -104,8 +104,8 @@
         "purchasePrice": 53919
       },
       "saison": {
-        "units": 84.7,
-        "purchasePrice": 16882
+        "units": 85.3,
+        "purchasePrice": 16993
       },
       "vti_new": {
         "units": 36.6,
@@ -140,12 +140,12 @@
       {
         "name": "BNB",
         "amount": 21.18,
-        "rate": 115231
+        "rate": 116142
       },
       {
         "name": "BLZ",
         "amount": 150272,
-        "rate": 1.45
+        "rate": 1.39
       }
     ]
   }
