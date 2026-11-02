@@ -119,6 +119,28 @@
         "units": 53.2,
         "purchasePrice": 19834
       }
+    },
+    "2026-11": {
+      "hifumi": {
+        "units": 67.97,
+        "purchasePrice": 53919
+      },
+      "saison": {
+        "units": 85.3,
+        "purchasePrice": 16993
+      },
+      "vti_new": {
+        "units": 36.6,
+        "purchasePrice": 35188
+      },
+      "ishares": {
+        "units": 70.3,
+        "purchasePrice": 20478
+      },
+      "vti_old": {
+        "units": 53.2,
+        "purchasePrice": 19834
+      }
     }
   },
   "otherAssets": {
@@ -140,12 +162,12 @@
       {
         "name": "BNB",
         "amount": 21.18,
-        "rate": 111024
+        "rate": 111412
       },
       {
         "name": "BLZ",
         "amount": 150272,
-        "rate": 1.31
+        "rate": 1.28
       }
     ]
   }
