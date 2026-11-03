@@ -2,10 +2,10 @@ import os
 import sys
 import json
 import re
+from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
 
-# 投信協会コード（8桁）- みんかぶ投信でも共通
 FUNDS = {
     "hifumi": "9C31108A",       # ひふみ投信
     "saison": "04311073",       # セゾン・グローバルバランス
@@ -18,7 +18,6 @@ HEADERS = {
 }
 
 def get_latest_price(code):
-    # みんかぶ投信の個別ページから取得
     url = f"https://itf.minkabu.jp/fund/{code}"
     try:
         r = requests.get(url, headers=HEADERS, timeout=15)
@@ -31,31 +30,30 @@ def get_latest_price(code):
 
     # 1. 基準価額（price）の抽出
     price = None
-    # 専用クラスタグから優先的に取得
-    price_tag = soup.select_one(".f-headline__price, .f-headline__num, .fund_price")
-    if price_tag:
-        m = re.search(r'([0-9,]+)', price_tag.text)
+    meta_desc = soup.find("meta", attrs={"name": "description"}) or soup.find("meta", attrs={"property": "og:description"})
+    if meta_desc and meta_desc.get("content"):
+        m = re.search(r'基準価額\s*([0-9,.]+)\s*円', meta_desc["content"])
         if m:
-            price = int(m.group(1).replace(",", ""))
+            price = int(float(m.group(1).replace(",", "")))
 
-    # タグで見つからない場合は「基準価額」直後の金額をテキストから検索
     if not price:
-        m = re.search(r'基準価額\s*([0-9,]+)\s*円', page_text)
+        m = re.search(r'基準価額\s*(?:\d{1,2}/\d{1,2})?\s*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\s*円', page_text)
         if m:
             price = int(m.group(1).replace(",", ""))
 
     # 2. 基準日（date）の抽出
     date_val = None
-    date_tag = soup.select_one(".f-headline__date, .fund_date")
-    if date_tag:
-        m = re.search(r'(\d{4})[年/-](\d{1,2})[月/-](\d{1,2})', date_tag.text)
+    meta_time = soup.find("meta", attrs={"property": "og:update_time"})
+    if meta_time and meta_time.get("content"):
+        m = re.search(r'(\d{4})-(\d{2})-(\d{2})', meta_time["content"])
         if m:
-            date_val = f"{int(m.group(1)):04d}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
+            date_val = f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
 
     if not date_val:
-        m = re.search(r'基準日[^\d]*?(\d{4})[年/-](\d{1,2})[月/-](\d{1,2})', page_text)
+        m = re.search(r'基準価額\s*(\d{1,2})/(\d{1,2})', page_text)
         if m:
-            date_val = f"{int(m.group(1)):04d}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
+            y = datetime.now().year
+            date_val = f"{y:04d}-{int(m.group(1)):02d}-{int(m.group(2)):02d}"
 
     if price and date_val:
         return date_val, price
