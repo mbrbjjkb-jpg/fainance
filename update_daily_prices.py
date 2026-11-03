@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import re
+from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
 
@@ -25,39 +26,71 @@ def get_latest_price(code):
     except Exception as e:
         raise RuntimeError(f"接続エラー ({url}): {str(e)}")
 
-    soup = BeautifulSoup(r.text, "html.parser")
+    html = r.text
+    soup = BeautifulSoup(html, "html.parser")
+    text_content = soup.get_text(" ", strip=True)
 
-    # 1. 基準価額の取得（「基準価額」という文字を含む要素から価格を探索）
+    # -----------------------------
+    # 1. 基準価額（price）の抽出
+    # -----------------------------
     price = None
-    target_header = soup.find(lambda tag: tag.name in ["dt", "th", "div", "span", "p"] and tag.get_text(strip=True) == "基準価額")
-    if target_header:
-        # 親要素や次の兄弟要素から数値を探す
-        parent = target_header.parent
-        # 数値（カンマ区切りの数字）を正規表現で抽出
-        text = parent.get_text(" ", strip=True)
-        price_match = re.search(r'基準価額\s*([0-9,]+)\s*円?', text)
-        if price_match:
-            price = int(price_match.group(1).replace(",", ""))
 
-    # 2. 基準日（日付）の取得（ページ内の「YYYY/MM/DD」または「YYYY年MM月DD日」を探索）
-    # 通常、基準価額の付近または上部に「2026/06/03」等の日付が表示される
+    # パターンA: テキストから「基準価額」の直後にあるカンマ区切り数値を抽出
+    m_price = re.search(r'基準価額[^\d]*?([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\s*円?', text_content)
+    if m_price:
+        price = int(m_price.group(1).replace(",", ""))
+
+    # パターンB: HTMLタグ込みで「基準価額」直後の数値を抽出（パターンAが取れなかった場合）
+    if not price:
+        m_price_html = re.search(r'基準価額.*?>\s*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\s*<', html, re.DOTALL)
+        if m_price_html:
+            price = int(m_price_html.group(1).replace(",", ""))
+
+    # -----------------------------
+    # 2. 基準日（date）の抽出
+    # -----------------------------
     date_val = None
-    
-    # ページ上部の日付表記を探索
-    date_match = re.search(r'(\d{4})[年/](\d{1,2})[月/](\d{1,2})日?', soup.text)
-    if date_match:
-        y, m, d = int(date_match.group(1)), int(date_match.group(2)), int(date_match.group(3))
-        date_val = f"{y:04d}-{m:02d}-{d:02d}"
 
-    if price and date_val:
-        return date_val, price
+    # パターンA: <time> タグがある場合（datetime="YYYY-MM-DD" など）
+    for time_tag in soup.find_all("time"):
+        dt = time_tag.get("datetime")
+        if dt:
+            m_dt = re.search(r'(\d{4})[-/](\d{1,2})[-/](\d{1,2})', dt)
+            if m_dt:
+                date_val = f"{int(m_dt.group(1)):04d}-{int(m_dt.group(2)):02d}-{int(m_dt.group(3)):02d}"
+                break
 
-    raise RuntimeError(f"コード {code} のHTML内に基準価額または日付が見つかりません。")
+    # パターンB: 「基準日」や「日付」の周辺にある YYYY年MM月DD日 または YYYY/MM/DD
+    if not date_val:
+        m_date = re.search(r'基準日[^\d]*?(\d{4})[年/-](\d{1,2})[月/-](\d{1,2})', text_content)
+        if not m_date:
+            m_date = re.search(r'(\d{4})[年/-](\d{1,2})[月/-](\d{1,2})日?\s*(?:基準|更新|\()', text_content)
+        if not m_date:
+            # ページ全体の最初の YYYY/MM/DD や YYYY年MM月DD日
+            m_date = re.search(r'(20\d{2})[年/-](\d{1,2})[月/-](\d{1,2})', text_content)
+
+        if m_date:
+            y, m, d = int(m_date.group(1)), int(m_date.group(2)), int(m_date.group(3))
+            date_val = f"{y:04d}-{m:02d}-{d:02d}"
+
+    # パターンC: 年が省略されて「（MM/DD）」と表記されている場合
+    if not date_val:
+        m_short_date = re.search(r'[（\(](\d{1,2})[/月](\d{1,2})[日\)）]', text_content)
+        if m_short_date:
+            y = datetime.now().year
+            m = int(m_short_date.group(1))
+            d = int(m_short_date.group(2))
+            date_val = f"{y:04d}-{m:02d}-{d:02d}"
+
+    # どちらか一方でも取得できなかった場合は詳細を通知
+    if not price or not date_val:
+        raise RuntimeError(f"コード {code} の抽出結果 -> 基準価額: {price}, 基準日: {date_val}")
+
+    return date_val, price
 
 def main():
     db_file = 'prices_daily.json'
     
-    # 既存の prices_daily.json を読み込む
     if os.path.exists(db_file):
         try:
             with open(db_file, 'r', encoding='utf-8') as f:
@@ -83,7 +116,6 @@ def main():
             print(f"【エラー】{key} の取得中にエラーが発生しました: {str(e)}", file=sys.stderr)
             sys.exit(1)
 
-    # 取得した日付の確認
     if len(temp_dates) != 1:
         print(f"警告: 各投信の間で更新基準日が一致していません。取得日付: {temp_dates}")
         target_date = max(temp_dates)
@@ -96,7 +128,6 @@ def main():
         print("  --> 本日の価格データはすでに記録簿に存在します。ファイル更新をスキップします。")
         sys.exit(0)
 
-    # 追記保存
     database[target_date] = temp_prices
     sorted_database = dict(sorted(database.items()))
 
