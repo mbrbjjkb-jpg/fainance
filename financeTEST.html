@@ -3338,7 +3338,7 @@ function githubDirectCommit(token, fileName, contentString) {
 }
 
 // =================================================================
-// ★ここに追加：GitHub Actions (auto_run.yml) を強制実行する関数
+// ★GitHub Actions (auto_run.yml) を強制実行し、カウントダウン後に自動再読み込み
 // =================================================================
 function triggerWorkflowDispatch() {
   const pin = getEffectivePin();
@@ -3371,7 +3371,6 @@ function triggerWorkflowDispatch() {
 
   writeLog("【Actions起動】GitHub Actionsの強制実行リクエストを送信中...");
 
-  // GitHub Actions の workflow_dispatch API エンドポイント
   const workflowFileName = 'auto_run.yml';
   const url = `https://api.github.com/repos/${CONFIG_GITHUB_USER}/${CONFIG_GITHUB_REPO}/actions/workflows/${workflowFileName}/dispatches`;
 
@@ -3383,14 +3382,30 @@ function triggerWorkflowDispatch() {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      ref: 'main' // 実行するブランチ名
+      ref: 'main'
     })
   })
   .then(res => {
     if (res.status === 204) {
-      // 204 No Content はGitHub APIで「リクエスト受理・実行成功」を意味します
-      writeLog("【Actions成功】ワークフロー (auto_run.yml) が正常に起動しました！");
-      alert("✅ GitHub Actionsの強制実行を開始しました！\n\nスクレイピングと価格ファイルの更新完了まで約1〜2分かかります。\n完了後、ページを再読み込みしてください。");
+      writeLog("【Actions成功】ワークフローが起動しました。120秒後に自動再読み込みします。");
+
+      // ポップアップを出さず、ボタン上にカウントダウンを表示して自動リロード
+      let countdown = 120; // 2分（120秒）
+      if (btn) {
+        btn.innerText = `⏳ データ収集中 (再読込まで ${countdown}秒)`;
+      }
+
+      const timer = setInterval(() => {
+        countdown--;
+        if (countdown > 0) {
+          if (btn) btn.innerText = `⏳ データ収集中 (再読込まで ${countdown}秒)`;
+        } else {
+          clearInterval(timer);
+          if (btn) btn.innerText = "🔄 画面を更新しています...";
+          location.reload(); // 120秒経過で自動リロード
+        }
+      }, 1000);
+
     } else if (res.status === 404) {
       throw new Error("ワークフローファイル（auto_run.yml）が見つからないか、トークン権限が不足しています (404)。");
     } else if (res.status === 401 || res.status === 403) {
@@ -3402,8 +3417,7 @@ function triggerWorkflowDispatch() {
   .catch(err => {
     writeLog(`【Actionsエラー】${err.message}`);
     alert(`❌ 実行に失敗しました:\n${err.message}`);
-  })
-  .finally(() => {
+    // エラー時のみボタンを元の状態に復帰
     if (btn) {
       btn.disabled = false;
       btn.innerText = "🔄 最新データを強制取得（Actions実行）";
