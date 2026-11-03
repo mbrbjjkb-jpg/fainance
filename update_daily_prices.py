@@ -2,11 +2,10 @@ import os
 import sys
 import json
 import re
-from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
 
-# Yahoo!ファイナンス用の投信協会コード（8桁）
+# 投信協会コード（8桁）- みんかぶ投信でも共通
 FUNDS = {
     "hifumi": "9C31108A",       # ひふみ投信
     "saison": "04311073",       # セゾン・グローバルバランス
@@ -19,74 +18,49 @@ HEADERS = {
 }
 
 def get_latest_price(code):
-    url = f"https://finance.yahoo.co.jp/quote/{code}"
+    # みんかぶ投信の個別ページから取得
+    url = f"https://itf.minkabu.jp/fund/{code}"
     try:
         r = requests.get(url, headers=HEADERS, timeout=15)
         r.raise_for_status()
     except Exception as e:
         raise RuntimeError(f"接続エラー ({url}): {str(e)}")
 
-    html = r.text
-    soup = BeautifulSoup(html, "html.parser")
-    text_content = soup.get_text(" ", strip=True)
+    soup = BeautifulSoup(r.text, "html.parser")
+    page_text = soup.get_text(" ", strip=True)
 
-    # -----------------------------
     # 1. 基準価額（price）の抽出
-    # -----------------------------
     price = None
+    # 専用クラスタグから優先的に取得
+    price_tag = soup.select_one(".f-headline__price, .f-headline__num, .fund_price")
+    if price_tag:
+        m = re.search(r'([0-9,]+)', price_tag.text)
+        if m:
+            price = int(m.group(1).replace(",", ""))
 
-    # パターンA: テキストから「基準価額」の直後にあるカンマ区切り数値を抽出
-    m_price = re.search(r'基準価額[^\d]*?([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\s*円?', text_content)
-    if m_price:
-        price = int(m_price.group(1).replace(",", ""))
-
-    # パターンB: HTMLタグ込みで「基準価額」直後の数値を抽出（パターンAが取れなかった場合）
+    # タグで見つからない場合は「基準価額」直後の金額をテキストから検索
     if not price:
-        m_price_html = re.search(r'基準価額.*?>\s*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\s*<', html, re.DOTALL)
-        if m_price_html:
-            price = int(m_price_html.group(1).replace(",", ""))
+        m = re.search(r'基準価額\s*([0-9,]+)\s*円', page_text)
+        if m:
+            price = int(m.group(1).replace(",", ""))
 
-    # -----------------------------
     # 2. 基準日（date）の抽出
-    # -----------------------------
     date_val = None
+    date_tag = soup.select_one(".f-headline__date, .fund_date")
+    if date_tag:
+        m = re.search(r'(\d{4})[年/-](\d{1,2})[月/-](\d{1,2})', date_tag.text)
+        if m:
+            date_val = f"{int(m.group(1)):04d}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
 
-    # パターンA: <time> タグがある場合（datetime="YYYY-MM-DD" など）
-    for time_tag in soup.find_all("time"):
-        dt = time_tag.get("datetime")
-        if dt:
-            m_dt = re.search(r'(\d{4})[-/](\d{1,2})[-/](\d{1,2})', dt)
-            if m_dt:
-                date_val = f"{int(m_dt.group(1)):04d}-{int(m_dt.group(2)):02d}-{int(m_dt.group(3)):02d}"
-                break
-
-    # パターンB: 「基準日」や「日付」の周辺にある YYYY年MM月DD日 または YYYY/MM/DD
     if not date_val:
-        m_date = re.search(r'基準日[^\d]*?(\d{4})[年/-](\d{1,2})[月/-](\d{1,2})', text_content)
-        if not m_date:
-            m_date = re.search(r'(\d{4})[年/-](\d{1,2})[月/-](\d{1,2})日?\s*(?:基準|更新|\()', text_content)
-        if not m_date:
-            # ページ全体の最初の YYYY/MM/DD や YYYY年MM月DD日
-            m_date = re.search(r'(20\d{2})[年/-](\d{1,2})[月/-](\d{1,2})', text_content)
+        m = re.search(r'基準日[^\d]*?(\d{4})[年/-](\d{1,2})[月/-](\d{1,2})', page_text)
+        if m:
+            date_val = f"{int(m.group(1)):04d}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
 
-        if m_date:
-            y, m, d = int(m_date.group(1)), int(m_date.group(2)), int(m_date.group(3))
-            date_val = f"{y:04d}-{m:02d}-{d:02d}"
+    if price and date_val:
+        return date_val, price
 
-    # パターンC: 年が省略されて「（MM/DD）」と表記されている場合
-    if not date_val:
-        m_short_date = re.search(r'[（\(](\d{1,2})[/月](\d{1,2})[日\)）]', text_content)
-        if m_short_date:
-            y = datetime.now().year
-            m = int(m_short_date.group(1))
-            d = int(m_short_date.group(2))
-            date_val = f"{y:04d}-{m:02d}-{d:02d}"
-
-    # どちらか一方でも取得できなかった場合は詳細を通知
-    if not price or not date_val:
-        raise RuntimeError(f"コード {code} の抽出結果 -> 基準価額: {price}, 基準日: {date_val}")
-
-    return date_val, price
+    raise RuntimeError(f"みんかぶ ({url}) から基準価額または日付を抽出できませんでした (price={price}, date={date_val})")
 
 def main():
     db_file = 'prices_daily.json'
