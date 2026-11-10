@@ -6,7 +6,7 @@ from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
 
-# Yahoo!ファイナンス対応の正しい8桁コード
+# みんかぶ投信の正しいファンドコード
 FUNDS = {
     "hifumi": "9C31108A",       # ひふみ投信
     "saison": "96311073",       # セゾン・グローバルバランスファンド
@@ -18,87 +18,53 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 }
 
-def get_latest_price_from_yahoo(code):
-    url = f"https://finance.yahoo.co.jp/quote/{code}"
+def get_latest_price(code):
+    url = f"https://itf.minkabu.jp/fund/{code}"
     try:
         r = requests.get(url, headers=HEADERS, timeout=15)
         r.raise_for_status()
     except Exception as e:
         raise RuntimeError(f"接続エラー ({url}): {str(e)}")
 
-    html = r.text
-    soup = BeautifulSoup(html, "html.parser")
+    soup = BeautifulSoup(r.text, "html.parser")
     page_text = soup.get_text(" ", strip=True)
 
-    # ----------------------------------------------------
-    # 1. 基準価額（price）の抽出
-    # ----------------------------------------------------
+    # 1. 基準価額（price）の抽出（metaタグ優先）
     price = None
+    meta_desc = soup.find("meta", attrs={"name": "description"}) or soup.find("meta", attrs={"property": "og:description"})
+    if meta_desc and meta_desc.get("content"):
+        m = re.search(r'基準価額\s*([0-9,.]+)\s*円', meta_desc["content"])
+        if m:
+            price = int(float(m.group(1).replace(",", "")))
 
-    # パターンA: Next.jsの初期データスクリプト (__NEXT_DATA__) から直接抽出（最も確実）
-    next_data_script = soup.find("script", id="__NEXT_DATA__")
-    if next_data_script and next_data_script.string:
-        try:
-            data = json.loads(next_data_script.string)
-            # JSONテキストから "standardPrice": 92651 や "price": 92651 などの数値を正規表現で探索
-            m = re.search(r'"(?:standardPrice|price|basePrice)":\s*([0-9]+)', next_data_script.string)
-            if m:
-                price = int(m.group(1))
-        except Exception:
-            pass
-
-    # パターンB: HTMLタグ内の「基準価額」直後にある大きな数字を抽出
     if not price:
-        # 「基準価額」という文字を含む要素を特定
-        for elem in soup.find_all(text=re.compile(r'基準価額')):
-            parent = elem.parent
-            # 親や周囲の兄弟要素からカンマ区切りの数字（千〜十万単位）を探す
-            surrounding_text = parent.find_parent(["div", "section", "li"]).get_text(" ", strip=True)
-            m = re.search(r'基準価額[^\d]*?([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\s*円', surrounding_text)
-            if m:
-                price = int(m.group(1).replace(",", ""))
-                break
-
-    # パターンC: テキスト全体から探索（純資産などを拾わないよう「円」の直前で限定）
-    if not price:
-        m = re.search(r'基準価額\D*?([0-9]{1,3}(?:,[0-9]{3})+)\s*円', page_text)
+        m = re.search(r'基準価額\s*(?:\d{1,2}/\d{1,2})?\s*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\s*円', page_text)
         if m:
             price = int(m.group(1).replace(",", ""))
 
-    # ----------------------------------------------------
-    # 2. 基準日（date）の抽出（設定日ではなく直近の日付を拾う）
-    # ----------------------------------------------------
+    # 2. 基準日（date）の抽出（metaタグ優先）
     date_val = None
-    current_year = datetime.now().year
+    meta_time = soup.find("meta", attrs={"property": "og:update_time"})
+    if meta_time and meta_time.get("content"):
+        m = re.search(r'(\d{4})-(\d{2})-(\d{2})', meta_time["content"])
+        if m:
+            date_val = f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
 
-    # パターンA: 「基準日」という文字の直後にある日付
-    m_date = re.search(r'基準日[^\d]*?(\d{4})[年/-](\d{1,2})[月/-](\d{1,2})', page_text)
-    if m_date:
-        y, m, d = int(m_date.group(1)), int(m_date.group(2)), int(m_date.group(3))
-        # 設定日（2008年など）を誤爆しないよう、直近5年以内の年か検証
-        if current_year - 5 <= y <= current_year + 1:
-            date_val = f"{y:04d}-{m:02d}-{d:02d}"
-
-    # パターンB: ページ上部の「（MM/DD）」または「（YYYY/MM/DD）」形式の日付
     if not date_val:
-        # 今年の西暦で探す
-        m_curr = re.search(rf'({current_year})[年/-](\d{{1,2}})[月/-](\d{{1,2}})', page_text)
-        if m_curr:
-            date_val = f"{int(m_curr.group(1)):04d}-{int(m_curr.group(2)):02d}-{int(m_curr.group(3)):02d}"
-        else:
-            # 年が省略された「（11/02）」などの形式
-            m_short = re.search(r'[（\(](\d{1,2})[/月](\d{1,2})[日\)）]', page_text)
-            if m_short:
-                date_val = f"{current_year:04d}-{int(m_short.group(1)):02d}-{int(m_short.group(2)):02d}"
+        m = re.search(r'基準価額\s*(\d{1,2})/(\d{1,2})', page_text)
+        if m:
+            y = datetime.now().year
+            date_val = f"{y:04d}-{int(m.group(1)):02d}-{int(m.group(2)):02d}"
 
     if price and date_val:
         return date_val, price
 
-    raise RuntimeError(f"Yahoo!ファイナンス ({url}) からの抽出に失敗しました (price={price}, date={date_val})")
+    raise RuntimeError(f"みんかぶ ({url}) から基準価額または日付を抽出できませんでした (price={price}, date={date_val})")
 
 def main():
     db_file = 'prices_daily.json'
     
+    # 既存の prices_daily.json を読み込む
     if os.path.exists(db_file):
         try:
             with open(db_file, 'r', encoding='utf-8') as f:
@@ -109,35 +75,41 @@ def main():
     else:
         database = {}
 
-    print("--- 各投資信託の最新価格情報の自動取得を開始します（Yahoo!ファイナンス） ---")
+    print("--- 各投資信託の最新価格情報の自動取得を開始します（みんかぶ投信） ---")
     
     temp_prices = {}
-    temp_dates = set()
+    date_by_fund = {}
 
     for key, code in FUNDS.items():
         try:
-            date_str, price = get_latest_price_from_yahoo(code)
+            date_str, price = get_latest_price(code)
             temp_prices[key] = price
-            temp_dates.add(date_str)
+            date_by_fund[key] = date_str
             print(f"取得成功: {key} -> {price:,}円 (基準日: {date_str})")
         except Exception as e:
             print(f"【エラー】{key} の取得中にエラーが発生しました: {str(e)}", file=sys.stderr)
             sys.exit(1)
 
-    # 取得した日付の同期確認
-    if len(temp_dates) != 1:
-        print(f"警告: 各投信の間で更新基準日が一致していません。取得日付: {temp_dates}")
-        target_date = max(temp_dates)
-    else:
-        target_date = list(temp_dates)[0]
+    unique_dates = set(date_by_fund.values())
 
-    print(f"\n判定日: {target_date}")
+    # ★【安全ガード】全銘柄の基準日が完全に揃っていない場合は保存しない
+    if len(unique_dates) != 1:
+        print("\n【待機】銘柄間で基準日にズレがあります（まだ一部の投信が当日分に更新されていません）。")
+        for k, d in date_by_fund.items():
+            print(f"  - {k}: {d}")
+        print("--> 全銘柄が最新日付に揃うまで、中途半端なデータ保存をスキップします。")
+        # 異常終了（exit 1）ではなく、次回スケジュール実行を待つため正常終了（exit 0）
+        sys.exit(0)
 
+    target_date = list(unique_dates)[0]
+    print(f"\n全銘柄同期確認完了！ 確定判定日: {target_date}")
+
+    # すでに本日の確定データが存在していればスキップ
     if target_date in database:
         print("  --> 本日の価格データはすでに記録簿に存在します。ファイル更新をスキップします。")
         sys.exit(0)
 
-    # 確定価格を追記して保存
+    # 4銘柄が完全に揃ったデータのみ追記保存
     database[target_date] = temp_prices
     sorted_database = dict(sorted(database.items()))
 
