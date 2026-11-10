@@ -75,48 +75,82 @@ def main():
     else:
         database = {}
 
-    print("--- 各投資信託の最新価格情報の自動取得を開始します（みんかぶ投信） ---")
+    print("--- 各投資信託の最新価格情報の自動取得を開始します ---")
     
     temp_prices = {}
-    date_by_fund = {}
+    temp_dates = []
 
     for key, code in FUNDS.items():
         try:
             date_str, price = get_latest_price(code)
             temp_prices[key] = price
-            date_by_fund[key] = date_str
+            temp_dates.append(date_str)
             print(f"取得成功: {key} -> {price:,}円 (基準日: {date_str})")
         except Exception as e:
             print(f"【エラー】{key} の取得中にエラーが発生しました: {str(e)}", file=sys.stderr)
             sys.exit(1)
 
-    unique_dates = set(date_by_fund.values())
+    # 代表日として取得された中で最新の日付を採用
+    target_date = max(temp_dates)
+    print(f"\n採用判定日: {target_date}")
 
-    # ★【安全ガード】全銘柄の基準日が完全に揃っていない場合は保存しない
-    if len(unique_dates) != 1:
-        print("\n【待機】銘柄間で基準日にズレがあります（まだ一部の投信が当日分に更新されていません）。")
-        for k, d in date_by_fund.items():
-            print(f"  - {k}: {d}")
-        print("--> 全銘柄が最新日付に揃うまで、中途半端なデータ保存をスキップします。")
-        # 異常終了（exit 1）ではなく、次回スケジュール実行を待つため正常終了（exit 0）
-        sys.exit(0)
+    # =======================================================
+    # ★ 価格の差異検知ロジック（日付ではなく金額の差で判定）
+    # =======================================================
+    has_diff = False
 
-    target_date = list(unique_dates)[0]
-    print(f"\n全銘柄同期確認完了！ 確定判定日: {target_date}")
-
-    # すでに本日の確定データが存在していればスキップ
+    # ケースA: すでに該当日のデータが存在している場合（上書き修正判定）
     if target_date in database:
-        print("  --> 本日の価格データはすでに記録簿に存在します。ファイル更新をスキップします。")
-        sys.exit(0)
+        existing_prices = database[target_date]
+        diff_details = []
+        for k, new_p in temp_prices.items():
+            old_p = existing_prices.get(k)
+            if old_p != new_p:
+                has_diff = True
+                diff_details.append(f"{k}: {old_p}円 -> {new_p:,}円")
 
-    # 4銘柄が完全に揃ったデータのみ追記保存
+        if not has_diff:
+            print(f"  --> {target_date} の記録簿と価格差異はありません（全銘柄一致）。更新をスキップします。")
+            sys.exit(0)
+        else:
+            print(f"  --> 【差異検知】{target_date} の既存価格データと差異を発見しました:")
+            for d in diff_details:
+                print(f"      - {d}")
+            print(f"  --> 最新の正しい価格データで上書き更新します。")
+
+    # ケースB: 新規の日付の場合（直近最新レコードからの価格変動判定）
+    else:
+        if database:
+            last_recorded_date = max(database.keys())
+            last_prices = database[last_recorded_date]
+            diff_details = []
+            for k, new_p in temp_prices.items():
+                old_p = last_prices.get(k)
+                if old_p != new_p:
+                    has_diff = True
+                    diff_details.append(f"{k}: {old_p}円 -> {new_p:,}円")
+
+            if not has_diff:
+                print(f"  --> 最新基準日（{target_date}）ですが、前回収録日（{last_recorded_date}）から価格変動がありません。更新をスキップします。")
+                sys.exit(0)
+            else:
+                print(f"  --> 【価格変動検知】前回収録日（{last_recorded_date}）からの価格変化を確認しました:")
+                for d in diff_details:
+                    print(f"      - {d}")
+                print(f"  --> {target_date} の確定データとして新規追記します。")
+        else:
+            # 記録簿が空の場合は無条件で初回登録
+            has_diff = True
+            print(f"  --> 記録簿が空のため、新規作成します。")
+
+    # データベースに反映して保存
     database[target_date] = temp_prices
     sorted_database = dict(sorted(database.items()))
 
     with open(db_file, 'w', encoding='utf-8') as f:
         json.dump(sorted_database, f, indent=2, ensure_ascii=False)
 
-    print(f"  --> 【成功】{target_date} の確定価格データを {db_file} に新規追記しました。")
+    print(f"  --> 【成功】{target_date} の最新価格データを {db_file} に保存しました。")
     sys.exit(0)
 
 if __name__ == '__main__':
