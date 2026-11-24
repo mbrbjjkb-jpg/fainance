@@ -4504,6 +4504,34 @@ function runScenarioCore(bondInit, investInit, cashHold, startYear, retireAge, b
 
 let optimizerResults = []; // ランキング上位の組み合わせを保持（行ボタンからの適用に使う）
 
+// 適用中の組み合わせについて、85歳資産の分布ヒストグラムを描く
+function renderOptimizerHistogram(idx) {
+  const el = document.getElementById('er-opt-hist');
+  if (!el) return;
+  const e = optimizerResults[idx];
+  if (!e || !e.finals) { el.innerHTML = ''; return; }
+  const buckets = [
+    { label: '〜2,000万円', test: v => v < 20000000 },
+    { label: '2,000〜3,000万円', test: v => v >= 20000000 && v < 30000000 },
+    { label: '3,000〜5,000万円', test: v => v >= 30000000 && v < 50000000 },
+    { label: '5,000〜8,000万円', test: v => v >= 50000000 && v < 80000000 },
+    { label: '8,000万円〜', test: v => v >= 80000000 }
+  ];
+  const fmtM = v => `${Math.round(v / 10000).toLocaleString()}万円`;
+  let html = `<div style="font-size: 12px; font-weight: bold; color: #2d3748; margin-bottom: 6px;">📈 分布ヒストグラム（${idx + 1}位を適用中：現金 ${fmtM(e.cash)}／国債 ${fmtM(e.bond)}／投信 ${fmtM(e.invest)} ― 85歳資産・全94開始年）</div>`;
+  buckets.forEach(b => {
+    const n = e.finals.filter(b.test).length;
+    const pct = (n / e.finals.length * 100).toFixed(1);
+    const w = Math.max(0, n / e.finals.length * 100);
+    html += `<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 11.5px;">
+      <span style="flex: 0 0 118px; text-align: right; color: #4a5568; font-weight: bold;">${b.label}</span>
+      <span style="flex: 1; background: #edf2f7; border-radius: 3px; height: 14px; overflow: hidden;"><span style="display: block; height: 100%; width: ${w}%; background: #805ad5; border-radius: 3px;"></span></span>
+      <span style="flex: 0 0 92px; font-family: monospace; color: #2d3748;">${n}年（${pct}%）</span>
+    </div>`;
+  });
+  el.innerHTML = html;
+}
+
 // ランキングの組み合わせをスライダーへ反映する
 function applyOptimizerCombo(idx) {
   const e = optimizerResults[idx];
@@ -4520,6 +4548,7 @@ function applyOptimizerCombo(idx) {
   if (elCashLabel) elCashLabel.innerText = `${Math.round(e.cash / 10000).toLocaleString()} 万円`;
   updateAllocSliderLabel(e.bond);
   calculateEarlyRetireTable();
+  renderOptimizerHistogram(idx);
   const status = document.getElementById('er-opt-status');
   if (status) status.innerText = `${idx + 1}位の組み合わせをスライダーに反映しました（現金 ${Math.round(e.cash / 10000)}万円／国債 ${Math.round(e.bond / 10000)}万円／投信 ${Math.round(e.invest / 10000)}万円）。`;
 }
@@ -4580,7 +4609,11 @@ async function runWorstCaseOptimizer() {
       }
       finals.sort((a, b) => a - b);
       const median = (finals[46] + finals[47]) / 2; // 94件の中央値
-      const entry = { cash: cash, bond: bond, invest: invest, worst: worst, worstYear: worstYear, median: median, depletionCount: depletionCount };
+      const entry = {
+        cash: cash, bond: bond, invest: invest, worst: worst, worstYear: worstYear, median: median, depletionCount: depletionCount,
+        p10: finals[9], p25: finals[23], p75: finals[70], max: finals[93], // 分位表用（下位10%・下位25%・上位25%・最高）
+        finals: finals // ヒストグラム用に全開始年の結果を保持
+      };
       comboCount++;
       if (depletionCount === 0) qualified.push(entry);
       if (!bestFallback || entry.depletionCount < bestFallback.depletionCount ||
@@ -4624,6 +4657,32 @@ async function runWorstCaseOptimizer() {
     });
     html += `</tbody></table>`;
     html += `<div style="font-size: 11px; color: #718096; margin-top: 6px;">※85歳資産には手元現金を額面のまま含みます。内訳の「運用」は国債＋投信で、上の表の「合計総資産」と一致します（上の表には手元現金が含まれません）。1位の組み合わせは自動でスライダーに反映済みです。他の順位は「適用」でいつでも切り替えられます。表本体の推移は、開始年スライダーで選んでいる年のものです。</div>`;
+
+    // 分位表（85歳資産の分布：最悪は開始年1つで決まるため、下位10%・25%も併せて見る）
+    html += `<div style="font-size: 12px; font-weight: bold; color: #2d3748; margin: 14px 0 6px 0;">📊 分位表（85歳資産の分布 ― 全94開始年）</div>`;
+    html += `<table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+      <thead><tr style="background: #edf2f7; color: #4a5568;">
+        <th style="border: 1px solid #e2e8f0; padding: 6px;">順位（組み合わせ）</th>
+        <th style="border: 1px solid #e2e8f0; padding: 6px;">最悪</th>
+        <th style="border: 1px solid #e2e8f0; padding: 6px;">下位10%</th>
+        <th style="border: 1px solid #e2e8f0; padding: 6px;">下位25%</th>
+        <th style="border: 1px solid #e2e8f0; padding: 6px;">中央値</th>
+        <th style="border: 1px solid #e2e8f0; padding: 6px;">上位25%</th>
+        <th style="border: 1px solid #e2e8f0; padding: 6px;">最高</th>
+      </tr></thead><tbody>`;
+    optimizerResults.forEach((e, i) => {
+      html += `<tr style="${i === 0 ? 'background: #faf5ff; font-weight: bold;' : ''}">
+        <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: center;">${i + 1}位（現金${Math.round(e.cash / 10000)}万／国債${Math.round(e.bond / 10000)}万／投信${Math.round(e.invest / 10000)}万）</td>
+        <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: right; font-family: monospace; color: #c53030;">${fmt(e.worst)}</td>
+        <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: right; font-family: monospace;">${fmt(e.p10)}</td>
+        <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: right; font-family: monospace;">${fmt(e.p25)}</td>
+        <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: right; font-family: monospace; color: #2b6cb0;">${fmt(e.median)}</td>
+        <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: right; font-family: monospace;">${fmt(e.p75)}</td>
+        <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: right; font-family: monospace; color: #2f855a;">${fmt(e.max)}</td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+    html += `<div id="er-opt-hist" style="margin-top: 14px;"></div>`;
     resultEl.innerHTML = html;
     applyOptimizerCombo(0);
     status.innerText = `探索が完了しました（全${comboCount}通りを評価）。1位の組み合わせをスライダーに反映しました。`;
