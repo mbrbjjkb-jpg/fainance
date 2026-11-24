@@ -631,20 +631,6 @@
         </div>
       </div>
 
-      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 9px 10px; margin-bottom: 12px;">
-        <div style="font-size: 11px; font-weight: bold; color: #4a5568; margin-bottom: 5px;">リターンの前提:</div>
-        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; color: #2d3748;">
-          <select id="er-return-mode" onchange="runSimulation()" style="font-size: 12px; padding: 3px 6px; border: 1px solid #cbd5e0; border-radius: 4px; cursor: pointer;">
-            <option value="history">過去データ（開始年どおり）</option>
-            <option value="flat">一律固定（未来予測の目安）</option>
-          </select>
-          <span>年利</span>
-          <input type="number" id="er-flat-rate" value="5.0" step="0.5" min="-5" max="20" onchange="runSimulation()" style="width: 58px; font-size: 12px; padding: 3px 5px; border: 1px solid #cbd5e0; border-radius: 4px; text-align: right;">
-          <span>％</span>
-        </div>
-        <div style="font-size: 10px; color: #718096; margin-top: 5px; line-height: 1.5;">「一律固定」では開始年によらず毎年同じリターンで計算します（暴落の年もありません）。組み合わせ探索と感度テストは過去データ専用で、この設定の影響は受けません。</div>
-      </div>
-
       <div class="st-badge-era" id="era-badge">時代背景を集計中...</div>
 
       <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; margin-bottom: 12px;">
@@ -4213,17 +4199,6 @@ function renderOptimizerConditions() {
 }
 
 // 二刀流シミュレーション実行エンジン
-// 本体シミュレーション用の年次リターン：過去データ／一律固定の切り替え（探索コアは対象外）
-function getSimReturnRate(historyYear) {
-  const modeEl = document.getElementById('er-return-mode');
-  if (modeEl && modeEl.value === 'flat') {
-    const rateEl = document.getElementById('er-flat-rate');
-    const pct = rateEl && rateEl.value !== '' ? parseFloat(rateEl.value) : 5.0;
-    return (isNaN(pct) ? 5.0 : pct) / 100;
-  }
-  return getBlendedReturn(historyYear);
-}
-
 function runSimulation() {
   const sliderEl = document.getElementById('year-slider');
   if (!sliderEl) return;
@@ -4261,15 +4236,8 @@ function runSimulation() {
 
   const eraBadge = document.getElementById('era-badge');
   if (eraBadge) {
-    const modeEl = document.getElementById('er-return-mode');
-    if (modeEl && modeEl.value === 'flat') {
-      const rateEl = document.getElementById('er-flat-rate');
-      const pct = rateEl && rateEl.value !== '' ? parseFloat(rateEl.value) : 5.0;
-      eraBadge.innerHTML = `<strong>一律リターン:</strong> 開始年の実績ではなく、毎年 ${(isNaN(pct) ? 5.0 : pct).toFixed(1)}% 固定で計算しています。`;
-    } else {
-      const note = (typeof ERA_NOTES !== 'undefined' && ERA_NOTES[startYear]) ? ERA_NOTES[startYear] : `【${startYear}年代ルート】平穏な景気循環および市場サイクル。`;
-      eraBadge.innerHTML = `<strong>時代背景:</strong> ${note}`;
-    }
+    const note = (typeof ERA_NOTES !== 'undefined' && ERA_NOTES[startYear]) ? ERA_NOTES[startYear] : `【${startYear}年代ルート】平穏な景気循環および市場サイクル。`;
+    eraBadge.innerHTML = `<strong>時代背景:</strong> ${note}`;
   }
 
   const logs = [];
@@ -4283,7 +4251,7 @@ function runSimulation() {
   for (let y = 0; y <= loopYears; y++) {
     const age = retireAge + y;
     const historyYear = startYear + y;
-    const returnRate = getSimReturnRate(historyYear);
+    const returnRate = getBlendedReturn(historyYear);
 
     if (y === 0) {
       logs.push({
