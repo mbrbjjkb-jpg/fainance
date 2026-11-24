@@ -671,7 +671,7 @@
   <div style="margin-top: 15px; background: white; border: 1px solid #cbd5e0; border-radius: 8px; padding: 14px 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); box-sizing: border-box; width: 100%;">
     <h4 style="margin: 0 0 8px 0; font-size: 13.5px; color: #2c3e50;">🧭 組み合わせ探索（最悪ケース回避）</h4>
     <p id="er-opt-conditions" style="font-size: 11.5px; color: #4a5568; line-height: 1.6; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 9px 11px; margin: 0 0 10px 0;">
-      探索条件：①年齢・②退職時期・③生活費・④年金開始は手動設定（現在の値）を使用します。手元現金は200万円を下限とし、100万円刻みで探索します。国債化（利確）プランは探索に含めません。開始年は現在のスライダー位置を無視し、1900〜1993年の全94通りで評価します。いずれかの開始年で85歳までに資産が枯渇する組み合わせは除外し、残りの中で「85歳時点の資産が最悪の開始年でも最も大きくなる」組み合わせを正とします。
+      探索条件：①年齢・②退職時期・③生活費・④年金開始・⑥手元現金は手動設定（現在の値）を使用します。探索するのは国債と投信の配分（100万円刻み）だけです。国債化（利確）プランは探索に含めません。開始年は現在のスライダー位置を無視し、1900〜1993年の全94通りで評価します。いずれかの開始年で85歳までに資産が枯渇する組み合わせは除外し、残りの中で「85歳時点の資産が最悪の開始年でも最も大きくなる」組み合わせを正とします。
     </p>
     <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
       <button id="er-opt-run-btn" class="action-btn btn-purple" onclick="runWorstCaseOptimizer()" style="font-size: 13px; padding: 10px 20px; border-radius: 8px; cursor: pointer;">
@@ -4193,9 +4193,11 @@ function renderOptimizerConditions() {
   const retireYears = elYears && elYears.value ? parseInt(elYears.value) : 0;
   const monthlyWithdraw = elWithdraw && elWithdraw.value ? parseInt(elWithdraw.value) : 100000;
   const pensionStartAge = elPension && elPension.value ? parseInt(elPension.value) : 65;
+  const elCash = document.getElementById('er-cash-hold-slider');
+  const cashHold = elCash && elCash.value !== '' ? parseInt(elCash.value) : 0;
   const sim = getSimulationWealth();
-  el.innerHTML = `探索条件：①年齢 ${currentAge}歳・②退職時期 ${retireYears}年後・③生活費 毎月手取り ${Math.round(monthlyWithdraw / 10000)}万円・④年金開始 ${pensionStartAge}歳 は手動設定（現在の値）を使用します。仮想通貨は${sim.excluded ? '運用から除外したまま' : '運用に含めたまま'}計算します。<br>`
-    + `手元現金は200万円を下限とし、100万円刻みで探索します。初年度の生活費は手元現金から支払い、2年目に国債・投信から補填する計算で評価します。あわせて、リターンを一律−1%・−2%下げた世界でも全組み合わせを評価する感度テストを、結果の下に表示します。国債化（利確）プランは探索に含めません。開始年は現在のスライダー位置を無視し、1900〜1993年の全94通りで評価します。いずれかの開始年で85歳までに資産が枯渇する組み合わせは除外し、残りの中で「85歳時点の資産（国債＋投信＋手元現金）が最悪の開始年でも最も大きくなる」組み合わせを正とします（85歳資産の平均・中央値の最大化ではありません）。`;
+  el.innerHTML = `探索条件：①年齢 ${currentAge}歳・②退職時期 ${retireYears}年後・③生活費 毎月手取り ${Math.round(monthlyWithdraw / 10000)}万円・④年金開始 ${pensionStartAge}歳・⑥手元現金 ${Math.round(cashHold / 10000).toLocaleString()}万円 は手動設定（現在の値）を使用します。仮想通貨は${sim.excluded ? '運用から除外したまま' : '運用に含めたまま'}計算します。<br>`
+    + `探索するのは国債と投信の配分（100万円刻み）だけです。初年度の生活費は手元現金から支払い、2年目に国債・投信から補填する計算で評価します。あわせて、リターンを一律−1%・−2%下げた世界でも全組み合わせを評価する感度テストを、結果の下に表示します。国債化（利確）プランは探索に含めません。開始年は現在のスライダー位置を無視し、1900〜1993年の全94通りで評価します。いずれかの開始年で85歳までに資産が枯渇する組み合わせは除外し、残りの中で「85歳時点の資産（国債＋投信＋手元現金）が最悪の開始年でも最も大きくなる」組み合わせを正とします（85歳資産の平均・中央値の最大化ではありません）。`;
 }
 
 // 二刀流シミュレーション実行エンジン
@@ -4579,10 +4581,7 @@ async function runSensitivityAnalysis(params, baselineQualifiedCount) {
   const status = document.getElementById('er-opt-status');
   if (!el) return;
   const STEP = 1000000;
-  const CASH_MIN = 2000000;
-  const cashMax = Math.floor(params.simTotal / STEP) * STEP;
-  const cashValues = [];
-  for (let c = CASH_MIN; c <= cashMax; c += STEP) cashValues.push(c);
+  const cashValues = [params.cash]; // 手元現金は手動設定値で固定（探索本体と同じ）
   const fmt = v => `${Math.round(v / 10000).toLocaleString()}万円`;
   const comboText = e => `現金 ${fmt(e.cash)}／国債 ${fmt(e.bond)}／投信 ${fmt(e.invest)}`;
 
@@ -4608,7 +4607,7 @@ async function runSensitivityAnalysis(params, baselineQualifiedCount) {
           }
         }
       }
-      if (status) status.innerText = `感度テスト中… リターン${Math.round(shift * 100)}%の世界を評価中（${ci + 1}／${cashValues.length}段階）`;
+      if (status) status.innerText = `感度テスト中… リターン${Math.round(shift * 100)}%の世界を評価中`;
       await new Promise(r => setTimeout(r, 0));
     }
     // 基準の上位5件が、この世界でも持ちこたえるか
@@ -4695,19 +4694,15 @@ async function runWorstCaseOptimizer() {
 
   const simTotal = getSimulationWealth().simTotal;
   const STEP = 1000000;
-  const CASH_MIN = 2000000; // 手元現金の下限
-  const cashMax = Math.floor(simTotal / STEP) * STEP;
-  if (cashMax < CASH_MIN) {
-    status.innerText = '運用対象の総資産が手元現金の下限（200万円）に満たないため、探索できません。';
-    return;
-  }
+  // 手元現金は探索対象にせず、スライダーで手動設定した値をそのまま使う
+  const elCashSlider = document.getElementById('er-cash-hold-slider');
+  const cashHold = elCashSlider && elCashSlider.value !== '' ? Math.min(Math.max(parseInt(elCashSlider.value) || 0, 0), simTotal) : 0;
 
   if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
   resultEl.innerHTML = '';
   status.innerText = '探索を開始します…';
 
-  const cashValues = [];
-  for (let c = CASH_MIN; c <= cashMax; c += STEP) cashValues.push(c);
+  const cashValues = [cashHold];
 
   const qualified = [];   // 全開始年で枯渇しなかった組み合わせ
   let bestFallback = null; // 条件を満たす組み合わせが無い場合の参考（枯渇した開始年が最少）
@@ -4744,7 +4739,7 @@ async function runWorstCaseOptimizer() {
         bestFallback = entry;
       }
     }
-    status.innerText = `探索中… 手元現金 ${Math.round(cash / 10000)}万円の組み合わせまで評価済み（${ci + 1}／${cashValues.length}段階）`;
+    status.innerText = `探索中…（手元現金はスライダーの ${Math.round(cash / 10000)}万円で固定し、国債と投信の配分を評価しています）`;
     await new Promise(r => setTimeout(r, 0)); // 画面の固まり防止と進捗表示の更新
   }
 
@@ -4810,7 +4805,7 @@ async function runWorstCaseOptimizer() {
     resultEl.innerHTML = html;
     applyOptimizerCombo(0);
     status.innerText = `探索が完了しました（全${comboCount}通りを評価）。1位の組み合わせをスライダーに反映しました。続いて感度テストを行います…`;
-    await runSensitivityAnalysis({ retireAge: retireAge, monthlyWithdraw: monthlyWithdraw, pensionStartAge: pensionStartAge, simTotal: simTotal }, qualified.length);
+    await runSensitivityAnalysis({ retireAge: retireAge, monthlyWithdraw: monthlyWithdraw, pensionStartAge: pensionStartAge, simTotal: simTotal, cash: cashHold }, qualified.length);
     status.innerText = `探索と感度テストが完了しました（全${comboCount}通りを評価）。1位の組み合わせをスライダーに反映しました。`;
   } else {
     optimizerResults = [];
@@ -4821,7 +4816,7 @@ async function runWorstCaseOptimizer() {
     html += `<div id="er-opt-sensitivity" style="margin-top: 14px;"></div>`;
     resultEl.innerHTML = html;
     status.innerText = '探索が完了しましたが、条件を満たす組み合わせはありませんでした。続いて感度テストを行います…';
-    await runSensitivityAnalysis({ retireAge: retireAge, monthlyWithdraw: monthlyWithdraw, pensionStartAge: pensionStartAge, simTotal: simTotal }, 0);
+    await runSensitivityAnalysis({ retireAge: retireAge, monthlyWithdraw: monthlyWithdraw, pensionStartAge: pensionStartAge, simTotal: simTotal, cash: cashHold }, 0);
     status.innerText = '探索と感度テストが完了しましたが、条件を満たす組み合わせはありませんでした。';
   }
 
