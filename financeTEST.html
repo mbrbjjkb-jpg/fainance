@@ -520,7 +520,7 @@
   </p>
 
   <!-- 操作コントロールパネル（完全横1段・スリム版） -->
-  <div style="display: flex; flex-wrap: nowrap; align-items: center; gap: 10px; background: #f8fafc; padding: 8px 12px; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 12px; overflow-x: auto; box-sizing: border-box;">
+  <div style="display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; background: #f8fafc; padding: 8px 10px; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 12px; overflow-x: auto; box-sizing: border-box;">
     <!-- ① 年齢 -->
     <div style="display: flex; flex-direction: column; gap: 2px; flex-shrink: 0;">
       <span style="font-size: 10px; font-weight: bold; color: #4a5568;">① 年齢</span>
@@ -548,10 +548,19 @@
       </select>
     </div>
 
-    <!-- ⑤ 手元現金スライダー -->
-    <div style="display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 150px;">
+    <!-- ⑤ 仮想通貨除外チェック -->
+    <div style="display: flex; flex-direction: column; gap: 2px; flex-shrink: 0;">
+      <span style="font-size: 10px; font-weight: bold; color: #4a5568;">⑤ 仮想通貨</span>
+      <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: bold; color: #805ad5; white-space: nowrap; cursor: pointer; padding: 4px 0;" title="騰落が激しいため、将来の上昇を期待して運用の計算から外します">
+        <input type="checkbox" id="er-exclude-crypto" checked onchange="onExcludeCryptoChange()" style="cursor: pointer; accent-color: #805ad5; margin: 0;">
+        運用から除外
+      </label>
+    </div>
+
+    <!-- ⑥ 手元現金スライダー -->
+    <div style="display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 130px;">
       <div style="display: flex; justify-content: space-between; align-items: baseline;">
-        <span style="font-size: 10px; font-weight: bold; color: #4a5568;">⑤ 手元現金(別枠)</span>
+        <span style="font-size: 10px; font-weight: bold; color: #4a5568;">⑥ 手元現金(別枠)</span>
         <span id="er-cash-hold-label" style="font-size: 11px; font-weight: bold; color: #805ad5; font-family: monospace;">0 万円</span>
       </div>
       <input type="range" id="er-cash-hold-slider" min="0" max="25000000" step="1000000" value="0" 
@@ -559,10 +568,10 @@
              oninput="onCashHoldSliderChange(this.value)">
     </div>
 
-    <!-- ⑥ 運用配分スライダー -->
-    <div style="display: flex; flex-direction: column; gap: 2px; flex: 1.4; min-width: 210px;">
+    <!-- ⑦ 運用配分スライダー -->
+    <div style="display: flex; flex-direction: column; gap: 2px; flex: 1.2; min-width: 180px;">
       <div style="display: flex; justify-content: space-between; align-items: baseline;">
-        <span style="font-size: 10px; font-weight: bold; color: #4a5568;">⑥ 守りの国債 ⇆ 攻めの投信</span>
+        <span style="font-size: 10px; font-weight: bold; color: #4a5568;">⑦ 守りの国債 ⇆ 攻めの投信</span>
         <span id="er-alloc-label" style="font-size: 11px; font-weight: bold; color: #2b6cb0; font-family: monospace;">国債 1,500万 / 投信 1,100万</span>
       </div>
       <input type="range" id="er-bond-alloc-slider" min="0" max="25000000" step="1000000" value="15000000" 
@@ -3903,17 +3912,38 @@ function stepYear(step) {
   setSliderYear(nextYear);
 }
 
+// 仮想通貨除外チェックの状態（既定は除外する）
+function isCryptoExcluded() {
+  const el = document.getElementById('er-exclude-crypto');
+  return el ? el.checked : true;
+}
+
+// シミュレーション対象の総額を求める共通関数
+// 除外ONのときは、仮想通貨評価額を総資産から差し引いた額だけを運用の土台にする
+function getSimulationWealth() {
+  const totals = calculateCurrentTotals();
+  const otherTotals = calculateOtherAssetsTotals();
+  const rawTotal = Math.round(totals.afterTaxMarket + otherTotals.grandTotal);
+  const cryptoTotal = Math.round(otherTotals.crypto || 0);
+  const excluded = isCryptoExcluded();
+  const simTotal = Math.max(0, rawTotal - (excluded ? cryptoTotal : 0));
+  return { totals: totals, otherTotals: otherTotals, rawTotal: rawTotal, cryptoTotal: cryptoTotal, excluded: excluded, simTotal: simTotal };
+}
+
+// 仮想通貨除外チェック変更時：スライダー上限を付け替えて再計算
+function onExcludeCryptoChange() {
+  calculateEarlyRetireTable();
+}
+
 // 手元現金保有スライダー変更時の連動処理
 function onCashHoldSliderChange(val) {
   const cashVal = parseInt(val) || 0;
   const elLabel = document.getElementById('er-cash-hold-label');
   if (elLabel) elLabel.innerText = `${Math.round(cashVal / 10000).toLocaleString()} 万円`;
 
-  const totals = calculateCurrentTotals();
-  const otherTotals = calculateOtherAssetsTotals();
-  const totalWealth = Math.round(totals.afterTaxMarket + otherTotals.grandTotal);
-  
-  // 運用原資（総資産 - 手元現金）
+  const totalWealth = getSimulationWealth().simTotal;
+
+  // 運用原資（運用対象総資産 - 手元現金）
   const investableWealth = Math.max(0, totalWealth - cashVal);
   const allocSlider = document.getElementById('er-bond-alloc-slider');
   if (allocSlider) {
@@ -3928,9 +3958,7 @@ function onCashHoldSliderChange(val) {
 
 // 資産配分スライダーのラベル表示更新（手元現金を差し引いた運用原資内で配分）
 function updateAllocSliderLabel(val) {
-  const totals = calculateCurrentTotals();
-  const otherTotals = calculateOtherAssetsTotals();
-  const totalWealth = Math.round(totals.afterTaxMarket + otherTotals.grandTotal);
+  const totalWealth = getSimulationWealth().simTotal;
 
   const cashSlider = document.getElementById('er-cash-hold-slider');
   const cashVal = cashSlider ? (parseInt(cashSlider.value) || 0) : 0;
@@ -3975,13 +4003,14 @@ function initEarlyRetireControls() {
   const allocSlider = document.getElementById('er-bond-alloc-slider');
   const cashSlider = document.getElementById('er-cash-hold-slider');
 
-  const totals = calculateCurrentTotals();
-  const otherTotals = calculateOtherAssetsTotals();
-  const totalWealth = Math.round(totals.afterTaxMarket + otherTotals.grandTotal);
+  const totalWealth = getSimulationWealth().simTotal;
 
-  // 手元現金保有スライダーの最大値を総資産額（100万単位）に設定
+  // 手元現金保有スライダーの最大値を運用対象総資産額（100万単位）に設定
   if (cashSlider) {
     cashSlider.max = Math.floor(totalWealth / 1000000) * 1000000;
+    if ((parseInt(cashSlider.value) || 0) > parseInt(cashSlider.max)) {
+      cashSlider.value = cashSlider.max;
+    }
     const elCashLabel = document.getElementById('er-cash-hold-label');
     if (elCashLabel) elCashLabel.innerText = `${Math.round((parseInt(cashSlider.value) || 0) / 10000).toLocaleString()} 万円`;
   }
@@ -4061,9 +4090,10 @@ function calculateEarlyRetireTable() {
   const monthlyWithdraw = elWithdraw && elWithdraw.value ? parseInt(elWithdraw.value) : 100000;
   const pensionStartAge = elPension && elPension.value ? parseInt(elPension.value) : 65;
 
-  const totals = calculateCurrentTotals();
-  const otherTotals = calculateOtherAssetsTotals();
-  const totalWealth = Math.round(totals.afterTaxMarket + otherTotals.grandTotal);
+  const simWealth = getSimulationWealth();
+  const totalWealth = simWealth.simTotal;
+  const cryptoTotal = simWealth.cryptoTotal;
+  const cryptoExcluded = simWealth.excluded;
 
   // 手元現金を隔離した残りが運用原資
   const cashHold = elCashSlider ? (parseInt(elCashSlider.value) || 0) : 0;
@@ -4081,7 +4111,7 @@ function calculateEarlyRetireTable() {
       ? '65歳受給（手取り年120万／マクロ経済スライド1.6%増）' 
       : '70歳繰り下げ（手取り年170.4万・42%増／マクロ経済スライド1.6%増）';
 
-    const cashRatio = totalWealth > 0 ? ((cashHold / totalWealth) * 100).toFixed(1) : '0.0';
+    const cashRatio = simWealth.rawTotal > 0 ? ((cashHold / simWealth.rawTotal) * 100).toFixed(1) : '0.0';
 
     banner.innerHTML = `
       <div style="flex: 1.2; min-width: 200px;">
@@ -4091,7 +4121,8 @@ function calculateEarlyRetireTable() {
         </div>
         <div style="font-size: 11px; color: #718096; margin-top: 4px;">
           🛡 守りの国債：<strong>${Math.round(bondInit / 10000).toLocaleString()} 万円</strong>（利息年1.0%固定）<br>
-          🚀 攻めの投信：<strong>${Math.round(investInit / 10000).toLocaleString()} 万円</strong>（生活費取り崩しゼロ）
+          🚀 攻めの投信：<strong>${Math.round(investInit / 10000).toLocaleString()} 万円</strong>（生活費取り崩しゼロ）<br>
+          🪙 仮想通貨：<strong>${Math.round(cryptoTotal / 10000).toLocaleString()} 万円</strong>${cryptoExcluded ? '（運用から除外して温存）' : '（運用原資に含む）'}
         </div>
       </div>
       <div style="flex: 1.5; min-width: 240px;">
@@ -4122,6 +4153,7 @@ function calculateEarlyRetireTable() {
     ruleDesc.innerHTML = `
       🛡 <strong>適用中のリアル老後ルール:</strong><br>
       ・手元現金：設定額を完全温存し、運用の引き去り・合計総資産から除外します。<br>
+      ・仮想通貨：${cryptoExcluded ? '「運用から除外」がONのため、運用原資・表の合計総資産に含めません。騰落が激しい分は将来の上昇期待として温存します' : '「運用から除外」がOFFのため、運用原資に含めて計算します'}。<br>
       ・生活費：初年度 ${(monthlyWithdraw / 10000)}万円（毎年2.0%インフレ増額）<br>
       ・公的年金：マクロ経済スライド（改定率年1.6%）による目減りを反映。<br>
       ・生活費は全額「国債＋利息（1.0%）」から支払い、投信は原則売りません。<br>
@@ -4156,11 +4188,9 @@ function runSimulation() {
   const baseExpenseMonthly = elWithdraw && elWithdraw.value ? parseInt(elWithdraw.value) : 100000;
   const pensionStartAge = elPension && elPension.value ? parseInt(elPension.value) : 65;
 
-  const totals = calculateCurrentTotals();
-  const otherTotals = calculateOtherAssetsTotals();
-  const totalWealth = Math.round(totals.afterTaxMarket + otherTotals.grandTotal);
+  const totalWealth = getSimulationWealth().simTotal;
 
-  // 手元現金を差し引いた運用原資を国債と投信に配分
+  // 手元現金（と除外中の仮想通貨）を差し引いた運用原資を国債と投信に配分
   const cashHold = elCashSlider ? (parseInt(elCashSlider.value) || 0) : 0;
   const investableWealth = Math.max(0, totalWealth - cashHold);
 
