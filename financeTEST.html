@@ -666,6 +666,21 @@
       <div id="st-rule-desc" style="font-size: 10.5px; color: #4a5568; line-height: 1.45; background: #edf2f7; padding: 8px 10px; border-radius: 4px;"></div>
     </div>
   </div>
+
+  <!-- ★組み合わせ探索エリア（最悪ケース回避） -->
+  <div style="margin-top: 15px; background: white; border: 1px solid #cbd5e0; border-radius: 8px; padding: 14px 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); box-sizing: border-box; width: 100%;">
+    <h4 style="margin: 0 0 8px 0; font-size: 13.5px; color: #2c3e50;">🧭 組み合わせ探索（最悪ケース回避）</h4>
+    <p id="er-opt-conditions" style="font-size: 11.5px; color: #4a5568; line-height: 1.6; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 9px 11px; margin: 0 0 10px 0;">
+      探索条件：①年齢・②退職時期・③生活費・④年金開始は手動設定（現在の値）を使用します。手元現金は200万円を下限とし、100万円刻みで探索します。国債化（利確）プランは探索に含めません。開始年は現在のスライダー位置を無視し、1900〜1993年の全94通りで評価します。いずれかの開始年で85歳までに資産が枯渇する組み合わせは除外し、残りの中で「85歳時点の資産が最悪の開始年でも最も大きくなる」組み合わせを正とします。
+    </p>
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+      <button id="er-opt-run-btn" class="action-btn btn-purple" onclick="runWorstCaseOptimizer()" style="font-size: 13px; padding: 10px 20px; border-radius: 8px; cursor: pointer;">
+        🔍 最悪ケースが最も悪くならない組み合わせを探す
+      </button>
+      <span id="er-opt-status" style="font-size: 12px; color: #4a5568; font-weight: bold;"></span>
+    </div>
+    <div id="er-opt-result" style="margin-top: 12px;"></div>
+  </div>
 </div>
 
 
@@ -4162,6 +4177,24 @@ function calculateEarlyRetireTable() {
   }
 
   runSimulation();
+  renderOptimizerConditions();
+}
+
+// 探索エリアの条件文を、現在の手動設定に合わせて書き換える
+function renderOptimizerConditions() {
+  const el = document.getElementById('er-opt-conditions');
+  if (!el) return;
+  const elAge = document.getElementById('er-current-age');
+  const elYears = document.getElementById('er-retire-years');
+  const elWithdraw = document.getElementById('er-monthly-withdraw');
+  const elPension = document.getElementById('er-pension-plan');
+  const currentAge = elAge && elAge.value ? parseInt(elAge.value) : 54;
+  const retireYears = elYears && elYears.value ? parseInt(elYears.value) : 0;
+  const monthlyWithdraw = elWithdraw && elWithdraw.value ? parseInt(elWithdraw.value) : 100000;
+  const pensionStartAge = elPension && elPension.value ? parseInt(elPension.value) : 65;
+  const sim = getSimulationWealth();
+  el.innerHTML = `探索条件：①年齢 ${currentAge}歳・②退職時期 ${retireYears}年後・③生活費 毎月手取り ${Math.round(monthlyWithdraw / 10000)}万円・④年金開始 ${pensionStartAge}歳 は手動設定（現在の値）を使用します。仮想通貨は${sim.excluded ? '運用から除外したまま' : '運用に含めたまま'}計算します。<br>`
+    + `手元現金は200万円を下限とし、100万円刻みで探索します。国債化（利確）プランは探索に含めません。開始年は現在のスライダー位置を無視し、1900〜1993年の全94通りで評価します。いずれかの開始年で85歳までに資産が枯渇する組み合わせは除外し、残りの中で「85歳時点の資産（国債＋投信＋手元現金）が最悪の開始年でも最も大きくなる」組み合わせを正とします（85歳資産の平均・中央値の最大化ではありません）。`;
 }
 
 // 二刀流シミュレーション実行エンジン
@@ -4371,6 +4404,192 @@ function runSimulation() {
       judgeEl.innerHTML = `<span style="color: #e53e3e; font-weight: bold;">🚨 ${depletionAge}歳で運用資産枯渇</span>`;
     }
   }
+}
+
+// ==========================================
+// ★組み合わせ探索（最悪ケース回避）
+// ==========================================
+// 既存シミュレーションと同一の計算式で、DOMや国債化プランに触れずに1シナリオを計算する
+function runScenarioCore(bondInit, investInit, startYear, retireAge, baseExpenseMonthly, pensionStartAge) {
+  let bond = bondInit;
+  let invest = investInit;
+  let depletionAge = null;
+  const targetAge = 85;
+  const loopYears = Math.max(1, targetAge - retireAge);
+  const BOND_RATE = 0.01; // 国債利息：1.0%
+
+  for (let y = 1; y <= loopYears; y++) {
+    const age = retireAge + y;
+    const historyYear = startYear + y;
+    const returnRate = getBlendedReturn(historyYear);
+
+    // 生活費（インフレ年2.0%増額）と年金（マクロ経済スライド年1.6%）の差額が実質引き出し額
+    const annualExpense = baseExpenseMonthly * Math.pow(1.02, y) * 12;
+    let pensionAnnual = 0;
+    if (age >= pensionStartAge) {
+      const basePension = (pensionStartAge === 65) ? 1200000 : 1704000;
+      pensionAnnual = basePension * Math.pow(1.016, y);
+    }
+    const netWithdraw = annualExpense - pensionAnnual;
+
+    // 投信の運用損益 → 国債利息 → 生活費を国債から支払い（底をついたら投信で穴埋め）
+    invest += invest * returnRate;
+    bond += Math.round(bond * BOND_RATE);
+    bond -= netWithdraw;
+    if (bond < 0) {
+      if (invest > 0) {
+        invest += bond;
+        bond = 0;
+        if (invest <= 0) {
+          invest = 0;
+          if (depletionAge === null) depletionAge = age;
+        }
+      } else {
+        bond = 0;
+        if (depletionAge === null) depletionAge = age;
+      }
+    }
+    if (depletionAge !== null) break;
+  }
+  return { finalBond: Math.round(bond), finalInvest: Math.round(invest), depletionAge: depletionAge };
+}
+
+let optimizerResults = []; // ランキング上位の組み合わせを保持（行ボタンからの適用に使う）
+
+// ランキングの組み合わせをスライダーへ反映する
+function applyOptimizerCombo(idx) {
+  const e = optimizerResults[idx];
+  if (!e) return;
+  const cashSlider = document.getElementById('er-cash-hold-slider');
+  const allocSlider = document.getElementById('er-bond-alloc-slider');
+  if (cashSlider) cashSlider.value = e.cash;
+  if (allocSlider) {
+    allocSlider.max = Math.max(0, getSimulationWealth().simTotal - e.cash);
+    allocSlider.value = e.bond;
+    allocSlider.dataset.initialized = "true"; // 初期化処理に既定値へ戻されないようにする
+  }
+  const elCashLabel = document.getElementById('er-cash-hold-label');
+  if (elCashLabel) elCashLabel.innerText = `${Math.round(e.cash / 10000).toLocaleString()} 万円`;
+  updateAllocSliderLabel(e.bond);
+  calculateEarlyRetireTable();
+  const status = document.getElementById('er-opt-status');
+  if (status) status.innerText = `${idx + 1}位の組み合わせをスライダーに反映しました（現金 ${Math.round(e.cash / 10000)}万円／国債 ${Math.round(e.bond / 10000)}万円／投信 ${Math.round(e.invest / 10000)}万円）。`;
+}
+
+// 探索の実行本体：全開始年×現金×配分を総当たりし、最悪ケースが最も悪くならない順に並べる
+async function runWorstCaseOptimizer() {
+  const btn = document.getElementById('er-opt-run-btn');
+  const status = document.getElementById('er-opt-status');
+  const resultEl = document.getElementById('er-opt-result');
+  if (!status || !resultEl) return;
+
+  const elAge = document.getElementById('er-current-age');
+  const elYears = document.getElementById('er-retire-years');
+  const elWithdraw = document.getElementById('er-monthly-withdraw');
+  const elPension = document.getElementById('er-pension-plan');
+  const currentAge = elAge && elAge.value ? parseInt(elAge.value) : 54;
+  const retireYears = elYears && elYears.value ? parseInt(elYears.value) : 0;
+  const retireAge = currentAge + retireYears;
+  const monthlyWithdraw = elWithdraw && elWithdraw.value ? parseInt(elWithdraw.value) : 100000;
+  const pensionStartAge = elPension && elPension.value ? parseInt(elPension.value) : 65;
+
+  const simTotal = getSimulationWealth().simTotal;
+  const STEP = 1000000;
+  const CASH_MIN = 2000000; // 手元現金の下限
+  const cashMax = Math.floor(simTotal / STEP) * STEP;
+  if (cashMax < CASH_MIN) {
+    status.innerText = '運用対象の総資産が手元現金の下限（200万円）に満たないため、探索できません。';
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+  resultEl.innerHTML = '';
+  status.innerText = '探索を開始します…';
+
+  const cashValues = [];
+  for (let c = CASH_MIN; c <= cashMax; c += STEP) cashValues.push(c);
+
+  const qualified = [];   // 全開始年で枯渇しなかった組み合わせ
+  let bestFallback = null; // 条件を満たす組み合わせが無い場合の参考（枯渇した開始年が最少）
+  let comboCount = 0;
+
+  for (let ci = 0; ci < cashValues.length; ci++) {
+    const cash = cashValues[ci];
+    const investable = Math.max(0, simTotal - cash);
+    const bondMax = Math.floor(investable / STEP) * STEP;
+    for (let bond = 0; bond <= bondMax; bond += STEP) {
+      const invest = investable - bond;
+      let worst = Infinity;
+      let worstYear = null;
+      const finals = [];
+      let depletionCount = 0;
+      for (let sy = 1900; sy <= 1993; sy++) {
+        const r = runScenarioCore(bond, invest, sy, retireAge, monthlyWithdraw, pensionStartAge);
+        if (r.depletionAge !== null) depletionCount++;
+        const fin = r.finalBond + r.finalInvest + cash; // 手元現金は額面のまま85歳時点の資産に含める
+        finals.push(fin);
+        if (fin < worst) { worst = fin; worstYear = sy; }
+      }
+      finals.sort((a, b) => a - b);
+      const median = (finals[46] + finals[47]) / 2; // 94件の中央値
+      const entry = { cash: cash, bond: bond, invest: invest, worst: worst, worstYear: worstYear, median: median, depletionCount: depletionCount };
+      comboCount++;
+      if (depletionCount === 0) qualified.push(entry);
+      if (!bestFallback || entry.depletionCount < bestFallback.depletionCount ||
+          (entry.depletionCount === bestFallback.depletionCount && entry.worst > bestFallback.worst)) {
+        bestFallback = entry;
+      }
+    }
+    status.innerText = `探索中… 手元現金 ${Math.round(cash / 10000)}万円の組み合わせまで評価済み（${ci + 1}／${cashValues.length}段階）`;
+    await new Promise(r => setTimeout(r, 0)); // 画面の固まり防止と進捗表示の更新
+  }
+
+  // 最悪ケースの大きさ順（同点なら中央値の大きい方を上位に）
+  qualified.sort((a, b) => (b.worst - a.worst) || (b.median - a.median));
+  optimizerResults = qualified.slice(0, 5);
+
+  const fmt = v => `${Math.round(v / 10000).toLocaleString()}万円`;
+  if (optimizerResults.length > 0) {
+    let html = `<div style="font-size: 12px; font-weight: bold; color: #2d3748; margin-bottom: 6px;">🏆 ランキング（全${comboCount}通りのうち、枯渇ゼロは${qualified.length}通り）― 最悪ケースの85歳資産が大きい順</div>`;
+    html += `<table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+      <thead><tr style="background: #edf2f7; color: #4a5568;">
+        <th style="border: 1px solid #e2e8f0; padding: 6px;">順位</th>
+        <th style="border: 1px solid #e2e8f0; padding: 6px;">手元現金</th>
+        <th style="border: 1px solid #e2e8f0; padding: 6px;">国債</th>
+        <th style="border: 1px solid #e2e8f0; padding: 6px;">投信</th>
+        <th style="border: 1px solid #e2e8f0; padding: 6px;">最悪の開始年</th>
+        <th style="border: 1px solid #e2e8f0; padding: 6px;">85歳資産（最悪ケース）</th>
+        <th style="border: 1px solid #e2e8f0; padding: 6px;">85歳資産（中央値・参考）</th>
+        <th style="border: 1px solid #e2e8f0; padding: 6px;">スライダーへ</th>
+      </tr></thead><tbody>`;
+    optimizerResults.forEach((e, i) => {
+      html += `<tr style="${i === 0 ? 'background: #faf5ff; font-weight: bold;' : ''}">
+        <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: center;">${i + 1}位</td>
+        <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: right; font-family: monospace;">${fmt(e.cash)}</td>
+        <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: right; font-family: monospace;">${fmt(e.bond)}</td>
+        <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: right; font-family: monospace;">${fmt(e.invest)}</td>
+        <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: center; font-family: monospace;">${e.worstYear}年</td>
+        <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: right; font-family: monospace; color: #2b6cb0;">${fmt(e.worst)}</td>
+        <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: right; font-family: monospace; color: #718096;">${fmt(e.median)}</td>
+        <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: center;"><button class="action-btn btn-blue" onclick="applyOptimizerCombo(${i})" style="font-size: 11px; padding: 4px 10px;">適用</button></td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+    html += `<div style="font-size: 11px; color: #718096; margin-top: 6px;">※85歳資産には手元現金を額面のまま含みます。1位の組み合わせは自動でスライダーに反映済みです。他の順位は「適用」でいつでも切り替えられます。表本体の推移は、開始年スライダーで選んでいる年のものです。</div>`;
+    resultEl.innerHTML = html;
+    applyOptimizerCombo(0);
+    status.innerText = `探索が完了しました（全${comboCount}通りを評価）。1位の組み合わせをスライダーに反映しました。`;
+  } else {
+    optimizerResults = [];
+    let html = `<div style="font-size: 12.5px; color: #c53030; font-weight: bold; background: #fff5f5; border: 1px solid #feb2b2; border-radius: 6px; padding: 10px 12px;">条件を満たす組み合わせがありませんでした。全${comboCount}通りのすべてが、いずれかの開始年で85歳までに枯渇します。</div>`;
+    if (bestFallback) {
+      html += `<div style="font-size: 11.5px; color: #4a5568; margin-top: 8px;">参考（条件外）：枯渇する開始年が最も少なかったのは、現金 ${fmt(bestFallback.cash)}／国債 ${fmt(bestFallback.bond)}／投信 ${fmt(bestFallback.invest)} で、94開始年中 ${bestFallback.depletionCount} 通りで枯渇しました。スライダーへの自動反映はしていません。</div>`;
+    }
+    resultEl.innerHTML = html;
+    status.innerText = '探索が完了しましたが、条件を満たす組み合わせはありませんでした。';
+  }
+
+  if (btn) { btn.disabled = false; btn.style.opacity = '1.0'; }
 }
 
 // 史上最悪年ジャンプ
