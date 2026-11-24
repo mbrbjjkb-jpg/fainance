@@ -4195,7 +4195,7 @@ function renderOptimizerConditions() {
   const pensionStartAge = elPension && elPension.value ? parseInt(elPension.value) : 65;
   const sim = getSimulationWealth();
   el.innerHTML = `探索条件：①年齢 ${currentAge}歳・②退職時期 ${retireYears}年後・③生活費 毎月手取り ${Math.round(monthlyWithdraw / 10000)}万円・④年金開始 ${pensionStartAge}歳 は手動設定（現在の値）を使用します。仮想通貨は${sim.excluded ? '運用から除外したまま' : '運用に含めたまま'}計算します。<br>`
-    + `手元現金は200万円を下限とし、100万円刻みで探索します。初年度の生活費は手元現金から支払い、2年目に国債・投信から補填する計算で評価します。国債化（利確）プランは探索に含めません。開始年は現在のスライダー位置を無視し、1900〜1993年の全94通りで評価します。いずれかの開始年で85歳までに資産が枯渇する組み合わせは除外し、残りの中で「85歳時点の資産（国債＋投信＋手元現金）が最悪の開始年でも最も大きくなる」組み合わせを正とします（85歳資産の平均・中央値の最大化ではありません）。`;
+    + `手元現金は200万円を下限とし、100万円刻みで探索します。初年度の生活費は手元現金から支払い、2年目に国債・投信から補填する計算で評価します。あわせて、リターンを一律−1%・−2%下げた世界でも全組み合わせを評価する感度テストを、結果の下に表示します。国債化（利確）プランは探索に含めません。開始年は現在のスライダー位置を無視し、1900〜1993年の全94通りで評価します。いずれかの開始年で85歳までに資産が枯渇する組み合わせは除外し、残りの中で「85歳時点の資産（国債＋投信＋手元現金）が最悪の開始年でも最も大きくなる」組み合わせを正とします（85歳資産の平均・中央値の最大化ではありません）。`;
 }
 
 // 二刀流シミュレーション実行エンジン
@@ -4462,7 +4462,7 @@ function runScenarioCore(bondInit, investInit, cashHold, startYear, retireAge, b
       }
     }
 
-    const returnRate = getBlendedReturn(historyYear);
+    const returnRate = getBlendedReturn(historyYear) + scenarioReturnShift; // 感度テスト時は一律シフトが乗る
 
     // 生活費（インフレ年2.0%増額）と年金（マクロ経済スライド年1.6%）の差額が実質引き出し額
     const annualExpense = baseExpenseMonthly * Math.pow(1.02, y) * 12;
@@ -4503,6 +4503,7 @@ function runScenarioCore(bondInit, investInit, cashHold, startYear, retireAge, b
 }
 
 let optimizerResults = []; // ランキング上位の組み合わせを保持（行ボタンからの適用に使う）
+let scenarioReturnShift = 0; // 感度テスト用：探索コアの年次リターンへの一律シフト（本体シミュレーションでは使わない）
 
 // 適用中の組み合わせについて、85歳資産の分布ヒストグラムを描く
 function renderOptimizerHistogram(idx) {
@@ -4551,6 +4552,128 @@ function applyOptimizerCombo(idx) {
   renderOptimizerHistogram(idx);
   const status = document.getElementById('er-opt-status');
   if (status) status.innerText = `${idx + 1}位の組み合わせをスライダーに反映しました（現金 ${Math.round(e.cash / 10000)}万円／国債 ${Math.round(e.bond / 10000)}万円／投信 ${Math.round(e.invest / 10000)}万円）。`;
+}
+
+// 1つの組み合わせを全開始年で評価する（感度テストと共通利用）
+function evaluateComboAllYears(bond, invest, cash, retireAge, monthlyWithdraw, pensionStartAge) {
+  let worst = Infinity;
+  let worstYear = null;
+  const finals = [];
+  let depletionCount = 0;
+  for (let sy = 1900; sy <= 1993; sy++) {
+    const r = runScenarioCore(bond, invest, cash, sy, retireAge, monthlyWithdraw, pensionStartAge);
+    if (r.depletionAge !== null) depletionCount++;
+    const fin = r.finalBond + r.finalInvest + r.finalCash;
+    finals.push(fin);
+    if (fin < worst) { worst = fin; worstYear = sy; }
+  }
+  finals.sort((a, b) => a - b);
+  const median = (finals[46] + finals[47]) / 2;
+  return { worst: worst, worstYear: worstYear, median: median, depletionCount: depletionCount, finals: finals };
+}
+
+// 感度テスト：リターンを一律 −1%・−2% 下げた世界でも全組み合わせを評価し、
+// 「その世界の1位」と「基準の上位5件がその世界でも崩れないか」を表示する
+async function runSensitivityAnalysis(params, baselineQualifiedCount) {
+  const el = document.getElementById('er-opt-sensitivity');
+  const status = document.getElementById('er-opt-status');
+  if (!el) return;
+  const STEP = 1000000;
+  const CASH_MIN = 2000000;
+  const cashMax = Math.floor(params.simTotal / STEP) * STEP;
+  const cashValues = [];
+  for (let c = CASH_MIN; c <= cashMax; c += STEP) cashValues.push(c);
+  const fmt = v => `${Math.round(v / 10000).toLocaleString()}万円`;
+  const comboText = e => `現金 ${fmt(e.cash)}／国債 ${fmt(e.bond)}／投信 ${fmt(e.invest)}`;
+
+  const shifts = [-0.01, -0.02];
+  const summaries = []; // 世界ごとの {shift, qualifiedCount, best}
+  const robustness = optimizerResults.map(e => ({ entry: e, byShift: [] }));
+
+  for (const shift of shifts) {
+    scenarioReturnShift = shift;
+    let qualifiedCount = 0;
+    let best = null;
+    for (let ci = 0; ci < cashValues.length; ci++) {
+      const cash = cashValues[ci];
+      const investable = Math.max(0, params.simTotal - cash);
+      const bondMax = Math.floor(investable / STEP) * STEP;
+      for (let bond = 0; bond <= bondMax; bond += STEP) {
+        const invest = investable - bond;
+        const ev = evaluateComboAllYears(bond, invest, cash, params.retireAge, params.monthlyWithdraw, params.pensionStartAge);
+        if (ev.depletionCount === 0) {
+          qualifiedCount++;
+          if (!best || ev.worst > best.worst || (ev.worst === best.worst && ev.median > best.median)) {
+            best = { cash: cash, bond: bond, invest: invest, worst: ev.worst, median: ev.median };
+          }
+        }
+      }
+      if (status) status.innerText = `感度テスト中… リターン${Math.round(shift * 100)}%の世界を評価中（${ci + 1}／${cashValues.length}段階）`;
+      await new Promise(r => setTimeout(r, 0));
+    }
+    // 基準の上位5件が、この世界でも持ちこたえるか
+    robustness.forEach(rb => {
+      const e = rb.entry;
+      const ev = evaluateComboAllYears(e.bond, e.invest, e.cash, params.retireAge, params.monthlyWithdraw, params.pensionStartAge);
+      rb.byShift.push({ shift: shift, worst: ev.worst, depletionCount: ev.depletionCount });
+    });
+    scenarioReturnShift = 0; // 本体シミュレーションへ漏らさないよう必ず戻す
+    summaries.push({ shift: shift, qualifiedCount: qualifiedCount, best: best });
+  }
+  scenarioReturnShift = 0;
+
+  let html = `<div style="font-size: 12px; font-weight: bold; color: #2d3748; margin-bottom: 6px;">🧪 感度テスト（リターンを一律下げた世界 ― 未来が過去より悪かった場合）</div>`;
+  html += `<table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+    <thead><tr style="background: #fffaf0; color: #4a5568;">
+      <th style="border: 1px solid #e2e8f0; padding: 6px;">世界</th>
+      <th style="border: 1px solid #e2e8f0; padding: 6px;">枯渇ゼロの組み合わせ</th>
+      <th style="border: 1px solid #e2e8f0; padding: 6px;">その世界での1位</th>
+      <th style="border: 1px solid #e2e8f0; padding: 6px;">1位の最悪ケース</th>
+    </tr></thead><tbody>`;
+  const baseTop = optimizerResults[0];
+  html += `<tr>
+    <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: center; font-weight: bold;">基準（過去データどおり）</td>
+    <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: center; font-family: monospace;">${baselineQualifiedCount}通り</td>
+    <td style="border: 1px solid #e2e8f0; padding: 6px; font-family: monospace;">${baseTop ? comboText(baseTop) : '該当なし'}</td>
+    <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: right; font-family: monospace;">${baseTop ? fmt(baseTop.worst) : '-'}</td>
+  </tr>`;
+  summaries.forEach(sm => {
+    html += `<tr>
+      <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: center; font-weight: bold;">リターン ${Math.round(sm.shift * 100)}%／年</td>
+      <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: center; font-family: monospace;">${sm.qualifiedCount}通り</td>
+      <td style="border: 1px solid #e2e8f0; padding: 6px; font-family: monospace;">${sm.best ? comboText(sm.best) : '該当なし（全組み合わせがどこかで枯渇）'}</td>
+      <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: right; font-family: monospace;">${sm.best ? fmt(sm.best.worst) : '-'}</td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+
+  if (robustness.length > 0) {
+    html += `<div style="font-size: 12px; font-weight: bold; color: #2d3748; margin: 12px 0 6px 0;">基準の上位5件は、下げた世界でも持ちこたえるか</div>`;
+    html += `<table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+      <thead><tr style="background: #fffaf0; color: #4a5568;">
+        <th style="border: 1px solid #e2e8f0; padding: 6px;">順位（組み合わせ）</th>
+        <th style="border: 1px solid #e2e8f0; padding: 6px;">基準の最悪ケース</th>
+        <th style="border: 1px solid #e2e8f0; padding: 6px;">−1%の世界での最悪ケース</th>
+        <th style="border: 1px solid #e2e8f0; padding: 6px;">−2%の世界での最悪ケース</th>
+      </tr></thead><tbody>`;
+    robustness.forEach((rb, i) => {
+      const cell = sh => {
+        const r = rb.byShift.find(x => x.shift === sh);
+        if (!r) return '-';
+        if (r.depletionCount > 0) return `<span style="color: #c53030; font-weight: bold;">${fmt(r.worst)}（⚠ ${r.depletionCount}通りで枯渇）</span>`;
+        return fmt(r.worst);
+      };
+      html += `<tr style="${i === 0 ? 'background: #faf5ff; font-weight: bold;' : ''}">
+        <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: center;">${i + 1}位（${comboText(rb.entry)}）</td>
+        <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: right; font-family: monospace;">${fmt(rb.entry.worst)}</td>
+        <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: right; font-family: monospace;">${cell(-0.01)}</td>
+        <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: right; font-family: monospace;">${cell(-0.02)}</td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+  }
+  html += `<div style="font-size: 11px; color: #718096; margin-top: 6px;">※感度テストは探索専用の計算です。上の表（本体シミュレーション）の数値には影響しません。下げ幅は、過去データから見積もった31年平均リターンの統計誤差（約±2.4%）の内側にあります。</div>`;
+  el.innerHTML = html;
 }
 
 // 探索の実行本体：全開始年×現金×配分を総当たりし、最悪ケースが最も悪くならない順に並べる
@@ -4683,17 +4806,23 @@ async function runWorstCaseOptimizer() {
     });
     html += `</tbody></table>`;
     html += `<div id="er-opt-hist" style="margin-top: 14px;"></div>`;
+    html += `<div id="er-opt-sensitivity" style="margin-top: 14px;"></div>`;
     resultEl.innerHTML = html;
     applyOptimizerCombo(0);
-    status.innerText = `探索が完了しました（全${comboCount}通りを評価）。1位の組み合わせをスライダーに反映しました。`;
+    status.innerText = `探索が完了しました（全${comboCount}通りを評価）。1位の組み合わせをスライダーに反映しました。続いて感度テストを行います…`;
+    await runSensitivityAnalysis({ retireAge: retireAge, monthlyWithdraw: monthlyWithdraw, pensionStartAge: pensionStartAge, simTotal: simTotal }, qualified.length);
+    status.innerText = `探索と感度テストが完了しました（全${comboCount}通りを評価）。1位の組み合わせをスライダーに反映しました。`;
   } else {
     optimizerResults = [];
     let html = `<div style="font-size: 12.5px; color: #c53030; font-weight: bold; background: #fff5f5; border: 1px solid #feb2b2; border-radius: 6px; padding: 10px 12px;">条件を満たす組み合わせがありませんでした。全${comboCount}通りのすべてが、いずれかの開始年で85歳までに枯渇します。</div>`;
     if (bestFallback) {
       html += `<div style="font-size: 11.5px; color: #4a5568; margin-top: 8px;">参考（条件外）：枯渇する開始年が最も少なかったのは、現金 ${fmt(bestFallback.cash)}／国債 ${fmt(bestFallback.bond)}／投信 ${fmt(bestFallback.invest)} で、94開始年中 ${bestFallback.depletionCount} 通りで枯渇しました。スライダーへの自動反映はしていません。</div>`;
     }
+    html += `<div id="er-opt-sensitivity" style="margin-top: 14px;"></div>`;
     resultEl.innerHTML = html;
-    status.innerText = '探索が完了しましたが、条件を満たす組み合わせはありませんでした。';
+    status.innerText = '探索が完了しましたが、条件を満たす組み合わせはありませんでした。続いて感度テストを行います…';
+    await runSensitivityAnalysis({ retireAge: retireAge, monthlyWithdraw: monthlyWithdraw, pensionStartAge: pensionStartAge, simTotal: simTotal }, 0);
+    status.innerText = '探索と感度テストが完了しましたが、条件を満たす組み合わせはありませんでした。';
   }
 
   if (btn) { btn.disabled = false; btn.style.opacity = '1.0'; }
