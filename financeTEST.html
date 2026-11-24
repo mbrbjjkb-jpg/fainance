@@ -4156,7 +4156,7 @@ function calculateEarlyRetireTable() {
           ${Math.round(cashHold / 10000).toLocaleString()} 万円
         </div>
         <div style="font-size: 11px; color: #718096; margin-top: 2px;">
-          ※運用・生活費の対象外として手元に温存（総資産比 ${cashRatio}%）
+          ※初年度の生活費を立て替え、2年目に国債・投信から補填して元の額を維持（総資産比 ${cashRatio}%）
         </div>
       </div>
     `;
@@ -4167,7 +4167,8 @@ function calculateEarlyRetireTable() {
   if (ruleDesc) {
     ruleDesc.innerHTML = `
       🛡 <strong>適用中のリアル老後ルール:</strong><br>
-      ・手元現金：設定額を完全温存し、運用の引き去り・合計総資産から除外します。<br>
+      ・手元現金：設定額を温存し、運用の引き去り・合計総資産から除外します。<br>
+      ・初年度の生活費：手元現金から先に支払い、2年目の初めに減った分を国債→投信の順で補填して、現金を元の額に戻します。<br>
       ・仮想通貨：${cryptoExcluded ? '「運用から除外」がONのため、運用原資・表の合計総資産に含めません。騰落が激しい分は将来の上昇期待として温存します' : '「運用から除外」がOFFのため、運用原資に含めて計算します'}。<br>
       ・生活費：初年度 ${(monthlyWithdraw / 10000)}万円（毎年2.0%インフレ増額）<br>
       ・公的年金：マクロ経済スライド（改定率年1.6%）による目減りを反映。<br>
@@ -4194,7 +4195,7 @@ function renderOptimizerConditions() {
   const pensionStartAge = elPension && elPension.value ? parseInt(elPension.value) : 65;
   const sim = getSimulationWealth();
   el.innerHTML = `探索条件：①年齢 ${currentAge}歳・②退職時期 ${retireYears}年後・③生活費 毎月手取り ${Math.round(monthlyWithdraw / 10000)}万円・④年金開始 ${pensionStartAge}歳 は手動設定（現在の値）を使用します。仮想通貨は${sim.excluded ? '運用から除外したまま' : '運用に含めたまま'}計算します。<br>`
-    + `手元現金は200万円を下限とし、100万円刻みで探索します。国債化（利確）プランは探索に含めません。開始年は現在のスライダー位置を無視し、1900〜1993年の全94通りで評価します。いずれかの開始年で85歳までに資産が枯渇する組み合わせは除外し、残りの中で「85歳時点の資産（国債＋投信＋手元現金）が最悪の開始年でも最も大きくなる」組み合わせを正とします（85歳資産の平均・中央値の最大化ではありません）。`;
+    + `手元現金は200万円を下限とし、100万円刻みで探索します。初年度の生活費は手元現金から支払い、2年目に国債・投信から補填する計算で評価します。国債化（利確）プランは探索に含めません。開始年は現在のスライダー位置を無視し、1900〜1993年の全94通りで評価します。いずれかの開始年で85歳までに資産が枯渇する組み合わせは除外し、残りの中で「85歳時点の資産（国債＋投信＋手元現金）が最悪の開始年でも最も大きくなる」組み合わせを正とします（85歳資産の平均・中央値の最大化ではありません）。`;
 }
 
 // 二刀流シミュレーション実行エンジン
@@ -4244,6 +4245,8 @@ function runSimulation() {
   const targetAge = 85;
   const loopYears = Math.max(1, targetAge - retireAge);
   const BOND_RATE = 0.01; // 国債利息：1.0%
+  let cashBalance = cashHold;   // 手元現金の残高（初年度の生活費を立て替える）
+  let firstYearCashDraw = 0;    // 初年度に現金から支払った額（2年目に補填する）
 
   for (let y = 0; y <= loopYears; y++) {
     const age = retireAge + y;
@@ -4256,9 +4259,23 @@ function runSimulation() {
         expenseText: "0 円", bondInterest: 0,
         bond: Math.round(bond), invest: Math.round(invest),
         availableInvest: Math.round(invest), convertedAmount: 0,
+        cash: Math.round(cashBalance),
         total: Math.round(bond + invest) // ★手元現金は含めず、国債+投信のみ
       });
       continue;
+    }
+
+    // 0. 2年目の初め：初年度に現金から立て替えた分を、国債→投信の順で補填して現金を元の額に戻す
+    if (y === 2 && firstYearCashDraw > 0) {
+      let need = cashHold - cashBalance;
+      if (need > 0) {
+        const fromBond = Math.min(Math.max(bond, 0), need);
+        bond -= fromBond; cashBalance += fromBond; need -= fromBond;
+        if (need > 0) {
+          const fromInvest = Math.min(Math.max(invest, 0), need);
+          invest -= fromInvest; cashBalance += fromInvest; need -= fromInvest;
+        }
+      }
     }
 
     // 1. その年の生活費（インフレ年2.0%増額）
@@ -4295,8 +4312,15 @@ function runSimulation() {
     const bondInterest = Math.round(bond * BOND_RATE);
     bond += bondInterest;
 
-    // 6. 生活費の支払い（国債から引き去り）
-    bond -= netWithdraw;
+    // 6. 生活費の支払い（初年度は手元現金から先に支払い、残りを国債から引き去り）
+    let remainingWithdraw = netWithdraw;
+    if (y === 1 && remainingWithdraw > 0 && cashBalance > 0) {
+      const fromCash = Math.min(cashBalance, remainingWithdraw);
+      cashBalance -= fromCash;
+      firstYearCashDraw = fromCash;
+      remainingWithdraw -= fromCash;
+    }
+    bond -= remainingWithdraw;
 
     // 枯渇判定（国債が底をついた場合のみ投信から穴埋め）
     if (bond < 0) {
@@ -4318,6 +4342,7 @@ function runSimulation() {
       expenseText: expenseText, bondInterest: bondInterest,
       bond: Math.round(bond), invest: Math.round(invest),
       availableInvest: availableInvest, convertedAmount: convertedAmount,
+      cash: Math.round(cashBalance),
       total: Math.round(bond + invest) // ★手元現金は含めず、国債+投信のみ
     });
   }
@@ -4375,7 +4400,7 @@ function runSimulation() {
           ${log.invest.toLocaleString()} 円
         </td>
         <td style="border: 1px solid #e2e8f0; padding: 4px 2px; text-align: right; font-family: monospace; font-weight: bold; color: #2d3748; white-space: nowrap;">
-          ${log.total.toLocaleString()} 円
+          ${log.total.toLocaleString()} 円${(log.cash !== undefined && log.cash < cashHold) ? `<br><span style="font-size: 8.5px; color: #805ad5; font-weight: normal;">現金残 ${Math.round(log.cash / 10000)}万円（2年目に補填）</span>` : ''}
         </td>
         <td style="border: 1px solid #e2e8f0; padding: 4px 3px; text-align: center; white-space: nowrap;">${convertCellHtml}</td>
       </tr>
@@ -4410,9 +4435,11 @@ function runSimulation() {
 // ★組み合わせ探索（最悪ケース回避）
 // ==========================================
 // 既存シミュレーションと同一の計算式で、DOMや国債化プランに触れずに1シナリオを計算する
-function runScenarioCore(bondInit, investInit, startYear, retireAge, baseExpenseMonthly, pensionStartAge) {
+function runScenarioCore(bondInit, investInit, cashHold, startYear, retireAge, baseExpenseMonthly, pensionStartAge) {
   let bond = bondInit;
   let invest = investInit;
+  let cashBalance = cashHold;
+  let firstYearCashDraw = 0;
   let depletionAge = null;
   const targetAge = 85;
   const loopYears = Math.max(1, targetAge - retireAge);
@@ -4421,6 +4448,20 @@ function runScenarioCore(bondInit, investInit, startYear, retireAge, baseExpense
   for (let y = 1; y <= loopYears; y++) {
     const age = retireAge + y;
     const historyYear = startYear + y;
+
+    // 2年目の初め：初年度に現金から立て替えた分を、国債→投信の順で補填する
+    if (y === 2 && firstYearCashDraw > 0) {
+      let need = cashHold - cashBalance;
+      if (need > 0) {
+        const fromBond = Math.min(Math.max(bond, 0), need);
+        bond -= fromBond; cashBalance += fromBond; need -= fromBond;
+        if (need > 0) {
+          const fromInvest = Math.min(Math.max(invest, 0), need);
+          invest -= fromInvest; cashBalance += fromInvest; need -= fromInvest;
+        }
+      }
+    }
+
     const returnRate = getBlendedReturn(historyYear);
 
     // 生活費（インフレ年2.0%増額）と年金（マクロ経済スライド年1.6%）の差額が実質引き出し額
@@ -4432,10 +4473,17 @@ function runScenarioCore(bondInit, investInit, startYear, retireAge, baseExpense
     }
     const netWithdraw = annualExpense - pensionAnnual;
 
-    // 投信の運用損益 → 国債利息 → 生活費を国債から支払い（底をついたら投信で穴埋め）
+    // 投信の運用損益 → 国債利息 → 生活費の支払い（初年度は現金から先に、残りは国債。底をついたら投信で穴埋め）
     invest += invest * returnRate;
     bond += Math.round(bond * BOND_RATE);
-    bond -= netWithdraw;
+    let remainingWithdraw = netWithdraw;
+    if (y === 1 && remainingWithdraw > 0 && cashBalance > 0) {
+      const fromCash = Math.min(cashBalance, remainingWithdraw);
+      cashBalance -= fromCash;
+      firstYearCashDraw = fromCash;
+      remainingWithdraw -= fromCash;
+    }
+    bond -= remainingWithdraw;
     if (bond < 0) {
       if (invest > 0) {
         invest += bond;
@@ -4451,7 +4499,7 @@ function runScenarioCore(bondInit, investInit, startYear, retireAge, baseExpense
     }
     if (depletionAge !== null) break;
   }
-  return { finalBond: Math.round(bond), finalInvest: Math.round(invest), depletionAge: depletionAge };
+  return { finalBond: Math.round(bond), finalInvest: Math.round(invest), finalCash: Math.round(cashBalance), depletionAge: depletionAge };
 }
 
 let optimizerResults = []; // ランキング上位の組み合わせを保持（行ボタンからの適用に使う）
@@ -4524,9 +4572,9 @@ async function runWorstCaseOptimizer() {
       const finals = [];
       let depletionCount = 0;
       for (let sy = 1900; sy <= 1993; sy++) {
-        const r = runScenarioCore(bond, invest, sy, retireAge, monthlyWithdraw, pensionStartAge);
+        const r = runScenarioCore(bond, invest, cash, sy, retireAge, monthlyWithdraw, pensionStartAge);
         if (r.depletionAge !== null) depletionCount++;
-        const fin = r.finalBond + r.finalInvest + cash; // 手元現金は額面のまま85歳時点の資産に含める
+        const fin = r.finalBond + r.finalInvest + r.finalCash; // 手元現金（補填後の残高）を85歳時点の資産に含める
         finals.push(fin);
         if (fin < worst) { worst = fin; worstYear = sy; }
       }
@@ -4569,13 +4617,13 @@ async function runWorstCaseOptimizer() {
         <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: right; font-family: monospace;">${fmt(e.bond)}</td>
         <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: right; font-family: monospace;">${fmt(e.invest)}</td>
         <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: center; font-family: monospace;">${e.worstYear}年</td>
-        <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: right; font-family: monospace; color: #2b6cb0;">${fmt(e.worst)}</td>
-        <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: right; font-family: monospace; color: #718096;">${fmt(e.median)}</td>
+        <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: right; font-family: monospace; color: #2b6cb0;">${fmt(e.worst)}<br><span style="font-size: 10px; color: #718096; font-weight: normal;">（運用 ${fmt(e.worst - e.cash)}＋現金 ${fmt(e.cash)}）</span></td>
+        <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: right; font-family: monospace; color: #718096;">${fmt(e.median)}<br><span style="font-size: 10px; font-weight: normal;">（運用 ${fmt(e.median - e.cash)}＋現金 ${fmt(e.cash)}）</span></td>
         <td style="border: 1px solid #e2e8f0; padding: 6px; text-align: center;"><button class="action-btn btn-blue" onclick="applyOptimizerCombo(${i})" style="font-size: 11px; padding: 4px 10px;">適用</button></td>
       </tr>`;
     });
     html += `</tbody></table>`;
-    html += `<div style="font-size: 11px; color: #718096; margin-top: 6px;">※85歳資産には手元現金を額面のまま含みます。1位の組み合わせは自動でスライダーに反映済みです。他の順位は「適用」でいつでも切り替えられます。表本体の推移は、開始年スライダーで選んでいる年のものです。</div>`;
+    html += `<div style="font-size: 11px; color: #718096; margin-top: 6px;">※85歳資産には手元現金を額面のまま含みます。内訳の「運用」は国債＋投信で、上の表の「合計総資産」と一致します（上の表には手元現金が含まれません）。1位の組み合わせは自動でスライダーに反映済みです。他の順位は「適用」でいつでも切り替えられます。表本体の推移は、開始年スライダーで選んでいる年のものです。</div>`;
     resultEl.innerHTML = html;
     applyOptimizerCombo(0);
     status.innerText = `探索が完了しました（全${comboCount}通りを評価）。1位の組み合わせをスライダーに反映しました。`;
