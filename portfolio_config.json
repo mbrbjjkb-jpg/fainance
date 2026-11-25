@@ -7,11 +7,10 @@
       "periodText": "2016/06-2026/06"
     },
     "saison": {
-      "units": 85.7,
-      "purchasePrice": 17046,
+      "units": 85.3,
+      "purchasePrice": 16993,
       "monthlyInvest": 10000,
-      "periodText": "2017/05-",
-      "lastUpdated": "2026年11月25日"
+      "periodText": "2017/05-"
     },
     "vti_new": {
       "units": 36.6,
@@ -127,8 +126,8 @@
         "purchasePrice": 53919
       },
       "saison": {
-        "units": 85.7,
-        "purchasePrice": 17046
+        "units": 85.3,
+        "purchasePrice": 16993
       },
       "vti_new": {
         "units": 36.6,
@@ -143,5 +142,33 @@
         "purchasePrice": 19834
       }
     }
+  },
+  "otherAssets": {
+    "cash": [
+      {
+        "name": "普通預金",
+        "amount": 3323525
+      },
+      {
+        "name": "封筒",
+        "amount": 1340000
+      }
+    ],
+    "usd": {
+      "amount": 9923,
+      "rate": 162.58
+    },
+    "crypto": [
+      {
+        "name": "BNB",
+        "amount": 21.18,
+        "rate": 85197
+      },
+      {
+        "name": "BLZ",
+        "amount": 150272,
+        "rate": 1.022
+      }
+    ]
   }
 }
